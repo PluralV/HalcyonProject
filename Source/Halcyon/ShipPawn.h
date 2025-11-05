@@ -89,7 +89,7 @@ protected:
 	//
 
 	//ARRAYS FOR STORING SYSTEMS
-
+	
 
 	//Engine settings
 	UPROPERTY()
