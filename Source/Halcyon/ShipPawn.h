@@ -9,6 +9,7 @@
 
 class UInputMappingContext;
 class UInputAction;
+class UShipPawnMovementComponent;
 
 
 UCLASS(Blueprintable, BlueprintType)
@@ -23,11 +24,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USkeletalMeshComponent* ShipMesh;
 
-	/*UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	USpaceshipMovementComponent* MovementComponent;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	USpaceshipThrustComponent* ThrustComponent;*/
+	UShipPawnMovementComponent* MovementComponent;
 
 protected:
 	// Called when the game starts or when spawned
