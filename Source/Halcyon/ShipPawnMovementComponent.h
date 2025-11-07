@@ -16,7 +16,6 @@ class HALCYON_API UShipPawnMovementComponent : public UPawnMovementComponent
 
 public:
     UShipPawnMovementComponent();
-    UShipPawnMovementComponent(float PitchRate, float YawRate, float SpeedConstant, float ThrustConstant);
     UFUNCTION(BlueprintCallable)
     void AddThrustInput(float ThrottleValue);
 

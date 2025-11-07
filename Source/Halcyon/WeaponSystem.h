@@ -13,5 +13,5 @@ UCLASS()
 class HALCYON_API AWeaponSystem : public AModularSystem
 {
 	GENERATED_BODY()
-	
+
 };

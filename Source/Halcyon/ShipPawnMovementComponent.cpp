@@ -3,17 +3,9 @@
 
 #include "ShipPawnMovementComponent.h"
 
-UShipPawnMovementComponent::UShipPawnMovementComponent(
-    float PitchRate, 
-    float YawRate, 
-    float SpeedConstant, 
-    float ThrustConstant) {
+UShipPawnMovementComponent::UShipPawnMovementComponent() {
     //IMPLEMENT
     //
-}
-
-UShipPawnMovementComponent::UShipPawnMovementComponent() {
-    Super();
 }
 
 void UShipPawnMovementComponent::TickComponent(float DeltaTime, 
