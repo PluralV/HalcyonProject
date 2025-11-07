@@ -22,7 +22,15 @@ void UShipPawnMovementComponent::AddThrustInput(float ThrottleValue) {
 
 }
 
+void UShipPawnMovementComponent::SetThrustInput(float ThrustValue) {
+    CurrentVelocity = CurrentVelocity.GetSafeNormal() * ThrustValue;
+}
+
 void UShipPawnMovementComponent::AddRotationalInput(FVector RotationInput) {
 
+}
+
+void UShipPawnMovementComponent::SetRotationalInput(FRotator Rotator) {
+    AngularVelocity = Rotator;
 }
 
