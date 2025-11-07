@@ -21,8 +21,7 @@ public:
 	// Sets default values for this pawn's properties
 	AShipPawn();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	USkeletalMeshComponent* ShipMesh;
+	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UShipPawnMovementComponent* MovementComponent;
@@ -39,16 +38,13 @@ protected:
 	UInputAction* ThrottleAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputAction* PitchAction;
+	UInputAction* SteerAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* LookAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* DecelerateAction;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputAction* YawAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* TargetAction;
@@ -80,28 +76,36 @@ protected:
 	
 	//Energy stats: The total amount of energy generated is the total integer sum of these
 	//Curr values indicate the current number remaining (initialised to the same amount as the base)
+	UPROPERTY(BlueprintReadWrite, Category = "Base System Stats")
 	int32 LeftEng = 16;
 	int32 LeftEngCurr = 0;
+	UPROPERTY(BlueprintReadWrite, Category = "Base System Stats")
 	int32 RightEng = 16;
 	int32 RightEngCurr = 0;
+	UPROPERTY(BlueprintReadWrite, Category = "Base System Stats")
 	int32 CenterEng = 0;
 	int32 CenterEngCurr = 0;
+	UPROPERTY(BlueprintReadWrite, Category = "Base System Stats")
 	int32 PowerReactor = 4;
 	int32 PowerReactorCurr = 0;
-	//
+	
 
 	//ARRAYS FOR STORING SYSTEMS
 	
 
 	//Engine settings
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
 	float SpeedLimit = 1750.f;
+	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
 	float CurrentThrottle = 0.f;
-	const float DefaultSpeedLimit = 1750.f;
+
 	//Maneuverability
+	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
 	float PitchRate = 20.f;
+	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
 	float YawRate = 20.f;
 	//Top speed, multiplied by amount of energy allocated to movement to get the maximum velocity (magnitude)
+	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
 	float SpeedConstant = 20.f;
 	
 	
@@ -118,6 +122,21 @@ private:
 	//Power allocated to base non-external systems
 	int32 MovementEnergy = 0;
 
+	//Used for ticking
 	FVector CurrentVelocity;
 	FRotator AngularVelocity;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	class USpringArmComponent* SpringArm;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	class UCameraComponent* Camera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mesh", meta = (AllowPrivateAccess = "true"))
+	UStaticMeshComponent* ShipMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mesh", meta = (AllowPrivateAccess = "true"))
+	UStaticMeshComponent* HullMesh;
+
+
 };
