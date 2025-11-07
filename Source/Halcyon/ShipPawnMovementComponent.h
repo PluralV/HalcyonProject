@@ -22,6 +22,12 @@ public:
     UFUNCTION(BlueprintCallable)
     void AddRotationalInput(FVector RotationInput);
 
+    UFUNCTION()
+    void SetRotationalInput(FRotator Rotator);
+
+    UFUNCTION()
+    void SetThrustInput(float ThrottleValue);
+
     virtual void TickComponent(float DeltaTime, 
         enum ELevelTick TickType, 
         FActorComponentTickFunction* ThisTickFunction) override;
