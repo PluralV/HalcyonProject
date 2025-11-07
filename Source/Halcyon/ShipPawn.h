@@ -9,6 +9,7 @@
 
 class UInputMappingContext;
 class UInputAction;
+class UShipPawnMovementComponent;
 
 
 UCLASS(Blueprintable, BlueprintType)
@@ -23,11 +24,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USkeletalMeshComponent* ShipMesh;
 
-	/*UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	USpaceshipMovementComponent* MovementComponent;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	USpaceshipThrustComponent* ThrustComponent;*/
+	UShipPawnMovementComponent* MovementComponent;
 
 protected:
 	// Called when the game starts or when spawned
@@ -81,11 +79,15 @@ protected:
 	int32 AftHull = 12;
 	
 	//Energy stats: The total amount of energy generated is the total integer sum of these
+	//Curr values indicate the current number remaining (initialised to the same amount as the base)
 	int32 LeftEng = 16;
+	int32 LeftEngCurr = 0;
 	int32 RightEng = 16;
+	int32 RightEngCurr = 0;
 	int32 CenterEng = 0;
+	int32 CenterEngCurr = 0;
 	int32 PowerReactor = 4;
-
+	int32 PowerReactorCurr = 0;
 	//
 
 	//ARRAYS FOR STORING SYSTEMS

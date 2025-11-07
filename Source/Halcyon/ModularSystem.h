@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "ModularSystem.generated.h"
 
-UCLASS()
+UCLASS(Blueprintable, BlueprintType)
 class HALCYON_API AModularSystem : public AActor
 {
 	GENERATED_BODY()
