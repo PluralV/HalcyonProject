@@ -21,10 +21,15 @@ AShipPawn::AShipPawn()
 	// Create movement component
 	MovementComponent = CreateDefaultSubobject<UShipPawnMovementComponent>(TEXT("MovementComponent"));
 	MovementComponent->SetUpdatedComponent(ShipMesh);
+	MovementComponent->SpeedLimit = SpeedLimit;
+	MovementComponent->PitchRate = PitchRate;
+	MovementComponent->YawRate = YawRate;
+	MovementComponent->SpeedConstant = SpeedConstant;
 
 	// Set up mesh
 	ShipMesh->SetSimulatePhysics(true);
 	ShipMesh->SetCollisionProfileName(TEXT("Vehicle"));
+	ShipMesh->SetEnableGravity(false);
 
 	//Body mesh
 	HullMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
@@ -38,9 +43,9 @@ AShipPawn::AShipPawn()
 	SpringArm->bUsePawnControlRotation = false;
 	SpringArm->bInheritPitch = false;
 	SpringArm->bInheritRoll = false;
-	SpringArm->bEnableCameraLag = true;
+	SpringArm->bEnableCameraLag = false;
 	SpringArm->CameraLagSpeed = 3.0f;
-	SpringArm->bEnableCameraRotationLag = true;
+	SpringArm->bEnableCameraRotationLag = false;
 	SpringArm->CameraRotationLagSpeed = 5.0f;
 	//could change if necessary
 	SpringArm->SetRelativeRotation(FRotator(-15.0f, 0.0f, 0.0f));
@@ -49,6 +54,7 @@ AShipPawn::AShipPawn()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 
+	
 	
 }
 
@@ -98,7 +104,7 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		//steering
 		EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Started, this, &AShipPawn::Steer);
 		//EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Ongoing, this, &AShipPawn::Steer);
-		EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Completed, this, &AShipPawn::ZeroSteering);
+		EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Completed, this, &AShipPawn::Steer);
 		//Look action
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AShipPawn::Look);
 		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Inputs bound"));
@@ -111,10 +117,10 @@ TODO: For movement component, create a new function to set thrust/rotation rathe
 */
 void AShipPawn::ZeroThrottle() {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Zeroing throttle"));
-	CurrentThrottle = 0;
+	CurrentThrottle = 0.f;
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
-		MovementComponent->AddThrustInput(0.f);
+		MovementComponent->SetThrustInput(0.f);
 	}
 }
 
@@ -122,7 +128,7 @@ void AShipPawn::ZeroDecel() {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Zeroing brake"));
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
-		MovementComponent->AddThrustInput(0.f);
+		MovementComponent->SetThrustInput(0.f);
 	}
 }
 
@@ -148,22 +154,26 @@ void AShipPawn::Look(const FInputActionValue& Value) {
 
 
 void AShipPawn::Throttle(const FInputActionValue& Value) {
-	const FVector2D MoveValue = Value.Get<FVector2D>();
-	float AppliedThrottle = MoveValue.Y;
+	/*const FVector2D MoveValue = Value.Get<FVector2D>();
+	float AppliedThrottle = MoveValue.Y;*/
+	bool bPressed = Value.Get<bool>();
+	float AppliedThrottle = bPressed ? 1.f : 0.f;
 	CurrentThrottle = AppliedThrottle;
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Throttling"));
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
-		MovementComponent->AddThrustInput(AppliedThrottle);
+		MovementComponent->SetThrustInput(AppliedThrottle);
 	}
 }
 
 void AShipPawn::Decelerate(const FInputActionValue& Value) {
 	const FVector2D MoveValue = Value.Get<FVector2D>();
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Braking"));
+	bool bPressed = Value.Get<bool>();
+	float AppliedThrottle = bPressed ? -1.f : 0.f;
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
-		MovementComponent->AddThrustInput(MoveValue.Y);
+		MovementComponent->SetThrustInput(AppliedThrottle);
 	}
 }
 
@@ -171,6 +181,6 @@ void AShipPawn::Steer(const FInputActionValue& Value) {
 	const FVector2D MoveValue = Value.Get<FVector2D>();
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
-		MovementComponent->AddRotationalInput(FVector(MoveValue.X, MoveValue.Y, 0.0));
+		MovementComponent->SetRotationalInput(FRotator(MoveValue.Y, MoveValue.X, 0));
 	}
 }

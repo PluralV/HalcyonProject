@@ -32,8 +32,29 @@ public:
         enum ELevelTick TickType, 
         FActorComponentTickFunction* ThisTickFunction) override;
 
+    // Amount of force applied for full throttle
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    float ForceMultiplier = 200000.f;
+
+    // Amount of torque applied for rotational input
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    float TorqueMultiplier = 50000.f;
+
+    //Engine settings
+    UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
+    float SpeedLimit;
+    //Maneuverability
+    UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
+    float PitchRate;
+    UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
+    float YawRate;
+    //Top speed, multiplied by amount of energy allocated to movement to get the maximum velocity (magnitude)
+    UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
+    float SpeedConstant;
+
 private:
-    FVector CurrentVelocity;
-    FRotator AngularVelocity;
+    float CurrentThrust=0;
+    FRotator AngularThrust;
+    float AngularAccel = 5.f;
 	
 };
