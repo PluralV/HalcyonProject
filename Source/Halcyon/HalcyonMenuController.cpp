@@ -47,6 +47,12 @@ void AHalcyonMenuController::ShowScreen(int32 which) {
             ScreenName = TEXT("CreditsScreen");
         }
         break;
+    case 3:
+        if (LevelSelectScreenWidgetClass) {
+            ScreenWidgetClass = LevelSelectScreenWidgetClass;
+            ScreenName = TEXT("LevelSelectScreen");
+        }
+        break;
     default:break;
     }
     ScreenWidget = CreateWidget<UUserWidget>(this, ScreenWidgetClass, ScreenName);
