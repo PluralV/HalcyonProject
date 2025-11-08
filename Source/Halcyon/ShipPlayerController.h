@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "AHalcyonMenuController.generated.h"
+#include "ShipPlayerController.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class HALCYON_API AAHalcyonMenuController : public APlayerController
+class HALCYON_API AShipPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	
