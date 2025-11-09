@@ -166,7 +166,7 @@ void AShipPawn::Look(const FInputActionValue& Value) {
 	if (SpringArm) {
 		FRotator CurrentRotator = SpringArm->GetRelativeRotation();
 		CurrentRotator.Yaw += LookValue.X * CameraRotationSpeed;
-		CurrentRotator.Pitch = FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -80.0f, 0.0f);
+		CurrentRotator.Pitch = FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -360,360);//FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -80.0f, 0.0f);
 		SpringArm->SetRelativeRotation(CurrentRotator);
 	}
 }

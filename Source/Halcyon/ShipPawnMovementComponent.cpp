@@ -49,7 +49,7 @@ void UShipPawnMovementComponent::TickComponent(float DeltaTime,
 
 
         //SIMPLE LINEAR ACCELERATION (drop if necessary)
-        PrimComp->SetWorldLocation(GetLocation()+(Right*CurrentVelocity*DeltaTime));
+        /*PrimComp->SetWorldLocation(GetLocation()+(Right*CurrentVelocity*DeltaTime));
 
 
         CurrentVelocity += CurrentThrust * DeltaTime * AccelRate;
@@ -58,15 +58,17 @@ void UShipPawnMovementComponent::TickComponent(float DeltaTime,
         }
         else if (CurrentVelocity < 0.f) {
             CurrentVelocity = 0.f;
-        }
+        }*/
 
         // Apply linear thrust UNCOMMENT TO ATTEMPT REIMPLEMENTING PHYSICS
-       /* FVector ForceToApply = Right * CurrentThrust * ForceMultiplier;
-        PrimComp->AddForce(ForceToApply, NAME_None,true);
-        FVector CurrentVelocity = PrimComp->GetPhysicsLinearVelocity();
-        float NewSpeed = FVector::DotProduct(CurrentVelocity, Right);
+        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+            FString::Printf(TEXT("SetThrustInput called currentthrust: %f"), CurrentThrust));
+        FVector ForceToApply = Right * CurrentThrust * ForceMultiplier;
+        PrimComp->AddForce(ForceToApply, NAME_None,false);
+        FVector CurrentVelocity2 = PrimComp->GetPhysicsLinearVelocity();
+        float NewSpeed = FVector::DotProduct(CurrentVelocity2, Right);
         FVector NewVelocity = Right * NewSpeed;
-        PrimComp->SetPhysicsLinearVelocity(NewVelocity);*/
+        PrimComp->SetPhysicsLinearVelocity(NewVelocity);
 
     }
 
