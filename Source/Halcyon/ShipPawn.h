@@ -10,7 +10,7 @@
 class UInputMappingContext;
 class UInputAction;
 class UShipPawnMovementComponent;
-
+class AModularSystem;
 
 UCLASS(Blueprintable, BlueprintType)
 class HALCYON_API AShipPawn : public APawn
@@ -65,14 +65,20 @@ protected:
 
 	//Ship base stats
 	//Hull integrity
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base System Stats")
 	int32 HullIntegrity = 32;
 	//Shield values
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Base System Stats")
 	TArray<int32> ShieldFacings = { 30,24,18,18,18,24 };
+	TArray<int32> ShieldFacingsCurr = {0,0,0,0,0,0};
 	
 	//Hull damage: Internal damage that does nothing
 	int32 CenterHull = 0;
+	int32 CenterHullCurr;
 	int32 ForwardHull = 8;
+	int32 ForwardHullCurr;
 	int32 AftHull = 12;
+	int32 AftHullCurr;
 	
 	//Energy stats: The total amount of energy generated is the total integer sum of these
 	//Curr values indicate the current number remaining (initialised to the same amount as the base)
@@ -88,7 +94,13 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Category = "Base System Stats")
 	int32 PowerReactor = 4;
 	int32 PowerReactorCurr = 0;
-	
+
+	//TotalEnergy: maximum possible energy based on above stats
+	//TotalEnergyCurr: current maximum possible energy based on above stats/damage
+	//TotalEnergyAvailable: current energy not allocated
+	int32 TotalEnergy;
+	int32 TotalEnergyCurr;
+	int32 TotalEnergyAvailable;
 
 	//ARRAYS FOR STORING SYSTEMS
 	
@@ -108,8 +120,24 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
 	float SpeedConstant = 20.f;
 	
-	
+	//Functions for allocating energy to specific functions
+	UFUNCTION(BlueprintCallable)
+	void AllocateReinforceShield(int32 amt, int32 index);
 
+	UFUNCTION(BlueprintCallable)
+	void AllocateMovement(int32 amt);
+
+	UFUNCTION(BlueprintCallable)
+	void AllocateModularSystem(AModularSystem* TargetSystem, int32 amt);
+	
+	UFUNCTION(BlueprintCallable)
+	void FreeReinforceShield(int32 amt, int32 index);
+
+	UFUNCTION(BlueprintCallable)
+	void FreeMovement(int32 amt);
+
+	UFUNCTION(BlueprintCallable)
+	void FreeModularSystem(AModularSystem* TargetSystem, int32 amt);
 
 public:	
 	// Called every frame

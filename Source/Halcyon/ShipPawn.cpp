@@ -53,9 +53,25 @@ AShipPawn::AShipPawn()
 	//Create camera component
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
+	
 
-	
-	
+	//Initialize stats
+	LeftEngCurr = LeftEng;
+	RightEngCurr = RightEng;
+	CenterEngCurr = CenterEng;
+	PowerReactorCurr = PowerReactor;
+
+	ForwardHullCurr = ForwardHull;
+	AftHullCurr = AftHull;
+	CenterHullCurr = CenterHull;
+
+	TotalEnergy = LeftEng + RightEng + CenterEng + PowerReactor;
+	TotalEnergyCurr = TotalEnergy;
+	TotalEnergyAvailable = TotalEnergy;
+
+	for (int8 i = 0; i < 6; i++) {
+		ShieldFacingsCurr[i] = ShieldFacings[i];
+	}
 }
 
 // Called when the game starts or when spawned
@@ -74,6 +90,7 @@ void AShipPawn::BeginPlay()
 			Subsystem->AddMappingContext(ShipMappingContext, 0);
 		}
 	}
+
 	
 }
 
@@ -183,4 +200,29 @@ void AShipPawn::Steer(const FInputActionValue& Value) {
 	{
 		MovementComponent->SetRotationalInput(FRotator(MoveValue.Y, MoveValue.X, 0));
 	}
+}
+
+//Power Allocation Functions
+void AShipPawn::AllocateReinforceShield(int32 amt, int32 index) {
+
+}
+
+void AShipPawn::AllocateMovement(int32 amt) {
+
+}
+
+void AShipPawn::AllocateModularSystem(AModularSystem* TargetSystem, int32 amt) {
+
+}
+
+void AShipPawn::FreeReinforceShield(int32 amt, int32 index) {
+
+}
+
+void AShipPawn::FreeMovement(int32 amt) {
+
+}
+
+void AShipPawn::FreeModularSystem(AModularSystem* TargetSystem, int32 amt) {
+
 }
