@@ -7,6 +7,7 @@
 #include "InputActionValue.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "ShipPlayerController.h"
 
 // Sets default values
 AShipPawn::AShipPawn()
@@ -25,6 +26,7 @@ AShipPawn::AShipPawn()
 	MovementComponent->PitchRate = PitchRate;
 	MovementComponent->YawRate = YawRate;
 	MovementComponent->SpeedConstant = SpeedConstant;
+	MovementComponent->AccelRate = AccelRate;
 
 	// Set up mesh
 	ShipMesh->SetSimulatePhysics(true);
@@ -135,7 +137,7 @@ TODO: For movement component, create a new function to set thrust/rotation rathe
 void AShipPawn::ZeroThrottle() {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Zeroing throttle"));
 	CurrentThrottle = 0.f;
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
 		MovementComponent->SetThrustInput(0.f);
 	}
@@ -143,7 +145,7 @@ void AShipPawn::ZeroThrottle() {
 
 void AShipPawn::ZeroDecel() {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Zeroing brake"));
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
 		MovementComponent->SetThrustInput(0.f);
 	}
@@ -151,7 +153,7 @@ void AShipPawn::ZeroDecel() {
 
 void AShipPawn::ZeroSteering() {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Zeroing steering"));
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
 		//TODO: ADD NEW MOVEMENT COMPONENT FUNCTION TO 
 		MovementComponent->AddRotationalInput(FVector(0.0,0.0,0.0));
@@ -176,29 +178,33 @@ void AShipPawn::Throttle(const FInputActionValue& Value) {
 	bool bPressed = Value.Get<bool>();
 	float AppliedThrottle = bPressed ? 1.f : 0.f;
 	CurrentThrottle = AppliedThrottle;
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Throttling"));
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Throttling"));
 		MovementComponent->SetThrustInput(AppliedThrottle);
 	}
 }
 
 void AShipPawn::Decelerate(const FInputActionValue& Value) {
 	const FVector2D MoveValue = Value.Get<FVector2D>();
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Braking"));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Braking"));
 	bool bPressed = Value.Get<bool>();
 	float AppliedThrottle = bPressed ? -1.f : 0.f;
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Throttling"));
 		MovementComponent->SetThrustInput(AppliedThrottle);
 	}
 }
 
 void AShipPawn::Steer(const FInputActionValue& Value) {
 	const FVector2D MoveValue = Value.Get<FVector2D>();
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
-		MovementComponent->SetRotationalInput(FRotator(MoveValue.Y, MoveValue.X, 0));
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Turning"));
+		MovementComponent->SetRotationalInput(FRotator(MoveValue.X, MoveValue.Y, 0));
 	}
 }
 

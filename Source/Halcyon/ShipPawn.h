@@ -70,6 +70,9 @@ protected:
 	//Shield values
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Base System Stats")
 	TArray<int32> ShieldFacings = { 30,24,18,18,18,24 };
+	//ShieldReinforcements tracks any extra power put into a given shield and should be reduced FIRST by any external damage
+	TArray<int32> ShieldReinforcements = { 0,0,0,0,0,0 };
+	//Stores current strength of each shield
 	TArray<int32> ShieldFacingsCurr = {0,0,0,0,0,0};
 	
 	//Hull damage: Internal damage that does nothing
@@ -116,10 +119,22 @@ protected:
 	float PitchRate = 20.f;
 	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
 	float YawRate = 20.f;
+	//Acceleration rate, how fast velocity increases up to current maximum
+	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
+	float AccelRate = 20.f;
 	//Top speed, multiplied by amount of energy allocated to movement to get the maximum velocity (magnitude)
 	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
 	float SpeedConstant = 20.f;
 	
+	
+
+public:	
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+
+	// Called to bind functionality to input
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
 	//Functions for allocating energy to specific functions
 	UFUNCTION(BlueprintCallable)
 	void AllocateReinforceShield(int32 amt, int32 index);
@@ -129,7 +144,7 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void AllocateModularSystem(AModularSystem* TargetSystem, int32 amt);
-	
+
 	UFUNCTION(BlueprintCallable)
 	void FreeReinforceShield(int32 amt, int32 index);
 
@@ -138,13 +153,6 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void FreeModularSystem(AModularSystem* TargetSystem, int32 amt);
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 private:
 
 	//Power allocated to base non-external systems

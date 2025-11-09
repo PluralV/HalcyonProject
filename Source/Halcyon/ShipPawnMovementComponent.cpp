@@ -38,8 +38,8 @@ void UShipPawnMovementComponent::TickComponent(float DeltaTime,
         /*PrimComp->SetPhysicsAngularVelocityInRadians(AngularVel, false);
         */
 
-
-        FQuat PitchQuat = FQuat(Right, FMath::DegreesToRadians(AngularThrust.Pitch * PitchRate * DeltaTime));
+        //????
+        FQuat PitchQuat = FQuat(Forward, FMath::DegreesToRadians(AngularThrust.Pitch * PitchRate * DeltaTime * -1.f));
         FQuat YawQuat = FQuat(WorldUp, FMath::DegreesToRadians(AngularThrust.Yaw * YawRate * DeltaTime));
         FQuat TargetQuat = YawQuat * PitchQuat * PrimComp->GetComponentQuat();
 
@@ -48,13 +48,25 @@ void UShipPawnMovementComponent::TickComponent(float DeltaTime,
         PrimComp->SetWorldRotation(NewQuat);
 
 
-        // Apply linear thrust
-        FVector ForceToApply = Forward * CurrentThrust * ForceMultiplier;
-        PrimComp->AddForce(ForceToApply);
+        //SIMPLE LINEAR ACCELERATION (drop if necessary)
+        PrimComp->SetWorldLocation(GetLocation()+(Right*CurrentVelocity*DeltaTime));
+
+
+        CurrentVelocity += CurrentThrust * DeltaTime * AccelRate;
+        if (CurrentVelocity >= SpeedConstant * (float)MovementEnergy) {
+            CurrentVelocity = SpeedConstant * (float)MovementEnergy;
+        }
+        else if (CurrentVelocity < 0.f) {
+            CurrentVelocity = 0.f;
+        }
+
+        // Apply linear thrust UNCOMMENT TO ATTEMPT REIMPLEMENTING PHYSICS
+       /* FVector ForceToApply = Right * CurrentThrust * ForceMultiplier;
+        PrimComp->AddForce(ForceToApply, NAME_None,true);
         FVector CurrentVelocity = PrimComp->GetPhysicsLinearVelocity();
-        float NewSpeed = FVector::DotProduct(CurrentVelocity, Forward);
-        FVector NewVelocity = Forward * NewSpeed;
-        PrimComp->SetPhysicsLinearVelocity(NewVelocity);
+        float NewSpeed = FVector::DotProduct(CurrentVelocity, Right);
+        FVector NewVelocity = Right * NewSpeed;
+        PrimComp->SetPhysicsLinearVelocity(NewVelocity);*/
 
     }
 
@@ -67,9 +79,9 @@ void UShipPawnMovementComponent::AddThrustInput(float ThrottleValue) {
 }
 
 void UShipPawnMovementComponent::SetThrustInput(float ThrustValue) {
-    /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-        FString::Printf(TEXT("SetThrustInput called currentthrust: %f"), ThrustValue));*/
     CurrentThrust = ThrustValue;
+    GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+        FString::Printf(TEXT("SetThrustInput called currentthrust: %f"), CurrentThrust));
 }
 
 void UShipPawnMovementComponent::AddRotationalInput(FVector RotationInput) {
@@ -79,9 +91,8 @@ void UShipPawnMovementComponent::AddRotationalInput(FVector RotationInput) {
 }
 
 void UShipPawnMovementComponent::SetRotationalInput(FRotator Rotator) {
-    GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-        FString::Printf(TEXT("set rotational input called - x: %f, y: %f z: %f"), Rotator.Pitch, Rotator.Yaw, Rotator.Roll));
-
     AngularThrust = Rotator;
+    GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+        FString::Printf(TEXT("set rotational input called - Pitch: %f, Yaw: %f Roll: %f"), AngularThrust.Pitch, AngularThrust.Yaw, AngularThrust.Roll));
 }
 
