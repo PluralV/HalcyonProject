@@ -61,8 +61,8 @@ void UShipPawnMovementComponent::TickComponent(float DeltaTime,
         }*/
 
         // Apply linear thrust UNCOMMENT TO ATTEMPT REIMPLEMENTING PHYSICS
-        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-            FString::Printf(TEXT("SetThrustInput called currentthrust: %f"), CurrentThrust));
+       /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+            FString::Printf(TEXT("SetThrustInput called currentthrust: %f"), CurrentThrust));*/
         FVector ForceToApply = Right * CurrentThrust * ForceMultiplier;
         PrimComp->AddForce(ForceToApply, NAME_None,false);
         FVector CurrentVelocity2 = PrimComp->GetPhysicsLinearVelocity();
@@ -75,15 +75,15 @@ void UShipPawnMovementComponent::TickComponent(float DeltaTime,
 }
 
 void UShipPawnMovementComponent::AddThrustInput(float ThrottleValue) {
-    GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-        FString::Printf(TEXT("AddThrustInput called ThrottleValue: %f"), ThrottleValue));
+   /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+        FString::Printf(TEXT("AddThrustInput called ThrottleValue: %f"), ThrottleValue));*/
     CurrentThrust += ThrottleValue;
 }
 
 void UShipPawnMovementComponent::SetThrustInput(float ThrustValue) {
     CurrentThrust = ThrustValue;
-    GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-        FString::Printf(TEXT("SetThrustInput called currentthrust: %f"), CurrentThrust));
+   /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+        FString::Printf(TEXT("SetThrustInput called currentthrust: %f"), CurrentThrust));*/
 }
 
 void UShipPawnMovementComponent::AddRotationalInput(FVector RotationInput) {
@@ -94,7 +94,7 @@ void UShipPawnMovementComponent::AddRotationalInput(FVector RotationInput) {
 
 void UShipPawnMovementComponent::SetRotationalInput(FRotator Rotator) {
     AngularThrust = Rotator;
-    GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-        FString::Printf(TEXT("set rotational input called - Pitch: %f, Yaw: %f Roll: %f"), AngularThrust.Pitch, AngularThrust.Yaw, AngularThrust.Roll));
+   /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+        FString::Printf(TEXT("set rotational input called - Pitch: %f, Yaw: %f Roll: %f"), AngularThrust.Pitch, AngularThrust.Yaw, AngularThrust.Roll));*/
 }
 

@@ -7,6 +7,8 @@
 #include "ShipPlayerController.generated.h"
 
 class AModularSystem;
+class UInputMappingContext;
+class UInputAction;
 
 UENUM()
 enum class EStaticSystemType : int8 {
@@ -26,8 +28,16 @@ class HALCYON_API AShipPlayerController : public APlayerController
 	
 public:
 	virtual void BeginPlay() override;
+	virtual void SetupInputComponent() override;
 
 protected:
+	// Input Actions
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputMappingContext* ControllerMappingContext;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* ToggleHUDAction;
+
 	//Widgets to appear on player HUD and give info about ship stats:
 	/*
 	MovementInfo: 
@@ -96,8 +106,15 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void FreeEnergyFromModularSys(AModularSystem* TargetSystem, int32 amt);
 
-	
+	void ToggleHUDInteraction();
 
-	
+	//For disabling/enabling mouse look; when disabled you can interact with HUD UI
+	//currently bound to RightMouse
+//	void DisableLook();
+//	void EnableLook();
+private:
+	bool bIsInHUDMode = false;
+//	void OnRightMouseAxis(float Value);
+//	bool bIsRightMouseDown = false;
 
 };
