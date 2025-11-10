@@ -12,6 +12,11 @@ class UInputAction;
 class UShipPawnMovementComponent;
 class AModularSystem;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStaticEnergyChanged, int32, which, int32, amt);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAvailableEnergyChanged, int32, amt);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTotalEnergyChanged, int32, amt);
+
+
 UCLASS(Blueprintable, BlueprintType)
 class HALCYON_API AShipPawn : public APawn
 {
@@ -25,6 +30,16 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UShipPawnMovementComponent* MovementComponent;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnStaticEnergyChanged OnStaticEnergyChanged;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnAvailableEnergyChanged OnAvailableEnergyChanged;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnTotalEnergyChanged OnTotalEnergyChanged;
+
 
 protected:
 	// Called when the game starts or when spawned
@@ -153,6 +168,79 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void FreeModularSystem(AModularSystem* TargetSystem, int32 amt);
+
+	//GETTERS
+	//Movement energy
+	UFUNCTION(BlueprintCallable)
+	int32 GetMovementEnergy();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetMaxEnergyCurr();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetMaxEnergy();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetMaxEnergyAvailable();
+
+	UFUNCTION(BlueprintCallable)
+	float GetSpeedConstant();
+
+	//Shield getters
+	UFUNCTION(BlueprintCallable)
+	int32 GetShieldFacing(int32 index);
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetCurrentShieldFacing(int32 index);
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetCurrentShieldReinforcement(int32 index);
+
+	//Static system numbers
+	UFUNCTION(BlueprintCallable)
+	int32 GetLeftEngMax();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetLeftEngCurr();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetRightEngMax();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetRightEngCurr();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetCentEngMax();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetCentEngCurr();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetReactorMax();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetReactorCurr();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetForwardHullMax();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetForwardHullCurr();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetAftHullMax();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetAftHullCurr();
+
+
+
+
+	//Velocity: Rounds in case it's for display, otherwise does not
+	UFUNCTION(BlueprintCallable)
+	float GetCurrentVelocity(bool bForDisplay);
+	
+
 private:
 
 	//Power allocated to base non-external systems

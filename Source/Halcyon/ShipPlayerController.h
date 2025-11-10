@@ -94,11 +94,6 @@ protected:
 	(i.e. movement, shield reinforcement, <potential> repairs/electronic warfare) and those that
 	are modular and specific to a ship (or specific to one module) (i.e. weapons)
 	*/
-	UFUNCTION(BlueprintCallable)
-	void AllocateEnergyToStaticSys(EStaticSystemType type, int32 amt);
-
-	UFUNCTION(BlueprintCallable)
-	void FreeEnergyFromStaticSys(EStaticSystemType type, int32 amt);
 
 	UFUNCTION(BlueprintCallable)
 	void AllocateEnergyToModularSys(AModularSystem* TargetSystem, int32 amt);

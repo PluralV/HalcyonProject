@@ -4,6 +4,8 @@
 #include "ShipPlayerController.h"
 #include "ModularSystem.h"
 #include "ShipPawn.h"
+#include "Blueprint/UserWidget.h"
+#include "ShipStatWidget.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 
@@ -26,6 +28,25 @@ void AShipPlayerController::BeginPlay() {
 	// Use Game and UI mode from the start
 	/*EnableLook();*/
 	//TODO: ADD WIDGETS TO HUD
+
+	//1. ADD MOVEMENT WIDGET
+	if (MovementInfoWidget) {
+		HUDMovement = CreateWidget<UUserWidget>(this, MovementInfoWidget);
+		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDMovement)) {
+			StatWidget->OwningShip = GetPawn();
+			StatWidget->AddToViewport();
+		}
+	}
+
+	//2. ADD ENERGY WIDGET
+	if (EnergyWidget) {
+		HUDEnergy = CreateWidget<UUserWidget>(this, EnergyWidget);
+		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDEnergy)) {
+			StatWidget->OwningShip = GetPawn();
+			StatWidget->AddToViewport();
+		}
+	}
+	
 
 }
 
@@ -108,73 +129,4 @@ void AShipPlayerController::AllocateEnergyToModularSys(AModularSystem* TargetSys
 
 void AShipPlayerController::FreeEnergyFromModularSys(AModularSystem* TargetSystem, int32 amt) {
 	TargetSystem->FreeEnergy(amt);
-}
-
-void AShipPlayerController::AllocateEnergyToStaticSys(EStaticSystemType type, int32 amt) {
-	APawn* CurrentPawn = GetPawn();
-	if (AShipPawn* CurrentShipPawn = Cast<AShipPawn>(CurrentPawn)) {
-		int32 index = -1;
-		switch (type) {
-		case EStaticSystemType::Movement:
-			CurrentShipPawn->AllocateMovement(amt);
-			return;
-		case EStaticSystemType::Shield1:
-			index = 0;
-			break;
-		case EStaticSystemType::Shield2:
-			index = 1;
-			break;
-		case EStaticSystemType::Shield3:
-			index = 2;
-			break;
-		case EStaticSystemType::Shield4:
-			index = 3;
-			break;
-		case EStaticSystemType::Shield5:
-			index = 4;
-			break;
-		case EStaticSystemType::Shield6:
-			index = 5;
-			break;
-			//More logic in future if additional static systems are added
-		default:break;
-		}
-		//Reinforce a shield
-		CurrentShipPawn->AllocateReinforceShield(amt, index);
-	}
-	
-}
-
-void AShipPlayerController::FreeEnergyFromStaticSys(EStaticSystemType type, int32 amt) {
-	APawn* CurrentPawn = GetPawn();
-	if (AShipPawn* CurrentShipPawn = Cast<AShipPawn>(CurrentPawn)) {
-		int32 index = -1;
-		switch (type) {
-		case EStaticSystemType::Movement:
-			CurrentShipPawn->FreeMovement(amt);
-			return;
-		case EStaticSystemType::Shield1:
-			index = 0;
-			break;
-		case EStaticSystemType::Shield2:
-			index = 1;
-			break;
-		case EStaticSystemType::Shield3:
-			index = 2;
-			break;
-		case EStaticSystemType::Shield4:
-			index = 3;
-			break;
-		case EStaticSystemType::Shield5:
-			index = 4;
-			break;
-		case EStaticSystemType::Shield6:
-			index = 5;
-			break;
-			//More logic in future if additional static systems are added
-		default:break;
-		}
-		//Reinforce a shield
-		CurrentShipPawn->FreeReinforceShield(amt, index);
-	}
 }

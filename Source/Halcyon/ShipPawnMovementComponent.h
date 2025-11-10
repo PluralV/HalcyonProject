@@ -28,6 +28,12 @@ public:
     UFUNCTION()
     void SetThrustInput(float ThrottleValue);
 
+    UFUNCTION()
+    void SetMovementEnergy(int32 EnergyValue);
+
+    UFUNCTION(BlueprintCallable)
+    float GetSpeed();
+
     virtual void TickComponent(float DeltaTime, 
         enum ELevelTick TickType, 
         FActorComponentTickFunction* ThisTickFunction) override;
@@ -58,7 +64,7 @@ private:
     float CurrentThrust=0.f;
     FRotator AngularThrust;
     float AngularAccel = 5.f;
-    float CurrentVelocity = 0.f;
+    FVector CurrentVelocity;
     //TODO: CHANGE TO 0 ONCE IMPLEMENTING ENERGY ALLOCATION FOR REAL AND SET ONLY W/ENERGY ALLOCATION
-    int32 MovementEnergy = 32;
+    int32 MovementEnergy = 0;
 };

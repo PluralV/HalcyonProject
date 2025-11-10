@@ -65,11 +65,20 @@ void UShipPawnMovementComponent::TickComponent(float DeltaTime,
             FString::Printf(TEXT("SetThrustInput called currentthrust: %f"), CurrentThrust));*/
         FVector ForceToApply = Right * CurrentThrust * ForceMultiplier;
         PrimComp->AddForce(ForceToApply, NAME_None,false);
-        FVector CurrentVelocity2 = PrimComp->GetPhysicsLinearVelocity();
-        float NewSpeed = FVector::DotProduct(CurrentVelocity2, Right);
+        CurrentVelocity = PrimComp->GetPhysicsLinearVelocity();
+        float NewSpeed = FVector::DotProduct(CurrentVelocity, Right);
+        /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+            FString::Printf(TEXT("Before check: NewSpeed: %f SpeedConstant: %f MovementEnergy: %d"), NewSpeed, SpeedConstant, MovementEnergy));*/
+        if (abs(NewSpeed) > SpeedConstant * (float)MovementEnergy) {
+            NewSpeed = NewSpeed > 0 ? SpeedConstant * (float)MovementEnergy : -1.0 * SpeedConstant * (float)MovementEnergy;
+           /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+                FString::Printf(TEXT("After check: NewSpeed: %f SpeedConstant: %f MovementEnergy: %d"), NewSpeed, SpeedConstant, MovementEnergy));*/
+        }
         FVector NewVelocity = Right * NewSpeed;
+        /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red,
+            FString::Printf(TEXT("After check: NewVelocity: %f"), NewVelocity.Length()));*/
         PrimComp->SetPhysicsLinearVelocity(NewVelocity);
-
+        CurrentVelocity = NewVelocity;
     }
 
 }
@@ -96,5 +105,13 @@ void UShipPawnMovementComponent::SetRotationalInput(FRotator Rotator) {
     AngularThrust = Rotator;
    /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
         FString::Printf(TEXT("set rotational input called - Pitch: %f, Yaw: %f Roll: %f"), AngularThrust.Pitch, AngularThrust.Yaw, AngularThrust.Roll));*/
+}
+
+void UShipPawnMovementComponent::SetMovementEnergy(int32 EnergyValue) {
+    MovementEnergy = EnergyValue;
+}
+
+float UShipPawnMovementComponent::GetSpeed() {
+    return CurrentVelocity.Length();
 }
 
