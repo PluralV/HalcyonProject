@@ -3,3 +3,17 @@
 
 #include "HalcyonSimpleGameMode.h"
 
+void AHalcyonSimpleGameMode::StartPlay() {
+	Super::StartPlay();
+
+	check(GEngine != nullptr);
+}
+
+void AHalcyonSimpleGameMode::DecrementEnemies() {
+	EnemiesRemaining--;
+}
+
+
+void AHalcyonSimpleGameMode::IncrementEnemies() {
+	EnemiesRemaining++;
+}

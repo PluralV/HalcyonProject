@@ -7,6 +7,7 @@
 #include "InputActionValue.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "ShipPlayerController.h"
 
 // Sets default values
 AShipPawn::AShipPawn()
@@ -25,6 +26,7 @@ AShipPawn::AShipPawn()
 	MovementComponent->PitchRate = PitchRate;
 	MovementComponent->YawRate = YawRate;
 	MovementComponent->SpeedConstant = SpeedConstant;
+	MovementComponent->AccelRate = AccelRate;
 
 	// Set up mesh
 	ShipMesh->SetSimulatePhysics(true);
@@ -53,9 +55,25 @@ AShipPawn::AShipPawn()
 	//Create camera component
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
+	
 
-	
-	
+	//Initialize stats
+	LeftEngCurr = LeftEng;
+	RightEngCurr = RightEng;
+	CenterEngCurr = CenterEng;
+	PowerReactorCurr = PowerReactor;
+
+	ForwardHullCurr = ForwardHull;
+	AftHullCurr = AftHull;
+	CenterHullCurr = CenterHull;
+
+	TotalEnergy = LeftEng + RightEng + CenterEng + PowerReactor;
+	TotalEnergyCurr = TotalEnergy;
+	TotalEnergyAvailable = TotalEnergy;
+
+	for (int8 i = 0; i < 6; i++) {
+		ShieldFacingsCurr[i] = ShieldFacings[i];
+	}
 }
 
 // Called when the game starts or when spawned
@@ -74,6 +92,7 @@ void AShipPawn::BeginPlay()
 			Subsystem->AddMappingContext(ShipMappingContext, 0);
 		}
 	}
+
 	
 }
 
@@ -118,7 +137,7 @@ TODO: For movement component, create a new function to set thrust/rotation rathe
 void AShipPawn::ZeroThrottle() {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Zeroing throttle"));
 	CurrentThrottle = 0.f;
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
 		MovementComponent->SetThrustInput(0.f);
 	}
@@ -126,7 +145,7 @@ void AShipPawn::ZeroThrottle() {
 
 void AShipPawn::ZeroDecel() {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Zeroing brake"));
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
 		MovementComponent->SetThrustInput(0.f);
 	}
@@ -134,7 +153,7 @@ void AShipPawn::ZeroDecel() {
 
 void AShipPawn::ZeroSteering() {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Zeroing steering"));
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
 		//TODO: ADD NEW MOVEMENT COMPONENT FUNCTION TO 
 		MovementComponent->AddRotationalInput(FVector(0.0,0.0,0.0));
@@ -147,7 +166,7 @@ void AShipPawn::Look(const FInputActionValue& Value) {
 	if (SpringArm) {
 		FRotator CurrentRotator = SpringArm->GetRelativeRotation();
 		CurrentRotator.Yaw += LookValue.X * CameraRotationSpeed;
-		CurrentRotator.Pitch = FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -80.0f, 0.0f);
+		CurrentRotator.Pitch = FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -360,360);//FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -80.0f, 0.0f);
 		SpringArm->SetRelativeRotation(CurrentRotator);
 	}
 }
@@ -159,9 +178,10 @@ void AShipPawn::Throttle(const FInputActionValue& Value) {
 	bool bPressed = Value.Get<bool>();
 	float AppliedThrottle = bPressed ? 1.f : 0.f;
 	CurrentThrottle = AppliedThrottle;
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Throttling"));
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Throttling"));
 		MovementComponent->SetThrustInput(AppliedThrottle);
 	}
 }
@@ -171,16 +191,190 @@ void AShipPawn::Decelerate(const FInputActionValue& Value) {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Braking"));
 	bool bPressed = Value.Get<bool>();
 	float AppliedThrottle = bPressed ? -1.f : 0.f;
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Throttling"));
 		MovementComponent->SetThrustInput(AppliedThrottle);
 	}
 }
 
 void AShipPawn::Steer(const FInputActionValue& Value) {
 	const FVector2D MoveValue = Value.Get<FVector2D>();
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
-		MovementComponent->SetRotationalInput(FRotator(MoveValue.Y, MoveValue.X, 0));
+		//GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Turning"));
+		MovementComponent->SetRotationalInput(FRotator(MoveValue.X, MoveValue.Y, 0));
 	}
+}
+
+//Power Allocation Functions
+void AShipPawn::AllocateReinforceShield(int32 amt, int32 index) {
+	if (TotalEnergyAvailable >= amt) {
+		//Reduce total available energy by amt, then increase shield reinforcement in index by amt
+		TotalEnergyAvailable -= amt;
+		ShieldReinforcements[index] += amt;
+		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+	}
+	else {
+		//Otherwise just use all remaining energy on reinforcing the shield
+		int32 temp = TotalEnergyAvailable;
+		TotalEnergyAvailable = 0;
+		ShieldReinforcements[index] += temp;
+		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+	}
+}
+
+void AShipPawn::FreeReinforceShield(int32 amt, int32 index) {
+	if (MovementEnergy >= amt) {
+		//Reduce movement energy by amt, then increase available energy by amt
+		ShieldReinforcements[index] -= amt;
+		TotalEnergyAvailable += amt;
+		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+	}
+	else {
+		//Otherwise just remove all energy from movement and push to available
+		int32 temp = ShieldReinforcements[index];
+		ShieldReinforcements[index] = 0;
+		TotalEnergyAvailable += temp;
+		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+	}
+}
+
+void AShipPawn::AllocateMovement(int32 amt) {
+	if (TotalEnergyAvailable >= amt) {
+		//Reduce total available energy by amt, then increase movement energy by amt
+		TotalEnergyAvailable -= amt;
+		MovementEnergy += amt;
+		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+	}
+	else {
+		//Otherwise just use all remaining energy on movement
+		int32 temp = TotalEnergyAvailable;
+		TotalEnergyAvailable = 0;
+		MovementEnergy += temp;
+		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+	}
+	//Pass final movement energy down to the movement component to determine max speed
+	if (UShipPawnMovementComponent* MC = Cast<UShipPawnMovementComponent>(MovementComponent)) {
+		MC->SetMovementEnergy(MovementEnergy);
+	}
+}
+
+void AShipPawn::FreeMovement(int32 amt) {
+	if (MovementEnergy >= amt) {
+		//Reduce movement energy by amt, then increase available energy by amt
+		TotalEnergyAvailable += amt;
+		MovementEnergy -= amt;
+		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+	}
+	else {
+		//Otherwise just remove all energy from movement and push to available
+		int32 temp = MovementEnergy;
+		MovementEnergy = 0;
+		TotalEnergyAvailable += temp;
+		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+	}
+	//Pass final movement energy down to the movement component to determine max speed
+	if (UShipPawnMovementComponent* MC = Cast<UShipPawnMovementComponent>(MovementComponent)) {
+		MC->SetMovementEnergy(MovementEnergy);
+	}
+}
+
+void AShipPawn::AllocateModularSystem(AModularSystem* TargetSystem, int32 amt) {
+
+}
+
+void AShipPawn::FreeModularSystem(AModularSystem* TargetSystem, int32 amt) {
+
+}
+
+//GETTERS FOR STATS
+
+int32 AShipPawn::GetMovementEnergy() {
+	return MovementEnergy;
+}
+
+int32 AShipPawn::GetMaxEnergy() {
+	return TotalEnergy;
+}
+
+int32 AShipPawn::GetMaxEnergyAvailable() {
+	return TotalEnergyAvailable;
+}
+
+int32 AShipPawn::GetMaxEnergyCurr() {
+	return TotalEnergyCurr;
+}
+
+int32 AShipPawn::GetShieldFacing(int32 index) {
+	return ShieldFacings[index];
+}
+
+int32 AShipPawn::GetCurrentShieldFacing(int32 index) {
+	return ShieldFacingsCurr[index];
+}
+
+int32 AShipPawn::GetCurrentShieldReinforcement(int32 index) {
+	return ShieldReinforcements[index];
+}
+
+int32 AShipPawn::GetLeftEngMax() {
+	return LeftEng;
+}
+
+int32 AShipPawn::GetLeftEngCurr() {
+	return LeftEngCurr;
+}
+
+int32 AShipPawn::GetRightEngMax() {
+	return RightEng;
+}
+
+int32 AShipPawn::GetRightEngCurr() {
+	return RightEngCurr;
+}
+
+int32 AShipPawn::GetCentEngMax() {
+	return CenterEng;
+}
+
+int32 AShipPawn::GetCentEngCurr() {
+	return CenterEngCurr;
+}
+
+int32 AShipPawn::GetReactorMax() {
+	return PowerReactor;
+}
+
+int32 AShipPawn::GetReactorCurr() {
+	return PowerReactorCurr;
+}
+
+int32 AShipPawn::GetForwardHullMax() {
+	return ForwardHull;
+}
+
+int32 AShipPawn::GetForwardHullCurr() {
+	return ForwardHullCurr;
+}
+
+int32 AShipPawn::GetAftHullMax() {
+	return AftHull;
+}
+
+int32 AShipPawn::GetAftHullCurr() {
+	return AftHullCurr;
+}
+
+float AShipPawn::GetSpeedConstant() {
+	return SpeedConstant;
+}
+
+float AShipPawn::GetCurrentVelocity(bool bForDisplay) {
+	if (UShipPawnMovementComponent* MC = Cast<UShipPawnMovementComponent>(MovementComponent)) {
+		float Velocity = MC->GetSpeed();
+		return bForDisplay ? roundf(Velocity * 100) / 100.f : Velocity;
+	}
+	return -1.f;
 }
