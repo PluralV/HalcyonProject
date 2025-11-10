@@ -86,8 +86,10 @@ protected:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Base System Stats")
 	TArray<int32> ShieldFacings = { 30,24,18,18,18,24 };
 	//ShieldReinforcements tracks any extra power put into a given shield and should be reduced FIRST by any external damage
+	UPROPERTY()
 	TArray<int32> ShieldReinforcements = { 0,0,0,0,0,0 };
 	//Stores current strength of each shield
+	UPROPERTY()
 	TArray<int32> ShieldFacingsCurr = {0,0,0,0,0,0};
 	
 	//Hull damage: Internal damage that does nothing
