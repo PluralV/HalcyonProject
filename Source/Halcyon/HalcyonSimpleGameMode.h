@@ -13,5 +13,17 @@ UCLASS()
 class HALCYON_API AHalcyonSimpleGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
-	
+protected:
+	virtual void StartPlay() override;
+
+public:
+	//TODO CHANGE!!!
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Win Condition")
+	uint8 EnemiesRemaining = 0;
+
+	UFUNCTION()
+	void DecrementEnemies();
+
+	UFUNCTION()
+	void IncrementEnemies();
 };
