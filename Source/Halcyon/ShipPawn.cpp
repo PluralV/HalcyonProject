@@ -7,6 +7,13 @@
 #include "InputActionValue.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "ShipPlayerController.h"
+
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Engine/World.h"
+#include "WeaponSystem.h"
 
 // Sets default values
 AShipPawn::AShipPawn()
@@ -25,11 +32,18 @@ AShipPawn::AShipPawn()
 	MovementComponent->PitchRate = PitchRate;
 	MovementComponent->YawRate = YawRate;
 	MovementComponent->SpeedConstant = SpeedConstant;
+	MovementComponent->AccelRate = AccelRate;
 
 	// Set up mesh
 	ShipMesh->SetSimulatePhysics(true);
 	ShipMesh->SetCollisionProfileName(TEXT("Vehicle"));
 	ShipMesh->SetEnableGravity(false);
+
+	// mesh collision
+	ShipMesh->SetCollisionObjectType(ECC_Pawn);
+	ShipMesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+	ShipMesh->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	ShipMesh->SetGenerateOverlapEvents(true);
 
 	//Body mesh
 	HullMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
@@ -53,9 +67,26 @@ AShipPawn::AShipPawn()
 	//Create camera component
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
+	
 
-	
-	
+	//Initialize stats
+	LeftEngCurr = LeftEng;
+	RightEngCurr = RightEng;
+	CenterEngCurr = CenterEng;
+	PowerReactorCurr = PowerReactor;
+
+	ForwardHullCurr = ForwardHull;
+	AftHullCurr = AftHull;
+	CenterHullCurr = CenterHull;
+
+	TotalEnergy = LeftEng + RightEng + CenterEng + PowerReactor;
+	TotalEnergyCurr = TotalEnergy;
+	TotalEnergyAvailable = TotalEnergy;
+
+	for (int8 i = 0; i < 6; i++) {
+		ShieldFacingsCurr[i] = ShieldFacings[i];
+	}
+
 }
 
 // Called when the game starts or when spawned
@@ -74,6 +105,19 @@ void AShipPawn::BeginPlay()
 			Subsystem->AddMappingContext(ShipMappingContext, 0);
 		}
 	}
+
+	// add the weapon systems placed in bp to the array
+	TArray<UChildActorComponent*> ChildActorComps;
+	GetComponents<UChildActorComponent>(ChildActorComps);
+	for (UChildActorComponent* Comp : ChildActorComps)
+	{
+		if (Comp && Comp->GetChildActor() && Comp->GetChildActor()->IsA(AWeaponSystem::StaticClass()))
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Adding weaponsystem to array"));
+			WeaponComponents.Add(Comp);
+		}
+	}
+
 	
 }
 
@@ -83,7 +127,25 @@ void AShipPawn::BeginPlay()
 void AShipPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if (CurrentTarget) {
+		for (UChildActorComponent* WeaponComp : WeaponComponents)
+		{
+			if (WeaponComp) {
+				AActor* Child = WeaponComp->GetChildActor();
+				if (AWeaponSystem* Weapon = Cast<AWeaponSystem>(Child))
+				{
+					Weapon->TrackTarget(DeltaTime, CurrentTarget);
+				}
+				else {
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
 
+				}
+			}
+			else {
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("no wewpaoncomp"));
+			}
+		}
+	}
 }
 
 // Called to bind functionality to input
@@ -107,6 +169,8 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Completed, this, &AShipPawn::Steer);
 		//Look action
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AShipPawn::Look);
+		EnhancedInputComponent->BindAction(TargetAction, ETriggerEvent::Completed, this, &AShipPawn::Target);
+
 		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Inputs bound"));
 	}
 }
@@ -118,7 +182,7 @@ TODO: For movement component, create a new function to set thrust/rotation rathe
 void AShipPawn::ZeroThrottle() {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Zeroing throttle"));
 	CurrentThrottle = 0.f;
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
 		MovementComponent->SetThrustInput(0.f);
 	}
@@ -126,7 +190,7 @@ void AShipPawn::ZeroThrottle() {
 
 void AShipPawn::ZeroDecel() {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Zeroing brake"));
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
 		MovementComponent->SetThrustInput(0.f);
 	}
@@ -134,7 +198,7 @@ void AShipPawn::ZeroDecel() {
 
 void AShipPawn::ZeroSteering() {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Zeroing steering"));
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
 		//TODO: ADD NEW MOVEMENT COMPONENT FUNCTION TO 
 		MovementComponent->AddRotationalInput(FVector(0.0,0.0,0.0));
@@ -147,7 +211,7 @@ void AShipPawn::Look(const FInputActionValue& Value) {
 	if (SpringArm) {
 		FRotator CurrentRotator = SpringArm->GetRelativeRotation();
 		CurrentRotator.Yaw += LookValue.X * CameraRotationSpeed;
-		CurrentRotator.Pitch = FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -80.0f, 0.0f);
+		CurrentRotator.Pitch = FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -360,360);//FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -80.0f, 0.0f);
 		SpringArm->SetRelativeRotation(CurrentRotator);
 	}
 }
@@ -159,28 +223,107 @@ void AShipPawn::Throttle(const FInputActionValue& Value) {
 	bool bPressed = Value.Get<bool>();
 	float AppliedThrottle = bPressed ? 1.f : 0.f;
 	CurrentThrottle = AppliedThrottle;
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Throttling"));
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Throttling"));
 		MovementComponent->SetThrustInput(AppliedThrottle);
 	}
 }
 
 void AShipPawn::Decelerate(const FInputActionValue& Value) {
 	const FVector2D MoveValue = Value.Get<FVector2D>();
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Braking"));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Braking"));
 	bool bPressed = Value.Get<bool>();
 	float AppliedThrottle = bPressed ? -1.f : 0.f;
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Throttling"));
 		MovementComponent->SetThrustInput(AppliedThrottle);
 	}
 }
 
 void AShipPawn::Steer(const FInputActionValue& Value) {
 	const FVector2D MoveValue = Value.Get<FVector2D>();
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	
+	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
-		MovementComponent->SetRotationalInput(FRotator(MoveValue.Y, MoveValue.X, 0));
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Turning"));
+		MovementComponent->SetRotationalInput(FRotator(MoveValue.X, MoveValue.Y, 0));
 	}
+}
+
+void AShipPawn::Target(const FInputActionValue& Value) {
+	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Targeting"));
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC) return;
+	// Get screen center
+	int32 ViewX, ViewY;
+	PC->GetViewportSize(ViewX, ViewY);
+	FVector2D ScreenCenter(ViewX / 2.0f, ViewY / 2.0f);
+
+	// Find all enemies in world, loop after projecting to screen to find closest enemy to center
+	TArray<AActor*> Enemies;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AShipPawn::StaticClass(), Enemies);
+
+	float ClosestDist = TNumericLimits<float>::Max();
+	AActor* ClosestEnemy = nullptr;
+
+	for (AActor* Enemy : Enemies)
+	{
+		if (!Enemy || Enemy == this) continue;
+
+		FVector2D ScreenLoc;
+		bool bOnScreen = PC->ProjectWorldLocationToScreen(Enemy->GetActorLocation(), ScreenLoc);
+
+		if (bOnScreen)
+		{
+			float Dist = FVector2D::Distance(ScreenLoc, ScreenCenter);
+			if (Dist < ClosestDist)
+			{
+				ClosestDist = Dist;
+				ClosestEnemy = Enemy;
+			}
+		}
+	}
+	if (ClosestEnemy)
+	{
+		CurrentTarget = ClosestEnemy;
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+			FString::Printf(TEXT("Target locked: %s"), *ClosestEnemy->GetName()));
+	}
+	else
+	{
+		CurrentTarget = nullptr;
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+			FString::Printf(TEXT("No target found")));
+	}
+}
+
+
+
+
+//Power Allocation Functions
+void AShipPawn::AllocateReinforceShield(int32 amt, int32 index) {
+
+}
+
+void AShipPawn::AllocateMovement(int32 amt) {
+
+}
+
+void AShipPawn::AllocateModularSystem(AModularSystem* TargetSystem, int32 amt) {
+
+}
+
+void AShipPawn::FreeReinforceShield(int32 amt, int32 index) {
+
+}
+
+void AShipPawn::FreeMovement(int32 amt) {
+
+}
+
+void AShipPawn::FreeModularSystem(AModularSystem* TargetSystem, int32 amt) {
+
 }

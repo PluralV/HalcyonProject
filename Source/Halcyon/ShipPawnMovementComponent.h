@@ -52,9 +52,13 @@ public:
     UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
     float SpeedConstant;
 
+    float AccelRate;
+
 private:
-    float CurrentThrust=0;
+    float CurrentThrust=0.f;
     FRotator AngularThrust;
     float AngularAccel = 5.f;
-	
+    float CurrentVelocity = 0.f;
+    //TODO: CHANGE TO 0 ONCE IMPLEMENTING ENERGY ALLOCATION FOR REAL AND SET ONLY W/ENERGY ALLOCATION
+    int32 MovementEnergy = 32;
 };
