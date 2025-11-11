@@ -9,6 +9,12 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "ShipPlayerController.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Engine/World.h"
+#include "WeaponSystem.h"
+
 // Sets default values
 AShipPawn::AShipPawn()
 {
@@ -93,6 +99,17 @@ void AShipPawn::BeginPlay()
 		}
 	}
 
+	// add the weapon systems placed in bp to the array
+	TArray<UChildActorComponent*> ChildActorComps;
+	GetComponents<UChildActorComponent>(ChildActorComps);
+	for (UChildActorComponent* Comp : ChildActorComps)
+	{
+		if (Comp && Comp->GetChildActor() && Comp->GetChildActor()->IsA(AWeaponSystem::StaticClass()))
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Adding weaponsystem to array"));
+			WeaponComponents.Add(Comp);
+		}
+	}
 	
 }
 
@@ -102,7 +119,25 @@ void AShipPawn::BeginPlay()
 void AShipPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if (CurrentTarget) {
+		for (UChildActorComponent* WeaponComp : WeaponComponents)
+		{
+			if (WeaponComp) {
+				AActor* Child = WeaponComp->GetChildActor();
+				if (AWeaponSystem* Weapon = Cast<AWeaponSystem>(Child))
+				{
+					Weapon->TrackTarget(DeltaTime, CurrentTarget);
+				}
+				else {
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
 
+				}
+			}
+			else {
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("no wewpaoncomp"));
+			}
+		}
+	}
 }
 
 // Called to bind functionality to input
@@ -126,7 +161,13 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Completed, this, &AShipPawn::Steer);
 		//Look action
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AShipPawn::Look);
-		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Inputs bound"));
+		//Target action
+		EnhancedInputComponent->BindAction(TargetAction, ETriggerEvent::Completed, this, &AShipPawn::Target);
+		//Movement alloc/free of energy with keys
+		EnhancedInputComponent->BindAction(AllocMovementAction, ETriggerEvent::Triggered, this, &AShipPawn::HandleArrowAlloc);
+
+		EnhancedInputComponent->BindAction(FreeMovementAction, ETriggerEvent::Triggered, this, &AShipPawn::HandleArrowFree);
+
 	}
 }
 
@@ -208,21 +249,67 @@ void AShipPawn::Steer(const FInputActionValue& Value) {
 	}
 }
 
+void AShipPawn::Target(const FInputActionValue& Value) {
+	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Targeting"));
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC) return;
+	// Get screen center
+	int32 ViewX, ViewY;
+	PC->GetViewportSize(ViewX, ViewY);
+	FVector2D ScreenCenter(ViewX / 2.0f, ViewY / 2.0f);
+
+	// Find all enemies in world, loop after projecting to screen to find closest enemy to center
+	TArray<AActor*> Enemies;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AShipPawn::StaticClass(), Enemies);
+
+	float ClosestDist = TNumericLimits<float>::Max();
+	AActor* ClosestEnemy = nullptr;
+
+	for (AActor* Enemy : Enemies)
+	{
+		if (!Enemy || Enemy == this) continue;
+
+		FVector2D ScreenLoc;
+		bool bOnScreen = PC->ProjectWorldLocationToScreen(Enemy->GetActorLocation(), ScreenLoc);
+
+		if (bOnScreen)
+		{
+			float Dist = FVector2D::Distance(ScreenLoc, ScreenCenter);
+			if (Dist < ClosestDist)
+			{
+				ClosestDist = Dist;
+				ClosestEnemy = Enemy;
+			}
+		}
+	}
+	if (ClosestEnemy)
+	{
+		CurrentTarget = ClosestEnemy;
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+			FString::Printf(TEXT("Target locked: %s"), *ClosestEnemy->GetName()));
+	}
+	else
+	{
+		CurrentTarget = nullptr;
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+			FString::Printf(TEXT("No target found")));
+	}
+}
+
 //Power Allocation Functions
 void AShipPawn::AllocateReinforceShield(int32 amt, int32 index) {
 	if (TotalEnergyAvailable >= amt) {
 		//Reduce total available energy by amt, then increase shield reinforcement in index by amt
 		TotalEnergyAvailable -= amt;
 		ShieldReinforcements[index] += amt;
-		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 	}
 	else {
 		//Otherwise just use all remaining energy on reinforcing the shield
 		int32 temp = TotalEnergyAvailable;
 		TotalEnergyAvailable = 0;
 		ShieldReinforcements[index] += temp;
-		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 	}
+	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 }
 
 void AShipPawn::FreeReinforceShield(int32 amt, int32 index) {
@@ -230,15 +317,23 @@ void AShipPawn::FreeReinforceShield(int32 amt, int32 index) {
 		//Reduce movement energy by amt, then increase available energy by amt
 		ShieldReinforcements[index] -= amt;
 		TotalEnergyAvailable += amt;
-		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 	}
 	else {
 		//Otherwise just remove all energy from movement and push to available
 		int32 temp = ShieldReinforcements[index];
 		ShieldReinforcements[index] = 0;
 		TotalEnergyAvailable += temp;
-		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 	}
+	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+}
+
+//handlers for input
+void AShipPawn::HandleArrowAlloc() {
+	AllocateMovement(1);
+}
+
+void AShipPawn::HandleArrowFree() {
+	FreeMovement(1);
 }
 
 void AShipPawn::AllocateMovement(int32 amt) {
@@ -246,18 +341,18 @@ void AShipPawn::AllocateMovement(int32 amt) {
 		//Reduce total available energy by amt, then increase movement energy by amt
 		TotalEnergyAvailable -= amt;
 		MovementEnergy += amt;
-		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 	}
 	else {
 		//Otherwise just use all remaining energy on movement
 		int32 temp = TotalEnergyAvailable;
 		TotalEnergyAvailable = 0;
 		MovementEnergy += temp;
-		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 	}
+	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 	//Pass final movement energy down to the movement component to determine max speed
 	if (UShipPawnMovementComponent* MC = Cast<UShipPawnMovementComponent>(MovementComponent)) {
 		MC->SetMovementEnergy(MovementEnergy);
+		OnMovementEnergyChanged.Broadcast(MovementEnergy);
 	}
 }
 
@@ -266,18 +361,19 @@ void AShipPawn::FreeMovement(int32 amt) {
 		//Reduce movement energy by amt, then increase available energy by amt
 		TotalEnergyAvailable += amt;
 		MovementEnergy -= amt;
-		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 	}
 	else {
 		//Otherwise just remove all energy from movement and push to available
 		int32 temp = MovementEnergy;
 		MovementEnergy = 0;
 		TotalEnergyAvailable += temp;
-		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+		
 	}
+	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 	//Pass final movement energy down to the movement component to determine max speed
 	if (UShipPawnMovementComponent* MC = Cast<UShipPawnMovementComponent>(MovementComponent)) {
 		MC->SetMovementEnergy(MovementEnergy);
+		OnMovementEnergyChanged.Broadcast(MovementEnergy);
 	}
 }
 

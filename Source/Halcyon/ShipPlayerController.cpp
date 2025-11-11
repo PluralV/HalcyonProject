@@ -46,7 +46,15 @@ void AShipPlayerController::BeginPlay() {
 			StatWidget->AddToViewport();
 		}
 	}
-	
+
+	//3. ADD INTEGRITY WIDGET
+	if (EnergyWidget) {
+		HUDEnergy = CreateWidget<UUserWidget>(this, ShipIntegrityWidget);
+		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDEnergy)) {
+			StatWidget->OwningShip = GetPawn();
+			StatWidget->AddToViewport();
+		}
+	}
 
 }
 
