@@ -23,7 +23,7 @@ void AShipPlayerController::BeginPlay() {
 		if (ControllerMappingContext)
 		{
 			Subsystem->AddMappingContext(ControllerMappingContext, 1);
-		}
+}
 	}
 	// Use Game and UI mode from the start
 	/*EnableLook();*/
@@ -35,7 +35,7 @@ void AShipPlayerController::BeginPlay() {
 		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDMovement)) {
 			StatWidget->OwningShip = GetPawn();
 			StatWidget->AddToViewport();
-		}
+}
 	}
 
 	//2. ADD ENERGY WIDGET
@@ -44,9 +44,9 @@ void AShipPlayerController::BeginPlay() {
 		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDEnergy)) {
 			StatWidget->OwningShip = GetPawn();
 			StatWidget->AddToViewport();
-		}
+}
 	}
-	
+
 
 }
 
@@ -56,9 +56,11 @@ void AShipPlayerController::SetupInputComponent() {
 	// Use BindAxis instead of BindAction for more reliable mouse button tracking
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent)) {
 		EnhancedInputComponent->BindAction(ToggleHUDAction, ETriggerEvent::Started, this, &AShipPlayerController::ToggleHUDInteraction);
+		}
+		//Reinforce a shield
+		CurrentShipPawn->AllocateReinforceShield(amt, index);
 	}
-}
-
+	
 void AShipPlayerController::ToggleHUDInteraction() {
 	if (bIsInHUDMode) {
 		bIsInHUDMode = false;
@@ -125,7 +127,7 @@ void AShipPlayerController::ToggleHUDInteraction() {
 //MAY NEED WORK: WILL PLAYER CONTROLLER KNOW ABOUT THIS??
 void AShipPlayerController::AllocateEnergyToModularSys(AModularSystem* TargetSystem, int32 amt) {
 	TargetSystem->AllocateEnergy(amt);
-}
+	}
 
 void AShipPlayerController::FreeEnergyFromModularSys(AModularSystem* TargetSystem, int32 amt) {
 	TargetSystem->FreeEnergy(amt);

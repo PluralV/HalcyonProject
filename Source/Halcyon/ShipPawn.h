@@ -64,6 +64,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* TargetAction;
 
+	UPROPERTY(BlueprintReadWrite, Category = "Targeting")
+	AActor* CurrentTarget = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapons")
+	TArray<UChildActorComponent*> WeaponComponents;
+
+
+
 	//Handle player input
 	void Look(const FInputActionValue& Value);
 	void Throttle(const FInputActionValue& Value);

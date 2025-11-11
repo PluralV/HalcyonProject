@@ -9,6 +9,12 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "ShipPlayerController.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Engine/World.h"
+#include "WeaponSystem.h"
+
 // Sets default values
 AShipPawn::AShipPawn()
 {
@@ -32,6 +38,12 @@ AShipPawn::AShipPawn()
 	ShipMesh->SetSimulatePhysics(true);
 	ShipMesh->SetCollisionProfileName(TEXT("Vehicle"));
 	ShipMesh->SetEnableGravity(false);
+
+	// mesh collision
+	ShipMesh->SetCollisionObjectType(ECC_Pawn);
+	ShipMesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+	ShipMesh->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	ShipMesh->SetGenerateOverlapEvents(true);
 
 	//Body mesh
 	HullMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
@@ -76,6 +88,8 @@ AShipPawn::AShipPawn()
 	}
 }
 
+}
+
 // Called when the game starts or when spawned
 void AShipPawn::BeginPlay()
 {
@@ -93,6 +107,18 @@ void AShipPawn::BeginPlay()
 		}
 	}
 
+	// add the weapon systems placed in bp to the array
+	TArray<UChildActorComponent*> ChildActorComps;
+	GetComponents<UChildActorComponent>(ChildActorComps);
+	for (UChildActorComponent* Comp : ChildActorComps)
+	{
+		if (Comp && Comp->GetChildActor() && Comp->GetChildActor()->IsA(AWeaponSystem::StaticClass()))
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Adding weaponsystem to array"));
+			WeaponComponents.Add(Comp);
+		}
+	}
+
 	
 }
 
@@ -102,7 +128,25 @@ void AShipPawn::BeginPlay()
 void AShipPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if (CurrentTarget) {
+		for (UChildActorComponent* WeaponComp : WeaponComponents)
+		{
+			if (WeaponComp) {
+				AActor* Child = WeaponComp->GetChildActor();
+				if (AWeaponSystem* Weapon = Cast<AWeaponSystem>(Child))
+				{
+					Weapon->TrackTarget(DeltaTime, CurrentTarget);
+				}
+				else {
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
 
+				}
+			}
+			else {
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("no wewpaoncomp"));
+			}
+		}
+	}
 }
 
 // Called to bind functionality to input
@@ -126,6 +170,8 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Completed, this, &AShipPawn::Steer);
 		//Look action
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AShipPawn::Look);
+		EnhancedInputComponent->BindAction(TargetAction, ETriggerEvent::Completed, this, &AShipPawn::Target);
+
 		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Inputs bound"));
 	}
 }
@@ -188,7 +234,7 @@ void AShipPawn::Throttle(const FInputActionValue& Value) {
 
 void AShipPawn::Decelerate(const FInputActionValue& Value) {
 	const FVector2D MoveValue = Value.Get<FVector2D>();
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Braking"));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Braking"));
 	bool bPressed = Value.Get<bool>();
 	float AppliedThrottle = bPressed ? -1.f : 0.f;
 	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
@@ -203,11 +249,58 @@ void AShipPawn::Steer(const FInputActionValue& Value) {
 	
 	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Turning"));
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Turning"));
 		MovementComponent->SetRotationalInput(FRotator(MoveValue.X, MoveValue.Y, 0));
 	}
 }
 
+void AShipPawn::Target(const FInputActionValue& Value) {
+	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Targeting"));
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC) return;
+	// Get screen center
+	int32 ViewX, ViewY;
+	PC->GetViewportSize(ViewX, ViewY);
+	FVector2D ScreenCenter(ViewX / 2.0f, ViewY / 2.0f);
+
+	// Find all enemies in world, loop after projecting to screen to find closest enemy to center
+	TArray<AActor*> Enemies;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AShipPawn::StaticClass(), Enemies);
+
+	float ClosestDist = TNumericLimits<float>::Max();
+	AActor* ClosestEnemy = nullptr;
+
+	for (AActor* Enemy : Enemies)
+	{
+		if (!Enemy || Enemy == this) continue;
+
+		FVector2D ScreenLoc;
+		bool bOnScreen = PC->ProjectWorldLocationToScreen(Enemy->GetActorLocation(), ScreenLoc);
+
+		if (bOnScreen)
+		{
+			float Dist = FVector2D::Distance(ScreenLoc, ScreenCenter);
+			if (Dist < ClosestDist)
+			{
+				ClosestDist = Dist;
+				ClosestEnemy = Enemy;
+			}
+		}
+	}
+	if (ClosestEnemy)
+	{
+		CurrentTarget = ClosestEnemy;
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+			FString::Printf(TEXT("Target locked: %s"), *ClosestEnemy->GetName()));
+	}
+	else
+	{
+		CurrentTarget = nullptr;
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+			FString::Printf(TEXT("No target found")));
+	}
+}
+		
 //Power Allocation Functions
 void AShipPawn::AllocateReinforceShield(int32 amt, int32 index) {
 	if (TotalEnergyAvailable >= amt) {
@@ -377,4 +470,4 @@ float AShipPawn::GetCurrentVelocity(bool bForDisplay) {
 		return bForDisplay ? roundf(Velocity * 100) / 100.f : Velocity;
 	}
 	return -1.f;
-}
+}		
