@@ -14,6 +14,7 @@ class AModularSystem;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStaticEnergyChanged, int32, which, int32, amt);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAvailableEnergyChanged, int32, amt);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementEnergyChanged, int32, amt);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTotalEnergyChanged, int32, amt);
 
 
@@ -40,6 +41,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnTotalEnergyChanged OnTotalEnergyChanged;
 
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnMovementEnergyChanged OnMovementEnergyChanged;
+
 
 protected:
 	// Called when the game starts or when spawned
@@ -64,6 +68,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* TargetAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* AllocMovementAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* FreeMovementAction;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Targeting")
+	AActor* CurrentTarget = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapons")
+	TArray<UChildActorComponent*> WeaponComponents;
+
 	//Handle player input
 	void Look(const FInputActionValue& Value);
 	void Throttle(const FInputActionValue& Value);
@@ -73,6 +89,8 @@ protected:
 	void ZeroDecel();
 	void ZeroSteering();
 	void Target(const FInputActionValue& Value);
+	void HandleArrowAlloc();
+	void HandleArrowFree();
 
 	// Camera rotation speed
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
