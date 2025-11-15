@@ -296,6 +296,46 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 	}
 }
 
+//Allocate damage hitting ship from some angle
+void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
+	int32 ShieldBand = ((int)FromAngle % 360) / 60;
+	
+	//Allocate damage to shield reinforcement
+	ShieldReinforcements[ShieldBand] -= DamageAmt;
+	if (ShieldReinforcements[ShieldBand] >= 0) {
+		FreeReinforceShield(DamageAmt, ShieldBand);
+		OnShieldStrengthChanged.Broadcast(ShieldBand, ShieldReinforcements[ShieldBand] + ShieldFacingsCurr[ShieldBand]);
+		return;
+	}
+	else {
+		int32 temp = ShieldReinforcements[ShieldBand] + DamageAmt;
+		DamageAmt = -1 * ShieldReinforcements[ShieldBand];
+		ShieldReinforcements[ShieldBand] = 0;
+		FreeReinforceShield(temp, ShieldBand);
+	}
+
+	//Allocate damage to shield itself
+	ShieldFacingsCurr[ShieldBand] -= DamageAmt;
+	if (ShieldFacingsCurr[ShieldBand] >= 0) {
+		OnShieldStrengthChanged.Broadcast(ShieldBand, ShieldFacingsCurr[ShieldBand]);
+		return;
+	}
+	else {
+		DamageAmt = -1 * ShieldFacingsCurr[ShieldBand];
+		ShieldFacingsCurr[ShieldBand] = 0;
+		OnShieldStrengthChanged.Broadcast(ShieldBand, 0);
+	}
+
+	//Allocate damage to internals
+	//CURRENT HACK: JUST DEAL TO HULL INTEGRITY
+	HullIntegrity -= DamageAmt;
+	if (HullIntegrity <= 0) {
+		OnShipDestroyed.Broadcast(0);
+	}
+	OnHullIntegrityChanged.Broadcast(HullIntegrity);
+
+}
+
 //Power Allocation Functions
 void AShipPawn::AllocateReinforceShield(int32 amt, int32 index) {
 	if (TotalEnergyAvailable >= amt) {
@@ -310,21 +350,25 @@ void AShipPawn::AllocateReinforceShield(int32 amt, int32 index) {
 		ShieldReinforcements[index] += temp;
 	}
 	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+	OnShieldStrengthChanged.Broadcast(index, ShieldReinforcements[index] + ShieldFacingsCurr[index]);
 }
 
 void AShipPawn::FreeReinforceShield(int32 amt, int32 index) {
-	if (MovementEnergy >= amt) {
-		//Reduce movement energy by amt, then increase available energy by amt
-		ShieldReinforcements[index] -= amt;
-		TotalEnergyAvailable += amt;
-	}
-	else {
-		//Otherwise just remove all energy from movement and push to available
-		int32 temp = ShieldReinforcements[index];
-		ShieldReinforcements[index] = 0;
-		TotalEnergyAvailable += temp;
+	if (ShieldReinforcements[index] > 0) {
+		if (TotalEnergyAvailable + amt <= TotalEnergyCurr) {
+			//Reduce movement energy by amt, then increase available energy by amt
+			ShieldReinforcements[index] -= amt;
+			TotalEnergyAvailable += amt;
+		}
+		else {
+			//Otherwise just remove all energy from movement and push to available
+			int32 temp = ShieldReinforcements[index];
+			ShieldReinforcements[index] = 0;
+			TotalEnergyAvailable = TotalEnergyCurr;
+		}
 	}
 	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+	OnShieldStrengthChanged.Broadcast(index, ShieldReinforcements[index] + ShieldFacingsCurr[index]);
 }
 
 //handlers for input
@@ -383,6 +427,27 @@ void AShipPawn::AllocateModularSystem(AModularSystem* TargetSystem, int32 amt) {
 
 void AShipPawn::FreeModularSystem(AModularSystem* TargetSystem, int32 amt) {
 
+}
+
+void AShipPawn::DestroyShip(int32 CauseOfDeath) {
+	//CauseOfDeath: records cause of destruction of the ship
+	/*
+	0: Hull integrity exhausted (just kill the ship)
+	*/
+	if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
+		OnShipDestroyed.Broadcast(CauseOfDeath);
+		switch (CauseOfDeath) {
+		case 0:
+			this->Destroy();
+			return;
+		default:return;
+		}
+		
+	}
+	else {
+		OnEnemyDestroyed.Broadcast(this);
+		this->Destroy();
+	}
 }
 
 //GETTERS FOR STATS
@@ -465,6 +530,10 @@ int32 AShipPawn::GetAftHullCurr() {
 
 float AShipPawn::GetSpeedConstant() {
 	return SpeedConstant;
+}
+
+int32 AShipPawn::GetHullIntegrity() {
+	return HullIntegrity;
 }
 
 float AShipPawn::GetCurrentVelocity(bool bForDisplay) {

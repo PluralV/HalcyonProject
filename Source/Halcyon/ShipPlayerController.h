@@ -81,6 +81,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipIntegrityWidget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
+	TSubclassOf<UUserWidget> ShipHullWidget;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
 	TSubclassOf<UUserWidget> WeaponInfoWidget;
@@ -89,6 +92,7 @@ protected:
 	UUserWidget* HUDEnergy;
 	UUserWidget* HUDIntegrity;
 	UUserWidget* HUDWeapons;
+	UUserWidget* HUDHull;
 
 	/*Separate functions will exist for allocating energy to systems that are static / default
 	(i.e. movement, shield reinforcement, <potential> repairs/electronic warfare) and those that

@@ -48,14 +48,31 @@ void AShipPlayerController::BeginPlay() {
 	}
 
 	//3. ADD INTEGRITY WIDGET
-	if (EnergyWidget) {
-		HUDEnergy = CreateWidget<UUserWidget>(this, ShipIntegrityWidget);
-		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDEnergy)) {
+	if (ShipIntegrityWidget) {
+		HUDIntegrity = CreateWidget<UUserWidget>(this, ShipIntegrityWidget);
+		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDIntegrity)) {
 			StatWidget->OwningShip = GetPawn();
 			StatWidget->AddToViewport();
 		}
 	}
 
+	//4. ADD HULL WIDGET
+	if (ShipHullWidget) {
+		HUDHull = CreateWidget<UUserWidget>(this, ShipHullWidget);
+		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDHull)) {
+			StatWidget->OwningShip = GetPawn();
+			StatWidget->AddToViewport();
+		}
+	}
+
+	//5. ADD WEAPON WIDGET
+	if (WeaponInfoWidget) {
+		HUDWeapons = CreateWidget<UUserWidget>(this, WeaponInfoWidget);
+		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDWeapons)) {
+			StatWidget->OwningShip = GetPawn();
+			StatWidget->AddToViewport();
+		}
+	}
 }
 
 void AShipPlayerController::SetupInputComponent() {

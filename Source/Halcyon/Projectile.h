@@ -10,6 +10,7 @@
 
 #include "Projectile.generated.h"
 
+class AWeaponSystem;
 
 UCLASS()
 class HALCYON_API AProjectile : public AActor
@@ -31,12 +32,20 @@ protected:
 	USphereComponent* Collision;
 
 	UFUNCTION()
+	int32 GetDamage();//returns damage amt for range
+
+	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UPROPERTY(VisibleAnywhere)
 	class UProjectileMovementComponent* Movement;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	float MaxRange;
+	float DistanceTraveled = 0.0;
+	int32 EnergyLevel;
+	int32 MaxEnergy;
 
 public:	
 	// Called every frame
