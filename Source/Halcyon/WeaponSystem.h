@@ -100,7 +100,7 @@ public:
 
     int32 AllocatedEnergy;
 
-    
+    int32 team = -1;
 
     bool bIsDamaged = false;
     bool bTargetInArc = false;

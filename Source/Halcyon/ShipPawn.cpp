@@ -97,6 +97,7 @@ void AShipPawn::BeginPlay()
 	// Add the Input Mapping Context to the player's input subsystem
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
+		Team = 0;
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
 			// THIS is where the VehicleMappingContext property is USED
@@ -115,6 +116,9 @@ void AShipPawn::BeginPlay()
 		{
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Adding weaponsystem to array"));
 			WeaponComponents.Add(Comp);
+			if (AWeaponSystem* WS = Cast<AWeaponSystem>(Comp->GetChildActor())) {
+				WS->team = Team;
+			}
 		}
 	}
 	
@@ -303,7 +307,7 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 		if (CurrentTarget) {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Removing old current-target"));
 			if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Unbinding from old target"));
+				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Unbinding from old target"));
 				EnemyShip->OnShipDestroyed.RemoveDynamic(this, &AShipPawn::HandleShipDestroyed);
 			}
 		}

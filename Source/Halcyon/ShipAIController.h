@@ -27,7 +27,10 @@ public:
 
 	// offset to aim at to create orbiting effect
 	UPROPERTY(EditAnywhere)
-	float SideOffset = 5000.0f;
+	float SideOffset = 7500.0f;
+
+	UPROPERTY(EditAnywhere)
+	float HeightOffset = 0.f;
 
 	// range to set target
 	UPROPERTY(EditAnywhere)
@@ -36,5 +39,6 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	void RotateToward(const FVector& TargetLocation);
+	bool bIsTargeting = false;
 
 };

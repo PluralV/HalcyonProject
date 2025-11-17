@@ -64,9 +64,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Name")
 	FText ShipName;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
+	FText ShipClass;
+
 	UFUNCTION()
 	void SetTarget(AActor* Target) {
 		CurrentTarget = Target;
+	}
+
+	UFUNCTION()
+	void AIFireWeapon() {
+		Fire();
 	}
 
 protected:
@@ -153,16 +161,16 @@ protected:
 	
 	//Energy stats: The total amount of energy generated is the total integer sum of these
 	//Curr values indicate the current number remaining (initialised to the same amount as the base)
-	UPROPERTY(BlueprintReadWrite, Category = "Base System Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
 	int32 LeftEng = 16;
 	int32 LeftEngCurr = 0;
-	UPROPERTY(BlueprintReadWrite, Category = "Base System Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
 	int32 RightEng = 16;
 	int32 RightEngCurr = 0;
-	UPROPERTY(BlueprintReadWrite, Category = "Base System Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
 	int32 CenterEng = 0;
 	int32 CenterEngCurr = 0;
-	UPROPERTY(BlueprintReadWrite, Category = "Base System Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
 	int32 PowerReactor = 4;
 	int32 PowerReactorCurr = 0;
 
@@ -177,21 +185,21 @@ protected:
 	
 
 	//Engine settings
-	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
 	float SpeedLimit = 1750.f;
-	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
 	float CurrentThrottle = 0.f;
 
 	//Maneuverability
-	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
 	float PitchRate = 20.f;
-	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
 	float YawRate = 20.f;
 	//Acceleration rate, how fast velocity increases up to current maximum
 	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
 	float AccelRate = 20.f;
 	//Top speed, multiplied by amount of energy allocated to movement to get the maximum velocity (magnitude)
-	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
 	float SpeedConstant = 20.f;
 	
 	
@@ -298,7 +306,10 @@ public:
 	//Velocity: Rounds in case it's for display, otherwise does not
 	UFUNCTION(BlueprintCallable)
 	float GetCurrentVelocity(bool bForDisplay);
-	
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
+	int32 Team = 1;
 
 private:
 	UFUNCTION()
