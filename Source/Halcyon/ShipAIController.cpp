@@ -13,6 +13,13 @@ void AShipAIController::BeginPlay()
     if (!PlayerPawn) {
         PlayerPawn = Cast<AShipPawn>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
     }
+    else {
+        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("No player pawn set"));
+    }
+    ControlledShip->AllocateMovement(10);
+    HeightOffset = FMath::RandRange(-1000.f, 1000.f);
+
+
 }
 
 // x = -1 up, x = 1 down, y = 1 right, y = -1 left
@@ -51,17 +58,21 @@ void AShipAIController::Tick(float DeltaSeconds)
     }
     else  // if closer, orbit by pointing at player offset to the side
     {
-        FVector Right = PlayerPawn->GetActorForwardVector();
-        LookAtPoint = PlayerLoc + Right * SideOffset;
+        FVector FlankDirection = (MyLoc - PlayerLoc).GetSafeNormal();
+        FlankDirection = FVector::CrossProduct(FlankDirection, FVector::UpVector);
+        LookAtPoint = PlayerLoc + FlankDirection * SideOffset + FVector::UpVector * HeightOffset;
     }
     RotateToward(LookAtPoint);
 
     // thrust forwards
-    ControlledShip->MovementComponent->SetThrustInput(.5);
+    ControlledShip->MovementComponent->SetThrustInput(1);
 
-    // target if in range
+    // target
+    ControlledShip->SetTarget(PlayerPawn);
+    // fire if in range
+
     if (Distance < FireRange)
     {
-        ControlledShip->SetTarget(PlayerPawn);
+        ControlledShip->AIFireWeapon();
     }
 }

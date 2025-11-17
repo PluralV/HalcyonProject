@@ -64,9 +64,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Name")
 	FText ShipName;
 
+	// used by AI
 	UFUNCTION()
 	void SetTarget(AActor* Target) {
 		CurrentTarget = Target;
+	}
+	void AIFireWeapon() {
+		Fire();
 	}
 
 protected:

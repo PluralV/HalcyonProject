@@ -27,11 +27,14 @@ public:
 
 	// offset to aim at to create orbiting effect
 	UPROPERTY(EditAnywhere)
-	float SideOffset = 5000.0f;
+	float SideOffset = 7500.0f;
+
+	UPROPERTY(EditAnywhere)
+	float HeightOffset = 0.f;
 
 	// range to set target
 	UPROPERTY(EditAnywhere)
-	float FireRange = 5000.0f;
+	float FireRange = 7500.0f;
 
 protected:
 	virtual void BeginPlay() override;
