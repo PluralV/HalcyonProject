@@ -46,13 +46,20 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
         FString::Printf(TEXT("Hit Actor: %s"), *OtherActor->GetName()));
     if (OtherActor && OtherActor != this->GetOwner() && OtherActor->IsA(AShipPawn::StaticClass()))
     {
+        if (AShipPawn* Ship = Cast<AShipPawn>(OtherActor)) {
 
-        // Apply damage or effects here
+            /*if (Ship->GetController() && Ship->GetController()->IsPlayerController())
+            {
+                return;
+            }*/
+            // Apply damage or effects here
 
-        // Destroy projectile
-        this->Destroy();
+            // Destroy projectile
+            this->Destroy();
+        }
     }
 }
+
 // Called when the game starts or when spawned
 void AProjectile::BeginPlay()
 {
