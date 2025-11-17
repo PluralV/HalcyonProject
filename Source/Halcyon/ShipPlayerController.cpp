@@ -101,9 +101,7 @@ void AShipPlayerController::SetupInputComponent() {
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent)) {
 		EnhancedInputComponent->BindAction(ToggleHUDAction, ETriggerEvent::Started, this, &AShipPlayerController::ToggleHUDInteraction);
 		}
-		//Reinforce a shield
-		CurrentShipPawn->AllocateReinforceShield(amt, index);
-	}
+}
 	
 void AShipPlayerController::ToggleHUDInteraction() {
 	if (bIsInHUDMode) {

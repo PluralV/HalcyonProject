@@ -16,12 +16,6 @@
 #include "Engine/World.h"
 #include "WeaponSystem.h"
 
-#include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetMathLibrary.h"
-#include "Kismet/KismetSystemLibrary.h"
-#include "Engine/World.h"
-#include "WeaponSystem.h"
-
 // Sets default values
 AShipPawn::AShipPawn()
 {
@@ -93,8 +87,6 @@ AShipPawn::AShipPawn()
 	for (int8 i = 0; i < 6; i++) {
 		ShieldFacingsCurr[i] = ShieldFacings[i];
 	}
-}
-
 }
 
 // Called when the game starts or when spawned
