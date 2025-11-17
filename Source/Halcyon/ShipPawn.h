@@ -26,6 +26,11 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UShipPawnMovementComponent* MovementComponent;
 
+	UFUNCTION()
+	void SetTarget(AActor* Target) {
+		CurrentTarget = Target;
+	}
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

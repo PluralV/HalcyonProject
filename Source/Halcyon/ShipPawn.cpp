@@ -248,7 +248,13 @@ void AShipPawn::Steer(const FInputActionValue& Value) {
 	
 	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Turning"));
+		/*GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Turning"));
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			2.f,
+			FColor::Yellow,
+			FString::Printf(TEXT("steer values: X=%f, Y=%f"), MoveValue.X, MoveValue.Y)
+		);*/
 		MovementComponent->SetRotationalInput(FRotator(MoveValue.X, MoveValue.Y, 0));
 	}
 }

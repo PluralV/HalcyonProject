@@ -42,10 +42,14 @@ void UShipPawnMovementComponent::TickComponent(float DeltaTime,
         FQuat PitchQuat = FQuat(Forward, FMath::DegreesToRadians(AngularThrust.Pitch * PitchRate * DeltaTime * -1.f));
         FQuat YawQuat = FQuat(WorldUp, FMath::DegreesToRadians(AngularThrust.Yaw * YawRate * DeltaTime));
         FQuat TargetQuat = YawQuat * PitchQuat * PrimComp->GetComponentQuat();
-
+        FRotator TargetRot = TargetQuat.Rotator();
+        TargetRot.Pitch = 0.f; // set roll to 0
+        TargetQuat = TargetRot.Quaternion();
         float Alpha = 1.f; // tweak for smoothing
         FQuat NewQuat = FQuat::Slerp(PrimComp->GetComponentQuat(), TargetQuat, Alpha);
         PrimComp->SetWorldRotation(NewQuat);
+        // set angular velocity to 0 to prevent ship rotating forever when colliding
+        PrimComp->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
 
 
         //SIMPLE LINEAR ACCELERATION (drop if necessary)
@@ -82,8 +86,8 @@ void UShipPawnMovementComponent::AddThrustInput(float ThrottleValue) {
 
 void UShipPawnMovementComponent::SetThrustInput(float ThrustValue) {
     CurrentThrust = ThrustValue;
-    GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-        FString::Printf(TEXT("SetThrustInput called currentthrust: %f"), CurrentThrust));
+    /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+        FString::Printf(TEXT("SetThrustInput called currentthrust: %f"), CurrentThrust));*/
 }
 
 void UShipPawnMovementComponent::AddRotationalInput(FVector RotationInput) {
@@ -94,7 +98,7 @@ void UShipPawnMovementComponent::AddRotationalInput(FVector RotationInput) {
 
 void UShipPawnMovementComponent::SetRotationalInput(FRotator Rotator) {
     AngularThrust = Rotator;
-    GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-        FString::Printf(TEXT("set rotational input called - Pitch: %f, Yaw: %f Roll: %f"), AngularThrust.Pitch, AngularThrust.Yaw, AngularThrust.Roll));
+    /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+        FString::Printf(TEXT("set rotational input called - Pitch: %f, Yaw: %f Roll: %f"), AngularThrust.Pitch, AngularThrust.Yaw, AngularThrust.Roll));*/
 }
 
