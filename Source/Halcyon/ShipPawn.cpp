@@ -8,6 +8,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "ShipPlayerController.h"
+#include "HalcyonSimpleGameMode.h"
 
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -87,7 +88,6 @@ void AShipPawn::BeginPlay()
 {
 	Super::BeginPlay();
 	
-
 	// Add the Input Mapping Context to the player's input subsystem
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
@@ -97,6 +97,7 @@ void AShipPawn::BeginPlay()
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Adding ship mapping context"));
 			Subsystem->AddMappingContext(ShipMappingContext, 0);
 		}
+		
 	}
 
 	// add the weapon systems placed in bp to the array
@@ -120,6 +121,7 @@ void AShipPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	if (CurrentTarget) {
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Still tracking target"));
 		for (UChildActorComponent* WeaponComp : WeaponComponents)
 		{
 			if (WeaponComp) {
@@ -284,16 +286,42 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 	}
 	if (ClosestEnemy)
 	{
+		
+		if (CurrentTarget) {
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Removing old current-target"));
+			if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Unbinding from old target"));
+				EnemyShip->OnShipDestroyed.RemoveDynamic(this, &AShipPawn::HandleShipDestroyed);
+			}
+		}
+
 		CurrentTarget = ClosestEnemy;
+		if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Binding the ship destroyed logic"));
+			EnemyShip->OnShipDestroyed.AddDynamic(this, &AShipPawn::HandleShipDestroyed);
+		}
+
+		if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
+			SPC->AcquireTargetToHud(ClosestEnemy);
+		}
 		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
 			FString::Printf(TEXT("Target locked: %s"), *ClosestEnemy->GetName()));
 	}
 	else
 	{
 		CurrentTarget = nullptr;
+		if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
+			SPC->AcquireTargetToHud(nullptr);
+		}
 		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
 			FString::Printf(TEXT("No target found")));
 	}
+}
+
+void AShipPawn::UnlockTarget() {
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+		FString::Printf(TEXT("Unlocking target")));
+	CurrentTarget = nullptr;
 }
 
 //Allocate damage hitting ship from some angle
@@ -330,7 +358,10 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 	//CURRENT HACK: JUST DEAL TO HULL INTEGRITY
 	HullIntegrity -= DamageAmt;
 	if (HullIntegrity <= 0) {
-		OnShipDestroyed.Broadcast(0);
+		HullIntegrity = 0;
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+			FString::Printf(TEXT("SHIP BEING DESTROYED")));
+		DestroyShip(0);
 	}
 	OnHullIntegrityChanged.Broadcast(HullIntegrity);
 
@@ -433,21 +464,47 @@ void AShipPawn::DestroyShip(int32 CauseOfDeath) {
 	//CauseOfDeath: records cause of destruction of the ship
 	/*
 	0: Hull integrity exhausted (just kill the ship)
+	1: Energy exhausted (it drifts?)
 	*/
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+		FString::Printf(TEXT("BROADCASTING:")));
+	OnShipDestroyed.Broadcast(CauseOfDeath, this);
 	if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
-		OnShipDestroyed.Broadcast(CauseOfDeath);
-		switch (CauseOfDeath) {
-		case 0:
-			this->Destroy();
-			return;
-		default:return;
+		//Player death event: Cause a loss state in the gamemode (all Halcyon gamemodes should have one)
+		AGameModeBase* CurrentGameMode = GetWorld()->GetAuthGameMode();
+		//Branching ifs depending on gamemode
+		if (AHalcyonSimpleGameMode* HSGM = Cast<AHalcyonSimpleGameMode>(CurrentGameMode)) {
+			//TODO: Loss logic for Halcyon Simple
 		}
-		
+		//else if else if...
 	}
 	else {
-		OnEnemyDestroyed.Broadcast(this);
-		this->Destroy();
+		//Enemy death event
+		OnEnemyDestroyed.Broadcast();
 	}
+	switch (CauseOfDeath) {//Ideally in the end TODO: we add some kind of death animation prior to vaporizing them
+	case 0://Currently: just destroy
+		this->Destroy();
+		return;
+	default:return;
+	}
+	
+}
+
+void AShipPawn::HandleShipDestroyed(int32 CauseOfDeath, AShipPawn* DestroyedShip) {
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,FString::Printf(TEXT("Handling broadcast:")));
+	if (CurrentTarget) {
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Current target valid :)")));
+		if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
+			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Cast to ship pawn succeeds :)")));
+			if (DestroyedShip == CurrentTarget) {
+				GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+					FString::Printf(TEXT("NULLING TARGET")));
+				UnlockTarget();
+			}
+		}
+	}
+	
 }
 
 //GETTERS FOR STATS
@@ -536,10 +593,37 @@ int32 AShipPawn::GetHullIntegrity() {
 	return HullIntegrity;
 }
 
+int32 AShipPawn::GetMaxHullIntegrity() {
+	return MaxHullIntegrity;
+}
+
 float AShipPawn::GetCurrentVelocity(bool bForDisplay) {
 	if (UShipPawnMovementComponent* MC = Cast<UShipPawnMovementComponent>(MovementComponent)) {
 		float Velocity = MC->GetSpeed();
 		return bForDisplay ? roundf(Velocity * 100) / 100.f : Velocity;
 	}
 	return -1.f;
+}
+
+void AShipPawn::BeginDestroy() {
+	
+	if (ShipMesh && ShipMesh->IsValidLowLevel())
+	{
+		//Get all children and unweld from the parent mesh to prevent welded component errors
+		TArray<USceneComponent*> ChildComponents;
+		ShipMesh->GetChildrenComponents(true, ChildComponents);
+
+		for (USceneComponent* Child : ChildComponents)
+		{
+			if (UPrimitiveComponent* PrimChild = Cast<UPrimitiveComponent>(Child))
+			{
+				if (PrimChild->IsWelded())
+				{
+					PrimChild->UnWeldFromParent();
+				}
+			}
+		}
+	}
+
+	Super::BeginDestroy();
 }

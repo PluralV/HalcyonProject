@@ -12,14 +12,14 @@ class UInputAction;
 class UShipPawnMovementComponent;
 class AModularSystem;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyDestroyed, AShipPawn*, DestroyedShip);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEnemyDestroyed);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStaticEnergyChanged, int32, which, int32, amt);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnShieldStrengthChanged, int32, index, int32, amt);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAvailableEnergyChanged, int32, amt);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementEnergyChanged, int32, amt);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTotalEnergyChanged, int32, amt);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHullIntegrityChanged, int32, amt);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnShipDestroyed, int32, CauseOfDeath);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnShipDestroyed, int32, CauseOfDeath, AShipPawn*, DestroyedShip);
 
 
 
@@ -32,7 +32,7 @@ class HALCYON_API AShipPawn : public APawn
 public:
 	// Sets default values for this pawn's properties
 	AShipPawn();
-
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UShipPawnMovementComponent* MovementComponent;
 
@@ -61,10 +61,13 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnEnemyDestroyed OnEnemyDestroyed;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Name")
+	FText ShipName;
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void BeginDestroy() override;
 	
 	// Input Actions
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
@@ -117,6 +120,10 @@ protected:
 	//Hull integrity
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base System Stats")
 	int32 HullIntegrity = 32;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
+	int32 MaxHullIntegrity = 32;
+
 	//Shield values
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Base System Stats")
 	TArray<int32> ShieldFacings = { 30,24,18,18,18,24 };
@@ -276,7 +283,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	int32 GetHullIntegrity();
 
-
+	UFUNCTION(BlueprintCallable)
+	int32 GetMaxHullIntegrity();
 
 	//Velocity: Rounds in case it's for display, otherwise does not
 	UFUNCTION(BlueprintCallable)
@@ -284,7 +292,12 @@ public:
 	
 
 private:
+	UFUNCTION()
+	void HandleShipDestroyed(int32 CauseOfDeath, AShipPawn* DestroyedShip);
+
 	void DestroyShip(int32 CauseOfDeath);
+	void UnlockTarget();
+	
 	//Power allocated to base non-external systems
 	int32 MovementEnergy = 0;
 

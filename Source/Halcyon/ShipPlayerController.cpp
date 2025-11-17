@@ -30,8 +30,8 @@ void AShipPlayerController::BeginPlay() {
 	//TODO: ADD WIDGETS TO HUD
 
 	//1. ADD MOVEMENT WIDGET
-	if (MovementInfoWidget) {
-		HUDMovement = CreateWidget<UUserWidget>(this, MovementInfoWidget);
+	if (ShipMovementWidget) {
+		HUDMovement = CreateWidget<UUserWidget>(this, ShipMovementWidget);
 		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDMovement)) {
 			StatWidget->OwningShip = GetPawn();
 			StatWidget->AddToViewport();
@@ -39,8 +39,8 @@ void AShipPlayerController::BeginPlay() {
 	}
 
 	//2. ADD ENERGY WIDGET
-	if (EnergyWidget) {
-		HUDEnergy = CreateWidget<UUserWidget>(this, EnergyWidget);
+	if (ShipEnergyWidget) {
+		HUDEnergy = CreateWidget<UUserWidget>(this, ShipEnergyWidget);
 		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDEnergy)) {
 			StatWidget->OwningShip = GetPawn();
 			StatWidget->AddToViewport();
@@ -66,13 +66,24 @@ void AShipPlayerController::BeginPlay() {
 	}
 
 	//5. ADD WEAPON WIDGET
-	if (WeaponInfoWidget) {
-		HUDWeapons = CreateWidget<UUserWidget>(this, WeaponInfoWidget);
+	if (ShipWeaponWidget) {
+		HUDWeapons = CreateWidget<UUserWidget>(this, ShipWeaponWidget);
 		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDWeapons)) {
 			StatWidget->OwningShip = GetPawn();
 			StatWidget->AddToViewport();
 		}
 	}
+
+	//6. ADD TARGET WIDGET
+	if (ShipTargetWidget) {
+		HUDTarget = CreateWidget<UUserWidget>(this, ShipTargetWidget);
+		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDTarget)) {
+			StatWidget->OwningShip = nullptr;
+			StatWidget->OwningController = this;
+			StatWidget->AddToViewport();
+		}
+	}
+
 }
 
 void AShipPlayerController::SetupInputComponent() {
@@ -155,3 +166,14 @@ void AShipPlayerController::AllocateEnergyToModularSys(AModularSystem* TargetSys
 void AShipPlayerController::FreeEnergyFromModularSys(AModularSystem* TargetSystem, int32 amt) {
 	TargetSystem->FreeEnergy(amt);
 }
+
+void AShipPlayerController::AcquireTargetToHud(AActor* Target) {
+	if (APawn* TargetShip = Cast<APawn>(Target)) {
+		if (HUDTarget && ShipTargetWidget) {
+			if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDTarget)) {
+				StatWidget->SetOwningShip(TargetShip);
+			}
+		}
+	}
+}
+

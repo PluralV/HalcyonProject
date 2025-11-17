@@ -29,6 +29,7 @@ class HALCYON_API AShipPlayerController : public APlayerController
 public:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
+	void AcquireTargetToHud(AActor* Target);
 
 protected:
 	// Input Actions
@@ -74,10 +75,10 @@ protected:
 		- Key binds: Group weapons so they shoot together (TODO, future feature)
 	*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
-	TSubclassOf<UUserWidget> MovementInfoWidget;
+	TSubclassOf<UUserWidget> ShipMovementWidget;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
-	TSubclassOf<UUserWidget> EnergyWidget;
+	TSubclassOf<UUserWidget> ShipEnergyWidget;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipIntegrityWidget;
@@ -86,13 +87,17 @@ protected:
 	TSubclassOf<UUserWidget> ShipHullWidget;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
-	TSubclassOf<UUserWidget> WeaponInfoWidget;
+	TSubclassOf<UUserWidget> ShipWeaponWidget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
+	TSubclassOf<UUserWidget> ShipTargetWidget;
 
 	UUserWidget* HUDMovement;
 	UUserWidget* HUDEnergy;
 	UUserWidget* HUDIntegrity;
 	UUserWidget* HUDWeapons;
 	UUserWidget* HUDHull;
+	UUserWidget* HUDTarget;
 
 	/*Separate functions will exist for allocating energy to systems that are static / default
 	(i.e. movement, shield reinforcement, <potential> repairs/electronic warfare) and those that
@@ -106,6 +111,8 @@ protected:
 	void FreeEnergyFromModularSys(AModularSystem* TargetSystem, int32 amt);
 
 	void ToggleHUDInteraction();
+
+	
 
 	//For disabling/enabling mouse look; when disabled you can interact with HUD UI
 	//currently bound to RightMouse

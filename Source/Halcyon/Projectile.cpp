@@ -61,12 +61,12 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
             FRotator ImpactRotator = ImpactQuat.Rotator();
             float ImpactAngle = ImpactRotator.Yaw + 30.f;
             if (ImpactAngle < 0) ImpactAngle += 360.f;
-            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+            /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
                 FString::Printf(TEXT("Target Vector: %f %f %f; ImpactVector: %f %f %f; Hit Angle: %f"), 
                     TargetVector.X, TargetVector.Y, TargetVector.Z,
                     ImpactVector.X, ImpactVector.Y, ImpactVector.Z,
-                    ImpactAngle));
-            //Ship->AllocateDamage(ImpactAngle, GetDamage());
+                    ImpactAngle));*/
+            Ship->AllocateDamage(ImpactAngle, GetDamage());
 
             // Destroy projectile
             this->Destroy();
