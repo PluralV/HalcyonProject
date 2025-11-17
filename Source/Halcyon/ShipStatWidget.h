@@ -20,6 +20,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Owning Ship")
 	APawn* OwningShip;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Owning Ship")
+	APlayerController* OwningController;
+
 	//Based on bStaticSystem, either allocs/frees to concrete subsystem by index
 	//Can be used more than once here
 	UFUNCTION(BlueprintCallable, Category="Pawn Action")
@@ -28,6 +31,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Pawn Action")
 	void OnFreeButtonClicked(int32 amt, int32 TargetSystem);
 
+	UFUNCTION(BlueprintCallable, Category = "Setter")
+	void SetOwningShip(AActor* NewOwningShip);
+
 protected:
 	virtual void NativeConstruct() override;
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Target")
+	void OnOwningShipChanged(APawn* NewOwningShip);
 };

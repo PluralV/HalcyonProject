@@ -83,3 +83,10 @@ void UShipStatWidget::OnFreeButtonClicked(int32 amt, int32 TargetSystem) {
 		}
 	}
 }
+
+void UShipStatWidget::SetOwningShip(AActor* NewOwningShip) {
+	if (APawn* ShipPawn = Cast<APawn>(NewOwningShip)) {
+		OwningShip = ShipPawn;
+		OnOwningShipChanged(OwningShip);
+	}
+}

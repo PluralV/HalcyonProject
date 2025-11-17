@@ -8,6 +8,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "ShipPlayerController.h"
+#include "HalcyonSimpleGameMode.h"
 
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -87,7 +88,6 @@ void AShipPawn::BeginPlay()
 {
 	Super::BeginPlay();
 	
-
 	// Add the Input Mapping Context to the player's input subsystem
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
@@ -97,6 +97,7 @@ void AShipPawn::BeginPlay()
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Adding ship mapping context"));
 			Subsystem->AddMappingContext(ShipMappingContext, 0);
 		}
+		
 	}
 
 	// add the weapon systems placed in bp to the array
@@ -106,7 +107,7 @@ void AShipPawn::BeginPlay()
 	{
 		if (Comp && Comp->GetChildActor() && Comp->GetChildActor()->IsA(AWeaponSystem::StaticClass()))
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Adding weaponsystem to array"));
+			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Adding weaponsystem to array"));
 			WeaponComponents.Add(Comp);
 		}
 	}
@@ -120,6 +121,7 @@ void AShipPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	if (CurrentTarget) {
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Still tracking target"));
 		for (UChildActorComponent* WeaponComp : WeaponComponents)
 		{
 			if (WeaponComp) {
@@ -129,12 +131,12 @@ void AShipPawn::Tick(float DeltaTime)
 					Weapon->TrackTarget(DeltaTime, CurrentTarget);
 				}
 				else {
-					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
+					//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
 
 				}
 			}
 			else {
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("no wewpaoncomp"));
+				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("no wewpaoncomp"));
 			}
 		}
 	}
@@ -163,6 +165,8 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AShipPawn::Look);
 		//Target action
 		EnhancedInputComponent->BindAction(TargetAction, ETriggerEvent::Completed, this, &AShipPawn::Target);
+		//Target action
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &AShipPawn::Fire);
 		//Movement alloc/free of energy with keys
 		EnhancedInputComponent->BindAction(AllocMovementAction, ETriggerEvent::Triggered, this, &AShipPawn::HandleArrowAlloc);
 
@@ -250,7 +254,7 @@ void AShipPawn::Steer(const FInputActionValue& Value) {
 }
 
 void AShipPawn::Target(const FInputActionValue& Value) {
-	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Targeting"));
+	//GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Targeting"));
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	if (!PC) return;
 	// Get screen center
@@ -284,16 +288,107 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 	}
 	if (ClosestEnemy)
 	{
+		
+		if (CurrentTarget) {
+			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Removing old current-target"));
+			if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Unbinding from old target"));
+				EnemyShip->OnShipDestroyed.RemoveDynamic(this, &AShipPawn::HandleShipDestroyed);
+			}
+		}
+
 		CurrentTarget = ClosestEnemy;
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-			FString::Printf(TEXT("Target locked: %s"), *ClosestEnemy->GetName()));
+		if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
+			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Binding the ship destroyed logic"));
+			EnemyShip->OnShipDestroyed.AddDynamic(this, &AShipPawn::HandleShipDestroyed);
+		}
+
+		if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
+			SPC->AcquireTargetToHud(ClosestEnemy);
+		}
+		//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+			//FString::Printf(TEXT("Target locked: %s"), *ClosestEnemy->GetName()));
 	}
 	else
 	{
 		CurrentTarget = nullptr;
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-			FString::Printf(TEXT("No target found")));
+		if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
+			SPC->AcquireTargetToHud(nullptr);
+		}
+		/*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+			FString::Printf(TEXT("No target found")));*/
 	}
+}
+
+void AShipPawn::Fire() {
+	if (CurrentTarget) {
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Still tracking target"));
+		for (UChildActorComponent* WeaponComp : WeaponComponents)
+		{
+			if (WeaponComp) {
+				AActor* Child = WeaponComp->GetChildActor();
+				if (AWeaponSystem* Weapon = Cast<AWeaponSystem>(Child))
+				{
+					Weapon->FireWeapon();
+				}
+				else {
+					//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
+
+				}
+			}
+			else {
+				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("no wewpaoncomp"));
+			}
+		}
+	}
+}
+
+void AShipPawn::UnlockTarget() {
+	/*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+		FString::Printf(TEXT("Unlocking target")));*/
+	CurrentTarget = nullptr;
+}
+
+//Allocate damage hitting ship from some angle
+void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
+	int32 ShieldBand = ((int)FromAngle % 360) / 60;
+	
+	//Allocate damage to shield reinforcement
+	ShieldReinforcements[ShieldBand] -= DamageAmt;
+	if (ShieldReinforcements[ShieldBand] >= 0) {
+		FreeReinforceShield(DamageAmt, ShieldBand);
+		OnShieldStrengthChanged.Broadcast(ShieldBand, ShieldReinforcements[ShieldBand] + ShieldFacingsCurr[ShieldBand]);
+		return;
+	}
+	else {
+		int32 temp = ShieldReinforcements[ShieldBand] + DamageAmt;
+		DamageAmt = -1 * ShieldReinforcements[ShieldBand];
+		ShieldReinforcements[ShieldBand] = 0;
+		FreeReinforceShield(temp, ShieldBand);
+	}
+
+	//Allocate damage to shield itself
+	ShieldFacingsCurr[ShieldBand] -= DamageAmt;
+	if (ShieldFacingsCurr[ShieldBand] >= 0) {
+		OnShieldStrengthChanged.Broadcast(ShieldBand, ShieldFacingsCurr[ShieldBand]);
+		return;
+	}
+	else {
+		DamageAmt = -1 * ShieldFacingsCurr[ShieldBand];
+		ShieldFacingsCurr[ShieldBand] = 0;
+		OnShieldStrengthChanged.Broadcast(ShieldBand, 0);
+	}
+
+	//Allocate damage to internals
+	//CURRENT HACK: JUST DEAL TO HULL INTEGRITY
+	HullIntegrity -= DamageAmt;
+	if (HullIntegrity <= 0) {
+		//If you run out of hull, you are destroyed
+		HullIntegrity = 0;
+		DestroyShip(0);
+	}
+	OnHullIntegrityChanged.Broadcast(HullIntegrity);
+
 }
 
 //Power Allocation Functions
@@ -310,21 +405,25 @@ void AShipPawn::AllocateReinforceShield(int32 amt, int32 index) {
 		ShieldReinforcements[index] += temp;
 	}
 	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+	OnShieldStrengthChanged.Broadcast(index, ShieldReinforcements[index] + ShieldFacingsCurr[index]);
 }
 
 void AShipPawn::FreeReinforceShield(int32 amt, int32 index) {
-	if (MovementEnergy >= amt) {
-		//Reduce movement energy by amt, then increase available energy by amt
-		ShieldReinforcements[index] -= amt;
-		TotalEnergyAvailable += amt;
-	}
-	else {
-		//Otherwise just remove all energy from movement and push to available
-		int32 temp = ShieldReinforcements[index];
-		ShieldReinforcements[index] = 0;
-		TotalEnergyAvailable += temp;
+	if (ShieldReinforcements[index] > 0) {
+		if (TotalEnergyAvailable + amt <= TotalEnergyCurr) {
+			//Reduce movement energy by amt, then increase available energy by amt
+			ShieldReinforcements[index] -= amt;
+			TotalEnergyAvailable += amt;
+		}
+		else {
+			//Otherwise just remove all energy from movement and push to available
+			int32 temp = ShieldReinforcements[index];
+			ShieldReinforcements[index] = 0;
+			TotalEnergyAvailable = TotalEnergyCurr;
+		}
 	}
 	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+	OnShieldStrengthChanged.Broadcast(index, ShieldReinforcements[index] + ShieldFacingsCurr[index]);
 }
 
 //handlers for input
@@ -383,6 +482,52 @@ void AShipPawn::AllocateModularSystem(AModularSystem* TargetSystem, int32 amt) {
 
 void AShipPawn::FreeModularSystem(AModularSystem* TargetSystem, int32 amt) {
 
+}
+
+void AShipPawn::DestroyShip(int32 CauseOfDeath) {
+	//CauseOfDeath: records cause of destruction of the ship
+	/*
+	0: Hull integrity exhausted (just kill the ship)
+	1: Energy exhausted (it drifts?)
+	*/
+	OnShipDestroyed.Broadcast(CauseOfDeath, this);
+	AGameModeBase* CurrentGameMode = GetWorld()->GetAuthGameMode();
+
+	//Branching ifs depending on gamemode
+	/*************************************** HALCYON SIMPLE ***************************************/
+	if (AHalcyonSimpleGameMode* HSGM = Cast<AHalcyonSimpleGameMode>(CurrentGameMode)) {
+		//TODO: Logic for Halcyon Simple
+		//Discern player/enemy by controller type
+		//POTENTIAL TODO: Add "team" flag; check based on team rather than controller type
+		if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
+			//Player death event: Cause a loss state in the gamemode (all Halcyon gamemodes should have one)
+			
+		}
+		else {
+			//Enemy death event
+			HSGM->DecrementEnemies();
+		}
+	}
+	//else if else if...
+	
+	switch (CauseOfDeath) {//Ideally in the end TODO: we add some kind of death animation prior to vaporizing them
+	case 0://Currently: just destroy
+		this->Destroy();
+		return;
+	default:return;
+	}
+	
+}
+
+void AShipPawn::HandleShipDestroyed(int32 CauseOfDeath, AShipPawn* DestroyedShip) {
+	if (CurrentTarget) {
+		if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
+			if (DestroyedShip == CurrentTarget) {
+				UnlockTarget();
+			}
+		}
+	}
+	
 }
 
 //GETTERS FOR STATS
@@ -467,10 +612,41 @@ float AShipPawn::GetSpeedConstant() {
 	return SpeedConstant;
 }
 
+int32 AShipPawn::GetHullIntegrity() {
+	return HullIntegrity;
+}
+
+int32 AShipPawn::GetMaxHullIntegrity() {
+	return MaxHullIntegrity;
+}
+
 float AShipPawn::GetCurrentVelocity(bool bForDisplay) {
 	if (UShipPawnMovementComponent* MC = Cast<UShipPawnMovementComponent>(MovementComponent)) {
 		float Velocity = MC->GetSpeed();
 		return bForDisplay ? roundf(Velocity * 100) / 100.f : Velocity;
 	}
 	return -1.f;
+}
+
+void AShipPawn::BeginDestroy() {
+	
+	if (ShipMesh && ShipMesh->IsValidLowLevel())
+	{
+		//Get all children and unweld from the parent mesh to prevent welded component errors
+		TArray<USceneComponent*> ChildComponents;
+		ShipMesh->GetChildrenComponents(true, ChildComponents);
+
+		for (USceneComponent* Child : ChildComponents)
+		{
+			if (UPrimitiveComponent* PrimChild = Cast<UPrimitiveComponent>(Child))
+			{
+				if (PrimChild->IsWelded())
+				{
+					PrimChild->UnWeldFromParent();
+				}
+			}
+		}
+	}
+
+	Super::BeginDestroy();
 }
