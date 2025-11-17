@@ -40,7 +40,7 @@ public:
 
     // Amount of force applied for full throttle
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-    float ForceMultiplier = 200000.f;
+    float ForceMultiplier = 25000.f;
 
     // Amount of torque applied for rotational input
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
