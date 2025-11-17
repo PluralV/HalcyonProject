@@ -120,7 +120,13 @@ protected:
 //	void EnableLook();
 private:
 	bool bIsInHUDMode = false;
+	int32 GameModeIndex = -1;
 //	void OnRightMouseAxis(float Value);
 //	bool bIsRightMouseDown = false;
+	UFUNCTION()
+	void HandleWin();
+	
+	UFUNCTION()
+	void HandleLoss();
 
 };

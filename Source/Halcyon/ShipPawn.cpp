@@ -466,22 +466,26 @@ void AShipPawn::DestroyShip(int32 CauseOfDeath) {
 	0: Hull integrity exhausted (just kill the ship)
 	1: Energy exhausted (it drifts?)
 	*/
-	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-		FString::Printf(TEXT("BROADCASTING:")));
 	OnShipDestroyed.Broadcast(CauseOfDeath, this);
-	if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
-		//Player death event: Cause a loss state in the gamemode (all Halcyon gamemodes should have one)
-		AGameModeBase* CurrentGameMode = GetWorld()->GetAuthGameMode();
-		//Branching ifs depending on gamemode
-		if (AHalcyonSimpleGameMode* HSGM = Cast<AHalcyonSimpleGameMode>(CurrentGameMode)) {
-			//TODO: Loss logic for Halcyon Simple
+	AGameModeBase* CurrentGameMode = GetWorld()->GetAuthGameMode();
+
+	//Branching ifs depending on gamemode
+	/*************************************** HALCYON SIMPLE ***************************************/
+	if (AHalcyonSimpleGameMode* HSGM = Cast<AHalcyonSimpleGameMode>(CurrentGameMode)) {
+		//TODO: Logic for Halcyon Simple
+		//Discern player/enemy by controller type
+		//POTENTIAL TODO: Add "team" flag; check based on team rather than controller type
+		if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
+			//Player death event: Cause a loss state in the gamemode (all Halcyon gamemodes should have one)
+			
 		}
-		//else if else if...
+		else {
+			//Enemy death event
+			HSGM->DecrementEnemies();
+		}
 	}
-	else {
-		//Enemy death event
-		OnEnemyDestroyed.Broadcast();
-	}
+	//else if else if...
+	
 	switch (CauseOfDeath) {//Ideally in the end TODO: we add some kind of death animation prior to vaporizing them
 	case 0://Currently: just destroy
 		this->Destroy();
@@ -492,14 +496,9 @@ void AShipPawn::DestroyShip(int32 CauseOfDeath) {
 }
 
 void AShipPawn::HandleShipDestroyed(int32 CauseOfDeath, AShipPawn* DestroyedShip) {
-	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,FString::Printf(TEXT("Handling broadcast:")));
 	if (CurrentTarget) {
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Current target valid :)")));
 		if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
-			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Cast to ship pawn succeeds :)")));
 			if (DestroyedShip == CurrentTarget) {
-				GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-					FString::Printf(TEXT("NULLING TARGET")));
 				UnlockTarget();
 			}
 		}

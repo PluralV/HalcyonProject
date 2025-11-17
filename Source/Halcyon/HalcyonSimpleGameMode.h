@@ -6,6 +6,10 @@
 #include "GameFramework/GameModeBase.h"
 #include "HalcyonSimpleGameMode.generated.h"
 
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnVVin);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLoss);
+
 /**
  * 
  */
@@ -17,6 +21,12 @@ protected:
 	virtual void StartPlay() override;
 
 public:
+	UPROPERTY(BlueprintAssignable, Category="Events")
+	FOnVVin OnVVin;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnLoss OnLoss;
+
 	//TODO CHANGE!!!
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Win Condition")
 	uint8 EnemiesRemaining = 0;
@@ -26,4 +36,9 @@ public:
 
 	UFUNCTION()
 	void IncrementEnemies();
+
+	UFUNCTION()
+	void CauseLoss();
+private:
+	void CheckEnemies();
 };
