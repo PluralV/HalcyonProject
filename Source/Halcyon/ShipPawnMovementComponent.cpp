@@ -67,7 +67,7 @@ void UShipPawnMovementComponent::TickComponent(float DeltaTime,
         // Apply linear thrust UNCOMMENT TO ATTEMPT REIMPLEMENTING PHYSICS
        /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
             FString::Printf(TEXT("SetThrustInput called currentthrust: %f"), CurrentThrust));*/
-        FVector ForceToApply = Right * CurrentThrust * ForceMultiplier;
+        FVector ForceToApply = Right * CurrentThrust * ForceMultiplier * FMath::Sqrt((float)MovementEnergy);
         PrimComp->AddForce(ForceToApply, NAME_None,false);
         CurrentVelocity = PrimComp->GetPhysicsLinearVelocity();
         float NewSpeed = FVector::DotProduct(CurrentVelocity, Right);

@@ -17,12 +17,28 @@ public:
 
 protected:
     virtual void BeginPlay() override;
-    float BarrelCurrentPitch = -90.f;
+    float BarrelCurrentPitch = 0.f;
+    float TurretCurrentRot = 0.f;
     float TimeSinceLastShot = 0.f;
     
 
 public:
     virtual void Tick(float DeltaTime) override;
+    
+    /* Function to track target */
+    
+    void TrackTarget(float DeltaTime, AActor* CurrentTarget);
+
+    UFUNCTION(BlueprintCallable)
+    int32 AllocateEnergy(int32 amt); //returns the actual amount of energy allocated/freed for owning ship calculation purposes
+
+    UFUNCTION(BlueprintCallable)
+    int32 FreeEnergy(int32 amt);
+
+    UFUNCTION(BlueprintCallable)
+    bool CauseDamage();
+
+    void FireWeapon();
 
     /* Root component of the weapon system */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
@@ -43,6 +59,15 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Turret")
     FVector TurretRotationAxis = FVector::UpVector;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Turret")
+    FVector TurretForwardAxis = FVector::ForwardVector;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Turret")
+    FVector BarrelRotationAxis = FVector::RightVector;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Turret")
+    FVector BarrelForwardAxis = FVector::ForwardVector;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
     TSubclassOf<AProjectile> ProjectileClass;
 
@@ -54,8 +79,29 @@ public:
     float MaxFiringAngle = 10.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    float MaxTurretArc = 10.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    float MaxPitchArc = 90.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
     float FireRate = 1.5f; // shots per second
 
-    /* Function to track target */
-    void TrackTarget(float DeltaTime, AActor* CurrentTarget);
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    float MaxRange = 2500; // distance traveled (in-game cm) before loss
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    float CoolDownTime = 5.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    int32 MinEnergy;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    int32 MaxEnergy;
+
+    int32 AllocatedEnergy;
+
+    
+
+    bool bIsDamaged = false;
+    bool bTargetInArc = false;
 };
