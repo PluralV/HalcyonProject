@@ -182,28 +182,28 @@ void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
         // Fire weapon if weapon is within certain angle
         /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
             FString::Printf(TEXT("TurretAngle %f BarrelAngle %f"), TurretAngle, Angle));*/
-        if (Angle < MaxFiringAngle && TurretAngle < MaxFiringAngle && TimeSinceLastShot > FireRate)
+        if (Angle < MaxFiringAngle && TurretAngle < MaxFiringAngle)
         {
             /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
                 FString::Printf(TEXT("Attempting to fire weapon: %s"),*this->GetName()));*/
             bTargetInArc = true;
-            if (ProjectileClass) {
-                FVector SpawnLocation = Muzzle->GetComponentLocation();
-                FRotator SpawnRotation = Barrel->GetComponentRotation();
-                // Spawn projectile
-                FActorSpawnParameters SpawnParams;
-                SpawnParams.Owner = this;
-                SpawnParams.Instigator = GetInstigator();
-                AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
-                TimeSinceLastShot = 0;
-                if (Projectile)
-                {
-                    /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-                        FString::Printf(TEXT("Calling FireInDirection")));*/
-                    Projectile->FireInDirection(-BarrelForward);
-                    TimeSinceLastShot = 0;
-                }
-            }
+            //if (ProjectileClass) {
+            //    FVector SpawnLocation = Muzzle->GetComponentLocation();
+            //    FRotator SpawnRotation = Barrel->GetComponentRotation();
+            //    // Spawn projectile
+            //    FActorSpawnParameters SpawnParams;
+            //    SpawnParams.Owner = this;
+            //    SpawnParams.Instigator = GetInstigator();
+            //    AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
+            //    TimeSinceLastShot = 0;
+            //    if (Projectile)
+            //    {
+            //        /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+            //            FString::Printf(TEXT("Calling FireInDirection")));*/
+            //        Projectile->FireInDirection(-BarrelForward);
+            //        TimeSinceLastShot = 0;
+            //    }
+            //}
         }
         else {
            /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
@@ -214,7 +214,7 @@ void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
 }
 
 void AWeaponSystem::FireWeapon() {
-    if (!bIsDamaged && bTargetInArc) {
+    if (!bIsDamaged && bTargetInArc && TimeSinceLastShot >= FireRate) {
         //get barrel right again
         FVector PitchPlaneNormal = Barrel->GetRightVector();
         // Project barrel direction onto plane perpendicular to pitch axis

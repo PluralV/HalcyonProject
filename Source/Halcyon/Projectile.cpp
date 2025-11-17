@@ -50,10 +50,10 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
     {
         if (AShipPawn* Ship = Cast<AShipPawn>(OtherActor)) {
 
-            if (Ship->GetController() && Ship->GetController()->IsPlayerController())
+            /*if (Ship->GetController() && Ship->GetController()->IsPlayerController())
             {
                 return;
-            }
+            }*/
             // Apply damage or effects here
             FVector TargetVector = Ship->GetActorRightVector();
             FVector ImpactVector = this->GetActorForwardVector()*-1;

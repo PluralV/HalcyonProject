@@ -107,7 +107,7 @@ void AShipPawn::BeginPlay()
 	{
 		if (Comp && Comp->GetChildActor() && Comp->GetChildActor()->IsA(AWeaponSystem::StaticClass()))
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Adding weaponsystem to array"));
+			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Adding weaponsystem to array"));
 			WeaponComponents.Add(Comp);
 		}
 	}
@@ -131,12 +131,12 @@ void AShipPawn::Tick(float DeltaTime)
 					Weapon->TrackTarget(DeltaTime, CurrentTarget);
 				}
 				else {
-					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
+					//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
 
 				}
 			}
 			else {
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("no wewpaoncomp"));
+				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("no wewpaoncomp"));
 			}
 		}
 	}
@@ -165,6 +165,8 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AShipPawn::Look);
 		//Target action
 		EnhancedInputComponent->BindAction(TargetAction, ETriggerEvent::Completed, this, &AShipPawn::Target);
+		//Target action
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &AShipPawn::Fire);
 		//Movement alloc/free of energy with keys
 		EnhancedInputComponent->BindAction(AllocMovementAction, ETriggerEvent::Triggered, this, &AShipPawn::HandleArrowAlloc);
 
@@ -252,7 +254,7 @@ void AShipPawn::Steer(const FInputActionValue& Value) {
 }
 
 void AShipPawn::Target(const FInputActionValue& Value) {
-	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Targeting"));
+	//GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Targeting"));
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	if (!PC) return;
 	// Get screen center
@@ -288,7 +290,7 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 	{
 		
 		if (CurrentTarget) {
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Removing old current-target"));
+			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Removing old current-target"));
 			if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
 				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Unbinding from old target"));
 				EnemyShip->OnShipDestroyed.RemoveDynamic(this, &AShipPawn::HandleShipDestroyed);
@@ -297,15 +299,15 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 
 		CurrentTarget = ClosestEnemy;
 		if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Binding the ship destroyed logic"));
+			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Binding the ship destroyed logic"));
 			EnemyShip->OnShipDestroyed.AddDynamic(this, &AShipPawn::HandleShipDestroyed);
 		}
 
 		if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
 			SPC->AcquireTargetToHud(ClosestEnemy);
 		}
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-			FString::Printf(TEXT("Target locked: %s"), *ClosestEnemy->GetName()));
+		//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+			//FString::Printf(TEXT("Target locked: %s"), *ClosestEnemy->GetName()));
 	}
 	else
 	{
@@ -313,14 +315,37 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 		if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
 			SPC->AcquireTargetToHud(nullptr);
 		}
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-			FString::Printf(TEXT("No target found")));
+		/*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+			FString::Printf(TEXT("No target found")));*/
+	}
+}
+
+void AShipPawn::Fire() {
+	if (CurrentTarget) {
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Still tracking target"));
+		for (UChildActorComponent* WeaponComp : WeaponComponents)
+		{
+			if (WeaponComp) {
+				AActor* Child = WeaponComp->GetChildActor();
+				if (AWeaponSystem* Weapon = Cast<AWeaponSystem>(Child))
+				{
+					Weapon->FireWeapon();
+				}
+				else {
+					//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
+
+				}
+			}
+			else {
+				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("no wewpaoncomp"));
+			}
+		}
 	}
 }
 
 void AShipPawn::UnlockTarget() {
-	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-		FString::Printf(TEXT("Unlocking target")));
+	/*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+		FString::Printf(TEXT("Unlocking target")));*/
 	CurrentTarget = nullptr;
 }
 
@@ -358,9 +383,8 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 	//CURRENT HACK: JUST DEAL TO HULL INTEGRITY
 	HullIntegrity -= DamageAmt;
 	if (HullIntegrity <= 0) {
+		//If you run out of hull, you are destroyed
 		HullIntegrity = 0;
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-			FString::Printf(TEXT("SHIP BEING DESTROYED")));
 		DestroyShip(0);
 	}
 	OnHullIntegrityChanged.Broadcast(HullIntegrity);

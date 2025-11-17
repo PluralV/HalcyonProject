@@ -89,6 +89,9 @@ protected:
 	UInputAction* TargetAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* FireAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* AllocMovementAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
@@ -109,6 +112,7 @@ protected:
 	void ZeroDecel();
 	void ZeroSteering();
 	void Target(const FInputActionValue& Value);
+	void Fire();
 	void HandleArrowAlloc();
 	void HandleArrowFree();
 

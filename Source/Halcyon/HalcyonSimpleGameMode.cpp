@@ -46,6 +46,5 @@ void AHalcyonSimpleGameMode::IncrementEnemies() {
 void AHalcyonSimpleGameMode::CheckEnemies() {
 	if (EnemiesRemaining <= 0) {
 		OnVVin.Broadcast();
-        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("You VVon")));
 	}
 }
