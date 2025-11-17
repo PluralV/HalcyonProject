@@ -174,7 +174,7 @@ void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
            FQuat NewRot = DeltaQuat * Barrel->GetComponentQuat();
            Barrel->SetWorldLocationAndRotation(NewLoc, NewRot);
 
-           // clamp pitch between 0–90
+           // clamp pitch between 0â€“90
            /*BarrelLocalRot.Pitch = FMath::Clamp(BarrelLocalRot.Pitch + DeltaAngle, -90.f, 0.f);
            Barrel->SetRelativeRotation(BarrelLocalRot);*/
         }

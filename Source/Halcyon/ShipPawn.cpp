@@ -40,6 +40,12 @@ AShipPawn::AShipPawn()
 	ShipMesh->SetCollisionProfileName(TEXT("Vehicle"));
 	ShipMesh->SetEnableGravity(false);
 
+	// mesh collision
+	ShipMesh->SetCollisionObjectType(ECC_Pawn);
+	ShipMesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+	ShipMesh->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	ShipMesh->SetGenerateOverlapEvents(true);
+
 	//Body mesh
 	HullMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
 	HullMesh->SetupAttachment(ShipMesh);
@@ -121,7 +127,6 @@ void AShipPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	if (CurrentTarget) {
-		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Still tracking target"));
 		for (UChildActorComponent* WeaponComp : WeaponComponents)
 		{
 			if (WeaponComp) {
@@ -165,7 +170,7 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AShipPawn::Look);
 		//Target action
 		EnhancedInputComponent->BindAction(TargetAction, ETriggerEvent::Completed, this, &AShipPawn::Target);
-		//Target action
+		//Fire action
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &AShipPawn::Fire);
 		//Movement alloc/free of energy with keys
 		EnhancedInputComponent->BindAction(AllocMovementAction, ETriggerEvent::Triggered, this, &AShipPawn::HandleArrowAlloc);
@@ -233,7 +238,7 @@ void AShipPawn::Throttle(const FInputActionValue& Value) {
 
 void AShipPawn::Decelerate(const FInputActionValue& Value) {
 	const FVector2D MoveValue = Value.Get<FVector2D>();
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Braking"));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Braking"));
 	bool bPressed = Value.Get<bool>();
 	float AppliedThrottle = bPressed ? -1.f : 0.f;
 	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
@@ -248,7 +253,13 @@ void AShipPawn::Steer(const FInputActionValue& Value) {
 	
 	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Turning"));
+		/*GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Turning"));
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			2.f,
+			FColor::Yellow,
+			FString::Printf(TEXT("steer values: X=%f, Y=%f"), MoveValue.X, MoveValue.Y)
+		);*/
 		MovementComponent->SetRotationalInput(FRotator(MoveValue.X, MoveValue.Y, 0));
 	}
 }

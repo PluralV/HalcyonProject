@@ -5,12 +5,14 @@
 #include "WeaponSystem.h"
 #include "Kismet/KismetMathLibrary.h"
 
+
 // Sets default values
 AProjectile::AProjectile()
 {
     PrimaryActorTick.bCanEverTick = true;
 
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+
     // movement
     Movement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("Movement"));
     Movement->InitialSpeed = 2000.f;
@@ -21,6 +23,7 @@ AProjectile::AProjectile()
 
     Collision = CreateDefaultSubobject<USphereComponent>(TEXT("Collision"));
     RootComponent = Collision;
+
     Mesh->SetMassOverrideInKg(NAME_None, 0.f, true);
     Mesh->SetupAttachment(Collision);
 
@@ -33,6 +36,7 @@ AProjectile::AProjectile()
 
     Collision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
     Collision->SetCollisionObjectType(ECC_WorldDynamic);
+
     Collision->SetCollisionResponseToAllChannels(ECR_Overlap);
     Collision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
     Collision->SetGenerateOverlapEvents(true);
@@ -73,11 +77,12 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
         }
     }
 }
+
 // Called when the game starts or when spawned
 void AProjectile::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
     if (AWeaponSystem* OwningWeapon = Cast<AWeaponSystem>(Owner)) {
         MaxRange = OwningWeapon->MaxRange;
         EnergyLevel = OwningWeapon->AllocatedEnergy;
@@ -90,6 +95,7 @@ void AProjectile::BeginPlay()
 void AProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
     //Tracks how far the projectile has moved and destroys it if it exceeds maximum range
     DistanceTraveled += ((float)(Movement->Velocity.Length()) * DeltaTime);
     if (DistanceTraveled > MaxRange) this->Destroy();
@@ -103,6 +109,7 @@ void AProjectile::FireInDirection(const FVector& ShootDirection)
         Movement->Velocity = ShootDirection.GetSafeNormal() * Movement->InitialSpeed;
     }
 }
+
 
 //Default damage function; just decrease over range
 int32 AProjectile::GetDamage() {

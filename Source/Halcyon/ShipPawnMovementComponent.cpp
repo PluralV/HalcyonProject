@@ -42,10 +42,14 @@ void UShipPawnMovementComponent::TickComponent(float DeltaTime,
         FQuat PitchQuat = FQuat(Forward, FMath::DegreesToRadians(AngularThrust.Pitch * PitchRate * DeltaTime * -1.f));
         FQuat YawQuat = FQuat(WorldUp, FMath::DegreesToRadians(AngularThrust.Yaw * YawRate * DeltaTime));
         FQuat TargetQuat = YawQuat * PitchQuat * PrimComp->GetComponentQuat();
-
+        FRotator TargetRot = TargetQuat.Rotator();
+        TargetRot.Pitch = 0.f; // set roll to 0
+        TargetQuat = TargetRot.Quaternion();
         float Alpha = 1.f; // tweak for smoothing
         FQuat NewQuat = FQuat::Slerp(PrimComp->GetComponentQuat(), TargetQuat, Alpha);
         PrimComp->SetWorldRotation(NewQuat);
+        // set angular velocity to 0 to prevent ship rotating forever when colliding
+        PrimComp->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
 
 
         //SIMPLE LINEAR ACCELERATION (drop if necessary)
