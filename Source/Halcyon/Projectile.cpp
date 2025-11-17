@@ -8,7 +8,7 @@
 // Sets default values
 AProjectile::AProjectile()
 {
-    PrimaryActorTick.bCanEverTick = false;
+    PrimaryActorTick.bCanEverTick = true;
 
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
     // movement
@@ -91,7 +91,7 @@ void AProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
     //Tracks how far the projectile has moved and destroys it if it exceeds maximum range
-    DistanceTraveled += (Movement->Velocity.Length() * DeltaTime);
+    DistanceTraveled += ((float)(Movement->Velocity.Length()) * DeltaTime);
     if (DistanceTraveled > MaxRange) this->Destroy();
 
 }
@@ -108,6 +108,9 @@ void AProjectile::FireInDirection(const FVector& ShootDirection)
 int32 AProjectile::GetDamage() {
     float RangeThreshold = MaxRange / 3;
     int32 RangeBand = (int)(DistanceTraveled / RangeThreshold);
+    GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+        FString::Printf(TEXT("Hit at range %f (Rangeband %d)"),
+            DistanceTraveled, RangeBand));
     switch (RangeBand) {
     case 0:
         return 8;

@@ -38,7 +38,7 @@ void AWeaponSystem::BeginPlay()
     Super::BeginPlay();
     Barrel->AttachToComponent(BarrelPivot, FAttachmentTransformRules::KeepRelativeTransform);
     Muzzle->AttachToComponent(Barrel, FAttachmentTransformRules::KeepRelativeTransform);
-
+    TimeSinceLastShot = FireRate;
 }
 
 void AWeaponSystem::Tick(float DeltaTime)
