@@ -39,6 +39,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* ToggleHUDAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* PauseAction;
+
 	//Widgets to appear on player HUD and give info about ship stats:
 	/*
 	MovementInfo: 
@@ -74,23 +77,27 @@ protected:
 		- Buttons: Allocate/free energy from each weapon
 		- Key binds: Group weapons so they shoot together (TODO, future feature)
 	*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
+	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipMovementWidget;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
+	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipEnergyWidget;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
+	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipIntegrityWidget;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
+	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipHullWidget;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
+	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipWeaponWidget;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
+	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipTargetWidget;
+
+	UPROPERTY(EditAnywhere, Category = "HUD")
+	TSubclassOf<UUserWidget> PauseWidget;
+
 
 	UUserWidget* HUDMovement;
 	UUserWidget* HUDEnergy;
@@ -98,6 +105,7 @@ protected:
 	UUserWidget* HUDWeapons;
 	UUserWidget* HUDHull;
 	UUserWidget* HUDTarget;
+	UUserWidget* HUDPaused;
 
 	/*Separate functions will exist for allocating energy to systems that are static / default
 	(i.e. movement, shield reinforcement, <potential> repairs/electronic warfare) and those that
@@ -109,8 +117,10 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void FreeEnergyFromModularSys(AModularSystem* TargetSystem, int32 amt);
-
+	
 	void ToggleHUDInteraction();
+
+	void PauseRealtimeGame();
 
 	
 
@@ -120,6 +130,7 @@ protected:
 //	void EnableLook();
 private:
 	bool bIsInHUDMode = false;
+	bool bIsPaused = false;
 	int32 GameModeIndex = -1;
 //	void OnRightMouseAxis(float Value);
 //	bool bIsRightMouseDown = false;

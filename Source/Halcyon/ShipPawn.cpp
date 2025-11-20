@@ -308,6 +308,7 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Removing old current-target"));
 			if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
 				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Unbinding from old target"));
+				EnemyShip->SetIsTargeted(false);
 				EnemyShip->OnShipDestroyed.RemoveDynamic(this, &AShipPawn::HandleShipDestroyed);
 			}
 		}
@@ -315,6 +316,7 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 		CurrentTarget = ClosestEnemy;
 		if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Binding the ship destroyed logic"));
+			EnemyShip->SetIsTargeted(true);
 			EnemyShip->OnShipDestroyed.AddDynamic(this, &AShipPawn::HandleShipDestroyed);
 		}
 
@@ -366,21 +368,40 @@ void AShipPawn::UnlockTarget() {
 
 //Allocate damage hitting ship from some angle
 void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
-	int32 ShieldBand = ((int)FromAngle % 360) / 60;
+	//Possibility for random damage returning 0?
+
+	if (!DamageAmt) return;
 	
+	//Determine shield facing based on angle of hit
+	int32 ShieldBand = ((int)FromAngle % 360) / 60;
+	//Total amount of energy being released as a result of the hit
+	int32 ReinTotal = ShieldReinforcements[ShieldBand] >= DamageAmt ? DamageAmt : ShieldReinforcements[ShieldBand];
+
 	//Allocate damage to shield reinforcement
 	ShieldReinforcements[ShieldBand] -= DamageAmt;
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Prepping some energy for release!"));
+	OnEnergyToBeReleased.Broadcast(ReinTotal);
+
+	if (ReinTotal) {//If there is some amount of damage being taken on the reinforcement
+		//Create cooldown timer before the energy is actually freed to be put in the system
+		FTimerHandle ThrowAwayHandle;
+		//TODO: Add logic to show that this is happening
+		GetWorldTimerManager().SetTimer(ThrowAwayHandle, [this, ReinTotal, ShieldBand]() {
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Is we releasin the energy?"));
+			ReleaseEnergy(ReinTotal);
+			}, 6.f, false, -1);
+	}
+
 	if (ShieldReinforcements[ShieldBand] >= 0) {
-		FreeReinforceShield(DamageAmt, ShieldBand);
 		OnShieldStrengthChanged.Broadcast(ShieldBand, ShieldReinforcements[ShieldBand] + ShieldFacingsCurr[ShieldBand]);
 		return;
 	}
 	else {
-		int32 temp = ShieldReinforcements[ShieldBand] + DamageAmt;
 		DamageAmt = -1 * ShieldReinforcements[ShieldBand];
 		ShieldReinforcements[ShieldBand] = 0;
-		FreeReinforceShield(temp, ShieldBand);
 	}
+	
+	
 
 	//Allocate damage to shield itself
 	ShieldFacingsCurr[ShieldBand] -= DamageAmt;
@@ -439,6 +460,19 @@ void AShipPawn::FreeReinforceShield(int32 amt, int32 index) {
 	}
 	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 	OnShieldStrengthChanged.Broadcast(index, ShieldReinforcements[index] + ShieldFacingsCurr[index]);
+}
+
+//ReleaseEnergy: releases amt energy and triggers cosmetic events. Used for the case where
+//a system is damaged or otherwise disabled and releases its stored energy.
+void AShipPawn::ReleaseEnergy(int32 amt) {
+	TotalEnergyAvailable += amt;
+	int32 Temp = TotalEnergyAvailable - TotalEnergyCurr;
+	if (Temp > 0) {
+		amt -= Temp;
+		TotalEnergyAvailable = TotalEnergyCurr;
+	}
+	OnEnergyToBeReleased.Broadcast(-1*amt);//Reduce the to-be-released energy bar on the HUD
+	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);//Set the energy bar to the new available total
 }
 
 //handlers for input
@@ -633,6 +667,23 @@ int32 AShipPawn::GetHullIntegrity() {
 
 int32 AShipPawn::GetMaxHullIntegrity() {
 	return MaxHullIntegrity;
+}
+
+TArray<UChildActorComponent*> AShipPawn::GetWeaponComponents() {
+	return WeaponComponents;
+}
+
+void AShipPawn::SetIsTargeted(bool bIsTargeted) {
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,FString::Printf(TEXT("SetIsTargeted called with %d"),bIsTargeted));
+	if (HullMesh)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,FString::Printf(TEXT("It worked lol!")));
+		// Enable custom depth rendering
+		HullMesh->SetRenderCustomDepth(bIsTargeted);
+
+		// Set stencil value (255 for red outline, you can use different values for different colors)
+		HullMesh->SetCustomDepthStencilValue(bIsTargeted ? 255 : 0);
+	}
 }
 
 float AShipPawn::GetCurrentVelocity(bool bForDisplay) {

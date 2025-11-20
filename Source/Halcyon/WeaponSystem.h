@@ -15,6 +15,12 @@ class HALCYON_API AWeaponSystem : public AActor
 public:
     AWeaponSystem();
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
+    FText WeaponName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
+    FText WeaponClass;
+
 protected:
     virtual void BeginPlay() override;
     float BarrelCurrentPitch = 0.f;
