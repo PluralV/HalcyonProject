@@ -319,6 +319,7 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 		}
 
 		CurrentTarget = ClosestEnemy;
+
 		if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Binding the ship destroyed logic"));
 			EnemyShip->SetIsTargeted(true);
@@ -708,12 +709,23 @@ void AShipPawn::SetIsTargeted(bool bIsTargeted) {
 	//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,FString::Printf(TEXT("SetIsTargeted called with %d"),bIsTargeted));
 	if (HullMesh)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,FString::Printf(TEXT("It worked lol!")));
+		//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,FString::Printf(TEXT("Setting rendercustomdepth and stencil value")));
 		// Enable custom depth rendering
 		HullMesh->SetRenderCustomDepth(bIsTargeted);
+		// Get all mesh components attached to this actor
+		TArray<UMeshComponent*> MeshComponents;
+		GetComponents<UMeshComponent>(MeshComponents);
 
+		for (UMeshComponent* MeshComp : MeshComponents)
+		{
+			if (MeshComp)
+			{
+				MeshComp->SetRenderCustomDepth(bIsTargeted);
+				MeshComp->SetCustomDepthStencilValue(bIsTargeted ? 255 : 0);
+			}
+		}
 		// Set stencil value (255 for red outline, you can use different values for different colors)
-		HullMesh->SetCustomDepthStencilValue(bIsTargeted ? 255 : 0);
+		//HullMesh->SetCustomDepthStencilValue(bIsTargeted ? 255 : 0);
 	}
 }
 
