@@ -25,6 +25,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Owning Ship")
 	APlayerController* OwningController;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	class UPanelWidget* ContainerPanel;
+
 	UPROPERTY(EditAnywhere, Category = "Child Widgets")
 	TSubclassOf<UWeaponEntry> WeaponEntryClass;
 
@@ -32,8 +35,6 @@ public:
 	TArray<UUserWidget*> WeaponEntryList;
 
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
-
-	void AddWeaponEntryWidget(AWeaponSystem* WeaponSystem);
 
 protected:
 	virtual void NativeConstruct() override;

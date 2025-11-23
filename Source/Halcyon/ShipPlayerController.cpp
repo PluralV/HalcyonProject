@@ -2,11 +2,13 @@
 
 
 #include "ShipPlayerController.h"
-#include "ModularSystem.h"
+#include "WeaponSystem.h"
 #include "ShipPawn.h"
 #include "Blueprint/UserWidget.h"
+#include "WeaponListWidget.h"
 #include "HalcyonSimpleGameMode.h"
 #include "ShipStatWidget.h"
+#include "WeaponDetailedInfoWidget.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Kismet/GameplayStatics.h"
@@ -14,7 +16,7 @@
 
 void AShipPlayerController::BeginPlay() {
 	Super::BeginPlay();
-
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("CONTROLLER BEGIN"));
 	check(GEngine);
 	SetInputMode(FInputModeGameOnly());
 	bShouldPerformFullTickWhenPaused = true;
@@ -69,17 +71,7 @@ void AShipPlayerController::BeginPlay() {
 		}
 	}
 
-	//5. ADD WEAPON WIDGET
-	if (ShipWeaponWidget) {
-		HUDWeapons = CreateWidget<UUserWidget>(this, ShipWeaponWidget);
-		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDWeapons)) {
-			StatWidget->OwningShip = GetPawn();
-			StatWidget->SetIsFocusable(false);
-			StatWidget->AddToViewport();
-		}
-	}
-
-	//6. ADD TARGET WIDGET
+	//5. ADD TARGET WIDGET
 	if (ShipTargetWidget) {
 		HUDTarget = CreateWidget<UUserWidget>(this, ShipTargetWidget);
 		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDTarget)) {
@@ -87,6 +79,13 @@ void AShipPlayerController::BeginPlay() {
 			StatWidget->OwningController = this;
 			StatWidget->SetIsFocusable(false);
 			StatWidget->AddToViewport();
+		}
+	}
+	//6. ADD WEAPON DETAILS WIDGET
+	if (WeaponDetailsWidget) {
+		HUDWeaponDetails = CreateWidget<UUserWidget>(this, WeaponDetailsWidget);
+		if (UWeaponDetailedInfoWidget* WDIW = Cast<UWeaponDetailedInfoWidget>(HUDWeaponDetails)) {
+			//TODO: set its characteristics as possible
 		}
 	}
 
@@ -126,14 +125,14 @@ void AShipPlayerController::ToggleHUDInteraction() {
 	}
 }
 
-//MAY NEED WORK: WILL PLAYER CONTROLLER KNOW ABOUT THIS??
-void AShipPlayerController::AllocateEnergyToModularSys(AModularSystem* TargetSystem, int32 amt) {
-	TargetSystem->AllocateEnergy(amt);
-	}
-
-void AShipPlayerController::FreeEnergyFromModularSys(AModularSystem* TargetSystem, int32 amt) {
-	TargetSystem->FreeEnergy(amt);
-}
+////MAY NEED WORK: WILL PLAYER CONTROLLER KNOW ABOUT THIS??
+//void AShipPlayerController::AllocateEnergyToModularSys(AModularSystem* TargetSystem, int32 amt) {
+//	TargetSystem->AllocateEnergy(amt);
+//	}
+//
+//void AShipPlayerController::FreeEnergyFromModularSys(AModularSystem* TargetSystem, int32 amt) {
+//	TargetSystem->FreeEnergy(amt);
+//}
 
 void AShipPlayerController::AcquireTargetToHud(AActor* Target) {
 	if (APawn* TargetShip = Cast<APawn>(Target)) {
@@ -188,4 +187,35 @@ void AShipPlayerController::PauseRealtimeGame() {
 	}
 	SetPause(bIsPaused, FCanUnpause());
 	
+}
+
+void AShipPlayerController::AddWeaponWidget() {
+	//ADD WEAPON WIDGET
+	if (ShipWeaponWidget) {
+		HUDWeapons = CreateWidget<UUserWidget>(this, ShipWeaponWidget);
+		if (UWeaponListWidget* StatWidget = Cast<UWeaponListWidget>(HUDWeapons)) {
+			StatWidget->OwningShip = GetPawn();
+			StatWidget->SetIsFocusable(false);
+			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Adding the weapon hud element"));
+			StatWidget->AddToViewport();
+		}
+	}
+}
+
+//Set the weapon detail widget to be visible with a specific owning weapon
+void AShipPlayerController::SetWeaponDetails(AWeaponSystem* NewOwningWeapon) {
+	if (UWeaponDetailedInfoWidget* WDIW = Cast<UWeaponDetailedInfoWidget>(HUDWeaponDetails)) {
+		WDIW->OwningWeapon = NewOwningWeapon;
+		WDIW->SetIsFocusable(false);
+		WDIW->SetVisibility(ESlateVisibility::Visible);
+	}
+}
+
+//Remove the weapon detail widget from visibility
+void AShipPlayerController::ClearWeaponDetails() {
+	if (UWeaponDetailedInfoWidget* WDIW = Cast<UWeaponDetailedInfoWidget>(HUDWeaponDetails)) {
+		WDIW->OwningWeapon = nullptr;
+		WDIW->SetIsFocusable(false);
+		WDIW->SetVisibility(ESlateVisibility::Hidden);
+	}
 }

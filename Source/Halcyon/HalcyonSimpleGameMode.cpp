@@ -26,7 +26,7 @@ void AHalcyonSimpleGameMode::StartPlay() {
             }
         }
     }
-    GEngine->AddOnScreenDebugMessage(-1, 5.f,FColor::Red,FString::Printf(TEXT("%d Enemies Have Been Registered"),EnemiesRemaining));
+    //GEngine->AddOnScreenDebugMessage(-1, 5.f,FColor::Red,FString::Printf(TEXT("%d Enemies Have Been Registered"),EnemiesRemaining));
 }
 
 void AHalcyonSimpleGameMode::DecrementEnemies() {

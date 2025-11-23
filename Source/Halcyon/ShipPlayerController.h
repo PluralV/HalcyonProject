@@ -9,6 +9,7 @@
 class AModularSystem;
 class UInputMappingContext;
 class UInputAction;
+class AWeaponSystem;
 
 UENUM()
 enum class EStaticSystemType : int8 {
@@ -30,7 +31,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 	void AcquireTargetToHud(AActor* Target);
-
+	void AddWeaponWidget();
 protected:
 	// Input Actions
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
@@ -98,6 +99,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> PauseWidget;
 
+	UPROPERTY(EditAnywhere, Category = "HUD")
+	TSubclassOf<UUserWidget> WeaponDetailsWidget;
+
 
 	UUserWidget* HUDMovement;
 	UUserWidget* HUDEnergy;
@@ -106,22 +110,28 @@ protected:
 	UUserWidget* HUDHull;
 	UUserWidget* HUDTarget;
 	UUserWidget* HUDPaused;
+	UUserWidget* HUDWeaponDetails;
 
 	/*Separate functions will exist for allocating energy to systems that are static / default
 	(i.e. movement, shield reinforcement, <potential> repairs/electronic warfare) and those that
 	are modular and specific to a ship (or specific to one module) (i.e. weapons)
 	*/
 
-	UFUNCTION(BlueprintCallable)
-	void AllocateEnergyToModularSys(AModularSystem* TargetSystem, int32 amt);
+	//UFUNCTION(BlueprintCallable)
+	//void AllocateEnergyToModularSys(AModularSystem* TargetSystem, int32 amt);
 
-	UFUNCTION(BlueprintCallable)
-	void FreeEnergyFromModularSys(AModularSystem* TargetSystem, int32 amt);
+	//UFUNCTION(BlueprintCallable)
+	//void FreeEnergyFromModularSys(AModularSystem* TargetSystem, int32 amt);
 	
 	void ToggleHUDInteraction();
 
 	void PauseRealtimeGame();
 
+	UFUNCTION(BlueprintCallable)
+	void SetWeaponDetails(AWeaponSystem* NewOwningWeapon);
+
+	UFUNCTION(BlueprintCallable)
+	void ClearWeaponDetails();
 	
 
 	//For disabling/enabling mouse look; when disabled you can interact with HUD UI
@@ -139,5 +149,6 @@ private:
 	
 	UFUNCTION()
 	void HandleLoss();
+
 
 };
