@@ -93,17 +93,18 @@ AShipPawn::AShipPawn()
 void AShipPawn::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	// Add the Input Mapping Context to the player's input subsystem
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
+		Team = 0;
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
 			// THIS is where the VehicleMappingContext property is USED
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Adding ship mapping context"));
 			Subsystem->AddMappingContext(ShipMappingContext, 0);
 		}
-		
+
 	}
 
 	// add the weapon systems placed in bp to the array
@@ -115,9 +116,17 @@ void AShipPawn::BeginPlay()
 		{
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Adding weaponsystem to array"));
 			WeaponComponents.Add(Comp);
+			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Added weapon"));
+			if (AWeaponSystem* WS = Cast<AWeaponSystem>(Comp->GetChildActor())) {
+				WS->team = Team;
+				WS->ControlGroup = 0;
+			}
 		}
 	}
-	
+
+	if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
+		SPC->AddWeaponWidget();
+	}
 }
 
 
@@ -303,7 +312,8 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 		if (CurrentTarget) {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Removing old current-target"));
 			if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Unbinding from old target"));
+				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Unbinding from old target"));
+				EnemyShip->SetIsTargeted(false);
 				EnemyShip->OnShipDestroyed.RemoveDynamic(this, &AShipPawn::HandleShipDestroyed);
 			}
 		}
@@ -311,6 +321,7 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 		CurrentTarget = ClosestEnemy;
 		if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Binding the ship destroyed logic"));
+			EnemyShip->SetIsTargeted(true);
 			EnemyShip->OnShipDestroyed.AddDynamic(this, &AShipPawn::HandleShipDestroyed);
 		}
 
@@ -362,21 +373,40 @@ void AShipPawn::UnlockTarget() {
 
 //Allocate damage hitting ship from some angle
 void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
-	int32 ShieldBand = ((int)FromAngle % 360) / 60;
+	//Possibility for random damage returning 0?
+
+	if (!DamageAmt) return;
 	
+	//Determine shield facing based on angle of hit
+	int32 ShieldBand = ((int)FromAngle % 360) / 60;
+	//Total amount of energy being released as a result of the hit
+	int32 ReinTotal = ShieldReinforcements[ShieldBand] >= DamageAmt ? DamageAmt : ShieldReinforcements[ShieldBand];
+
 	//Allocate damage to shield reinforcement
 	ShieldReinforcements[ShieldBand] -= DamageAmt;
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Prepping some energy for release!"));
+	OnEnergyToBeReleased.Broadcast(ReinTotal);
+
+	if (ReinTotal) {//If there is some amount of damage being taken on the reinforcement
+		//Create cooldown timer before the energy is actually freed to be put in the system
+		FTimerHandle ThrowAwayHandle;
+		//TODO: Add logic to show that this is happening
+		GetWorldTimerManager().SetTimer(ThrowAwayHandle, [this, ReinTotal, ShieldBand]() {
+			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Is we releasin the energy?"));
+			ReleaseEnergy(ReinTotal);
+			}, 6.f, false, -1);
+	}
+
 	if (ShieldReinforcements[ShieldBand] >= 0) {
-		FreeReinforceShield(DamageAmt, ShieldBand);
 		OnShieldStrengthChanged.Broadcast(ShieldBand, ShieldReinforcements[ShieldBand] + ShieldFacingsCurr[ShieldBand]);
 		return;
 	}
 	else {
-		int32 temp = ShieldReinforcements[ShieldBand] + DamageAmt;
 		DamageAmt = -1 * ShieldReinforcements[ShieldBand];
 		ShieldReinforcements[ShieldBand] = 0;
-		FreeReinforceShield(temp, ShieldBand);
 	}
+	
+	
 
 	//Allocate damage to shield itself
 	ShieldFacingsCurr[ShieldBand] -= DamageAmt;
@@ -403,38 +433,51 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 }
 
 //Power Allocation Functions
-void AShipPawn::AllocateReinforceShield(int32 amt, int32 index) {
-	if (TotalEnergyAvailable >= amt) {
-		//Reduce total available energy by amt, then increase shield reinforcement in index by amt
-		TotalEnergyAvailable -= amt;
-		ShieldReinforcements[index] += amt;
+void AShipPawn::AllocateReinforceShield(int32 Amt, int32 Index) {
+	if (TotalEnergyAvailable >= Amt) {
+		//Reduce total available energy by Amt, then increase shield reinforcement in Index by Amt
+		TotalEnergyAvailable -= Amt;
+		ShieldReinforcements[Index] += Amt;
 	}
 	else {
 		//Otherwise just use all remaining energy on reinforcing the shield
 		int32 temp = TotalEnergyAvailable;
 		TotalEnergyAvailable = 0;
-		ShieldReinforcements[index] += temp;
+		ShieldReinforcements[Index] += temp;
 	}
 	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
-	OnShieldStrengthChanged.Broadcast(index, ShieldReinforcements[index] + ShieldFacingsCurr[index]);
+	OnShieldStrengthChanged.Broadcast(Index, ShieldReinforcements[Index] + ShieldFacingsCurr[Index]);
 }
 
-void AShipPawn::FreeReinforceShield(int32 amt, int32 index) {
-	if (ShieldReinforcements[index] > 0) {
-		if (TotalEnergyAvailable + amt <= TotalEnergyCurr) {
-			//Reduce movement energy by amt, then increase available energy by amt
-			ShieldReinforcements[index] -= amt;
-			TotalEnergyAvailable += amt;
+void AShipPawn::FreeReinforceShield(int32 Amt, int32 Index) {
+	if (ShieldReinforcements[Index] > 0) {
+		if (TotalEnergyAvailable + Amt <= TotalEnergyCurr) {
+			//Reduce movement energy by Amt, then increase available energy by Amt
+			ShieldReinforcements[Index] -= Amt;
+			TotalEnergyAvailable += Amt;
 		}
 		else {
 			//Otherwise just remove all energy from movement and push to available
-			int32 temp = ShieldReinforcements[index];
-			ShieldReinforcements[index] = 0;
+			int32 temp = ShieldReinforcements[Index];
+			ShieldReinforcements[Index] = 0;
 			TotalEnergyAvailable = TotalEnergyCurr;
 		}
 	}
 	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
-	OnShieldStrengthChanged.Broadcast(index, ShieldReinforcements[index] + ShieldFacingsCurr[index]);
+	OnShieldStrengthChanged.Broadcast(Index, ShieldReinforcements[Index] + ShieldFacingsCurr[Index]);
+}
+
+//ReleaseEnergy: releases Amt energy and triggers cosmetic events. Used for the case where
+//a system is damaged or otherwise disabled and releases its stored energy.
+void AShipPawn::ReleaseEnergy(int32 Amt) {
+	TotalEnergyAvailable += Amt;
+	int32 Temp = TotalEnergyAvailable - TotalEnergyCurr;
+	if (Temp > 0) {
+		Amt -= Temp;
+		TotalEnergyAvailable = TotalEnergyCurr;
+	}
+	OnEnergyToBeReleased.Broadcast(-1*Amt);//Reduce the to-be-released energy bar on the HUD
+	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);//Set the energy bar to the new available total
 }
 
 //handlers for input
@@ -446,11 +489,11 @@ void AShipPawn::HandleArrowFree() {
 	FreeMovement(1);
 }
 
-void AShipPawn::AllocateMovement(int32 amt) {
-	if (TotalEnergyAvailable >= amt) {
-		//Reduce total available energy by amt, then increase movement energy by amt
-		TotalEnergyAvailable -= amt;
-		MovementEnergy += amt;
+void AShipPawn::AllocateMovement(int32 Amt) {
+	if (TotalEnergyAvailable >= Amt) {
+		//Reduce total available energy by Amt, then increase movement energy by Amt
+		TotalEnergyAvailable -= Amt;
+		MovementEnergy += Amt;
 	}
 	else {
 		//Otherwise just use all remaining energy on movement
@@ -466,11 +509,11 @@ void AShipPawn::AllocateMovement(int32 amt) {
 	}
 }
 
-void AShipPawn::FreeMovement(int32 amt) {
-	if (MovementEnergy >= amt) {
-		//Reduce movement energy by amt, then increase available energy by amt
-		TotalEnergyAvailable += amt;
-		MovementEnergy -= amt;
+void AShipPawn::FreeMovement(int32 Amt) {
+	if (MovementEnergy >= Amt) {
+		//Reduce movement energy by Amt, then increase available energy by Amt
+		TotalEnergyAvailable += Amt;
+		MovementEnergy -= Amt;
 	}
 	else {
 		//Otherwise just remove all energy from movement and push to available
@@ -487,12 +530,38 @@ void AShipPawn::FreeMovement(int32 amt) {
 	}
 }
 
-void AShipPawn::AllocateModularSystem(AModularSystem* TargetSystem, int32 amt) {
-
+/*
+Allocate/free from the weapon at Index Index by amount Amt
+*/
+int32 AShipPawn::AllocateWeapon(int32 Index, int32 Amt) {
+	AActor* TargetWeapon = WeaponComponents[Index]->GetChildActor();
+	if (AWeaponSystem* TW = Cast<AWeaponSystem>(TargetWeapon)) {
+		if (TotalEnergyAvailable <= Amt) {
+			Amt = TotalEnergyAvailable;
+			if (!Amt) return 0;
+		}
+		TotalEnergyAvailable -= Amt;
+		int32 AmountAllocated = TW->AllocateEnergy(Amt);
+		TotalEnergyAvailable += Amt - AmountAllocated;
+		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+		return AmountAllocated;
+	}
+	return 0;
 }
 
-void AShipPawn::FreeModularSystem(AModularSystem* TargetSystem, int32 amt) {
-
+int32 AShipPawn::FreeWeapon(int32 Index, int32 Amt) {
+	AActor* TargetWeapon = WeaponComponents[Index]->GetChildActor();
+	if (AWeaponSystem* TW = Cast<AWeaponSystem>(TargetWeapon)) {
+		int32 AmountFreed = TW->FreeEnergy(Amt);
+		if (TotalEnergyAvailable + AmountFreed > TotalEnergyCurr) {
+			AmountFreed = TotalEnergyCurr - TotalEnergyAvailable;
+			if (!AmountFreed) return 0;
+		}
+		TotalEnergyAvailable += AmountFreed;
+		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+		return AmountFreed;
+	}
+	return 0;
 }
 
 void AShipPawn::DestroyShip(int32 CauseOfDeath) {
@@ -559,16 +628,16 @@ int32 AShipPawn::GetMaxEnergyCurr() {
 	return TotalEnergyCurr;
 }
 
-int32 AShipPawn::GetShieldFacing(int32 index) {
-	return ShieldFacings[index];
+int32 AShipPawn::GetShieldFacing(int32 Index) {
+	return ShieldFacings[Index];
 }
 
-int32 AShipPawn::GetCurrentShieldFacing(int32 index) {
-	return ShieldFacingsCurr[index];
+int32 AShipPawn::GetCurrentShieldFacing(int32 Index) {
+	return ShieldFacingsCurr[Index];
 }
 
-int32 AShipPawn::GetCurrentShieldReinforcement(int32 index) {
-	return ShieldReinforcements[index];
+int32 AShipPawn::GetCurrentShieldReinforcement(int32 Index) {
+	return ShieldReinforcements[Index];
 }
 
 int32 AShipPawn::GetLeftEngMax() {
@@ -629,6 +698,23 @@ int32 AShipPawn::GetHullIntegrity() {
 
 int32 AShipPawn::GetMaxHullIntegrity() {
 	return MaxHullIntegrity;
+}
+
+TArray<UChildActorComponent*> AShipPawn::GetWeaponComponents() {
+	return WeaponComponents;
+}
+
+void AShipPawn::SetIsTargeted(bool bIsTargeted) {
+	//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,FString::Printf(TEXT("SetIsTargeted called with %d"),bIsTargeted));
+	if (HullMesh)
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,FString::Printf(TEXT("It worked lol!")));
+		// Enable custom depth rendering
+		HullMesh->SetRenderCustomDepth(bIsTargeted);
+
+		// Set stencil value (255 for red outline, you can use different values for different colors)
+		HullMesh->SetCustomDepthStencilValue(bIsTargeted ? 255 : 0);
+	}
 }
 
 float AShipPawn::GetCurrentVelocity(bool bForDisplay) {

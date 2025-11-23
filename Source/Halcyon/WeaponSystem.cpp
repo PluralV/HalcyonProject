@@ -44,18 +44,25 @@ void AWeaponSystem::BeginPlay()
 void AWeaponSystem::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-    TimeSinceLastShot += DeltaTime;
+    //If the weapon is charged, set time since last shot to the arming time
+    if (!bIsDamaged && AllocatedEnergy >= MinEnergy) {
+        TimeSinceLastShot += DeltaTime;
+        if (bIsArming) {
+            if (TimeSinceLastShot >= FireRate) bIsArming = false;
+        }
+    }
 }
 
+//Attempts to allocate "amt" energy to this weapon. Returns the actual amount of energy allocated.
 int32 AWeaponSystem::AllocateEnergy(int32 amt) {
-    if (AllocatedEnergy + amt <= MaxEnergy) {
+    int32 GapToMax = MaxEnergy - AllocatedEnergy;
+    if (amt <= GapToMax) {
         AllocatedEnergy += amt;
         return amt;
     }
     else {
-        int32 temp = MaxEnergy - AllocatedEnergy;
         AllocatedEnergy = MaxEnergy;
-        return temp;
+        return GapToMax;
     }
 }
 
@@ -239,7 +246,6 @@ void AWeaponSystem::FireWeapon(AActor* Target) {
             SpawnParams.Owner = this;
             SpawnParams.Instigator = GetInstigator();
             AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
-            TimeSinceLastShot = 0.f;
             if (Projectile)
             {
                 /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
@@ -247,6 +253,7 @@ void AWeaponSystem::FireWeapon(AActor* Target) {
                 Projectile->SetupHoming(Target);
                 Projectile->FireInDirection(ProjectedBarrelDir);
                 TimeSinceLastShot = 0.f;
+                bIsArming = true;
             }
         }
     }

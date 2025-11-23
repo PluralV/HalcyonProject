@@ -6,14 +6,16 @@
 #include "Blueprint/UserWidget.h"
 #include "ShipPawn.h"
 #include "ShipPlayerController.h"
-#include "ShipStatWidget.generated.h"
+#include "WeaponSystem.h"
+#include "WeaponListWidget.generated.h"
 
-/*
- SHIP SYSTEM STAT WIDGET
- - Used for showing ship stats and ship static system energy allocation. Not used for modular systems (which has to be more dynamic)
+
+class UWeaponEntry;
+/**
+ * 
  */
 UCLASS()
-class HALCYON_API UShipStatWidget : public UUserWidget
+class HALCYON_API UWeaponListWidget : public UUserWidget
 {
 	GENERATED_BODY()
 public:
@@ -23,16 +25,14 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Owning Ship")
 	APlayerController* OwningController;
 
-	//Based on bStaticSystem, either allocs/frees to concrete subsystem by index
-	//Can be used more than once here
-	UFUNCTION(BlueprintCallable, Category="Pawn Action")
-	void OnAllocButtonClicked(int32 amt, int32 TargetSystem);
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	class UPanelWidget* ContainerPanel;
 
-	UFUNCTION(BlueprintCallable, Category = "Pawn Action")
-	void OnFreeButtonClicked(int32 amt, int32 TargetSystem);
+	UPROPERTY(EditAnywhere, Category = "Child Widgets")
+	TSubclassOf<UWeaponEntry> WeaponEntryClass;
 
-	UFUNCTION(BlueprintCallable, Category = "Setter")
-	void SetOwningShip(AActor* NewOwningShip);
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets")
+	TArray<UUserWidget*> WeaponEntryList;
 
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 

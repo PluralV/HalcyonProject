@@ -3,6 +3,7 @@
 
 #include "ShipStatWidget.h"
 
+
 void UShipStatWidget::NativeConstruct() {
 	Super::NativeConstruct();
 }
@@ -89,4 +90,14 @@ void UShipStatWidget::SetOwningShip(AActor* NewOwningShip) {
 		OwningShip = ShipPawn;
 		OnOwningShipChanged(OwningShip);
 	}
+}
+
+FReply UShipStatWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) {
+	if (InKeyEvent.GetKey() == EKeys::SpaceBar ||
+		InKeyEvent.GetKey() == EKeys::Escape)
+	{
+		return FReply::Unhandled(); // Pass to controller
+	}
+	// Handle other keys normally
+	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 }

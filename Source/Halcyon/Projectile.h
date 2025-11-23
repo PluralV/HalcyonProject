@@ -11,8 +11,10 @@
 #include "Projectile.generated.h"
 
 class AWeaponSystem;
-
-UCLASS()
+/*
+* Generic class representing a kinetic projectile with constant speed and damage varying linearly over range.
+*/
+UCLASS(Blueprintable, BlueprintType)
 class HALCYON_API AProjectile : public AActor
 {
 	GENERATED_BODY()
@@ -49,9 +51,16 @@ protected:
 	class UProjectileMovementComponent* Movement;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	float MaxRange;
+	float MaxRange = 3600.f;
 
 	float DistanceTraveled = 0.0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	int32 BaseDamage = 8;//Maximum damage
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	int32 DamageScaling = 4;//What fraction of the original damage (rounded) should be lost at each range band
+	
 	int32 EnergyLevel;
 	int32 MaxEnergy;
 
@@ -59,6 +68,7 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+	int32 team = -1;
 
 	void FireInDirection(const FVector& ProjectileDirection);
 	void SetupHoming(AActor* InTarget);

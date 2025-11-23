@@ -15,11 +15,23 @@ class HALCYON_API AWeaponSystem : public AActor
 public:
     AWeaponSystem();
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
+    FText WeaponName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
+    FText WeaponAbbreviatedName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
+    FText WeaponDesc;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
+    FText WeaponArc; //To be added manually?
+
 protected:
     virtual void BeginPlay() override;
     float BarrelCurrentPitch = 0.f;
     float TurretCurrentRot = 0.f;
-    float TimeSinceLastShot = 0.f;
+    
     
 
 public:
@@ -82,23 +94,25 @@ public:
     float MaxPitchArc = 90.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-    float FireRate = 1.5f; // shots per second
+    float FireRate = 1.5f; // seconds before next shot
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
     float MaxRange = 2500; // distance traveled (in-game cm) before loss
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-    float CoolDownTime = 5.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Energy")
     int32 MinEnergy;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Energy")
     int32 MaxEnergy;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Energy")
+    int32 EnergyStep;
 
+    UPROPERTY(BlueprintReadOnly, Category = "Weapon Energy")
     int32 AllocatedEnergy;
 
-    
-
+    int32 team = -1;
+    int32 ControlGroup = 0;
+    float TimeSinceLastShot = 0.f;
     bool bIsDamaged = false;
     bool bTargetInArc = false;
+    bool bIsArming = false;
 };

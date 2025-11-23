@@ -9,6 +9,7 @@
 class AModularSystem;
 class UInputMappingContext;
 class UInputAction;
+class AWeaponSystem;
 
 UENUM()
 enum class EStaticSystemType : int8 {
@@ -30,7 +31,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 	void AcquireTargetToHud(AActor* Target);
-
+	void AddWeaponWidget();
 protected:
 	// Input Actions
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
@@ -38,6 +39,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* ToggleHUDAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* PauseAction;
 
 	//Widgets to appear on player HUD and give info about ship stats:
 	/*
@@ -74,23 +78,30 @@ protected:
 		- Buttons: Allocate/free energy from each weapon
 		- Key binds: Group weapons so they shoot together (TODO, future feature)
 	*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
+	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipMovementWidget;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
+	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipEnergyWidget;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
+	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipIntegrityWidget;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
+	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipHullWidget;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
+	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipWeaponWidget;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HUD")
+	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipTargetWidget;
+
+	UPROPERTY(EditAnywhere, Category = "HUD")
+	TSubclassOf<UUserWidget> PauseWidget;
+
+	UPROPERTY(EditAnywhere, Category = "HUD")
+	TSubclassOf<UUserWidget> WeaponDetailsWidget;
+
 
 	UUserWidget* HUDMovement;
 	UUserWidget* HUDEnergy;
@@ -98,20 +109,29 @@ protected:
 	UUserWidget* HUDWeapons;
 	UUserWidget* HUDHull;
 	UUserWidget* HUDTarget;
+	UUserWidget* HUDPaused;
+	UUserWidget* HUDWeaponDetails;
 
 	/*Separate functions will exist for allocating energy to systems that are static / default
 	(i.e. movement, shield reinforcement, <potential> repairs/electronic warfare) and those that
 	are modular and specific to a ship (or specific to one module) (i.e. weapons)
 	*/
 
-	UFUNCTION(BlueprintCallable)
-	void AllocateEnergyToModularSys(AModularSystem* TargetSystem, int32 amt);
+	//UFUNCTION(BlueprintCallable)
+	//void AllocateEnergyToModularSys(AModularSystem* TargetSystem, int32 amt);
 
-	UFUNCTION(BlueprintCallable)
-	void FreeEnergyFromModularSys(AModularSystem* TargetSystem, int32 amt);
-
+	//UFUNCTION(BlueprintCallable)
+	//void FreeEnergyFromModularSys(AModularSystem* TargetSystem, int32 amt);
+	
 	void ToggleHUDInteraction();
 
+	void PauseRealtimeGame();
+
+	UFUNCTION(BlueprintCallable)
+	void SetWeaponDetails(AWeaponSystem* NewOwningWeapon);
+
+	UFUNCTION(BlueprintCallable)
+	void ClearWeaponDetails();
 	
 
 	//For disabling/enabling mouse look; when disabled you can interact with HUD UI
@@ -120,6 +140,7 @@ protected:
 //	void EnableLook();
 private:
 	bool bIsInHUDMode = false;
+	bool bIsPaused = false;
 	int32 GameModeIndex = -1;
 //	void OnRightMouseAxis(float Value);
 //	bool bIsRightMouseDown = false;
@@ -128,5 +149,6 @@ private:
 	
 	UFUNCTION()
 	void HandleLoss();
+
 
 };

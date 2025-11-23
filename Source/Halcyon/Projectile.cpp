@@ -15,8 +15,8 @@ AProjectile::AProjectile()
 
     // movement
     Movement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("Movement"));
-    Movement->InitialSpeed = 2000.f;
-    Movement->MaxSpeed = 2000.f;
+    Movement->InitialSpeed = InitialSpeed;
+    Movement->MaxSpeed = MaxSpeed;
     Movement->bRotationFollowsVelocity = true;
     Movement->bShouldBounce = false;
     Movement->ProjectileGravityScale = 0.f;
@@ -28,7 +28,7 @@ AProjectile::AProjectile()
     Mesh->SetupAttachment(Collision);
 
     // collision
-    Collision->InitSphereRadius(25.f); // adjust size later?
+    Collision->InitSphereRadius(12.f); // adjust size later?
     Collision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
     Collision->SetCollisionResponseToAllChannels(ECR_Overlap); 
     Collision->SetCollisionObjectType(ECC_WorldDynamic);
@@ -52,12 +52,16 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
         FString::Printf(TEXT("Hit Actor: %s"), OtherActor->GetName()));*/
     if (OtherActor && OtherActor != this->GetOwner() && OtherActor->IsA(AShipPawn::StaticClass()))
     {
+        /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+            FString::Printf(TEXT("Collision detected:")));*/
         if (AShipPawn* Ship = Cast<AShipPawn>(OtherActor)) {
 
-            /*if (Ship->GetController() && Ship->GetController()->IsPlayerController())
+            if (Ship->Team == team)
             {
+               /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+                    FString::Printf(TEXT("SAME TEAM!!!!")));*/
                 return;
-            }*/
+            }
             // Apply damage or effects here
             FVector TargetVector = Ship->GetActorRightVector();
             FVector ImpactVector = this->GetActorForwardVector()*-1;
@@ -87,6 +91,7 @@ void AProjectile::BeginPlay()
         MaxRange = OwningWeapon->MaxRange;
         EnergyLevel = OwningWeapon->AllocatedEnergy;
         MaxEnergy = OwningWeapon->MaxEnergy;
+        team = OwningWeapon->team;
     }
 }
 void AProjectile::SetupHoming(AActor* InTarget)
@@ -124,18 +129,11 @@ void AProjectile::FireInDirection(const FVector& ShootDirection)
 
 //Default damage function; just decrease over range
 int32 AProjectile::GetDamage() {
+    if (!DamageScaling) return BaseDamage;
     float RangeThreshold = MaxRange / 3;
     int32 RangeBand = (int)(DistanceTraveled / RangeThreshold);
-    GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+  /*  GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
         FString::Printf(TEXT("Hit at range %f (Rangeband %d)"),
-            DistanceTraveled, RangeBand));
-    switch (RangeBand) {
-    case 0:
-        return 8;
-    case 1:
-        return 6;
-    case 2:
-        return 4;
-    default:return 0;
-    }
+            DistanceTraveled, RangeBand));*/
+    return (BaseDamage - RangeBand * (BaseDamage / DamageScaling));
 }
