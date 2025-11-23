@@ -20,6 +20,13 @@ class HALCYON_API AProjectile : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AProjectile();
+	float GetProjectileSpeed() {
+		return Movement->MaxSpeed;
+	}
+	bool IsHomingProjectile() {
+		return Movement->bIsHomingProjectile;
+	}
+	AActor* Target;
 
 protected:
 	// Called when the game starts or when spawned
@@ -43,14 +50,18 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
 	float MaxRange;
+
 	float DistanceTraveled = 0.0;
 	int32 EnergyLevel;
 	int32 MaxEnergy;
+
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	void FireInDirection(const FVector& ProjectileDirection);
+	void SetupHoming(AActor* InTarget);
+
 
 };

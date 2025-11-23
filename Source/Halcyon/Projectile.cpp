@@ -88,7 +88,18 @@ void AProjectile::BeginPlay()
         EnergyLevel = OwningWeapon->AllocatedEnergy;
         MaxEnergy = OwningWeapon->MaxEnergy;
     }
+}
+void AProjectile::SetupHoming(AActor* InTarget)
+{
+    Target = InTarget;
 
+    if (Movement->bIsHomingProjectile && Target)
+    {
+        Movement->HomingTargetComponent = Target->GetRootComponent();
+    }
+    else {
+        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("not homing projectile"));
+    }
 }
 
 // Called every frame

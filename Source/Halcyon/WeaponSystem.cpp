@@ -84,83 +84,93 @@ bool AWeaponSystem::CauseDamage() {
 void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
 {
     if (!bIsDamaged && AllocatedEnergy >= MinEnergy) {
-        FVector TargetLoc = CurrentTarget->GetActorLocation();
+        FVector ShipLoc = CurrentTarget->GetActorLocation();
+        FVector TargetVel = CurrentTarget->GetVelocity();
         FVector TurretLoc = TurretBase->GetComponentLocation();
+        FVector ToShip = ShipLoc - TurretLoc;
+        float Distance = ToShip.Size();
+        FVector TargetLoc = ShipLoc;
+
+        // Calculate lead only if not a missile
+        if (!ProjectileClass) { return; }
+        AProjectile* DefaultProj = ProjectileClass->GetDefaultObject<AProjectile>();
+        if (!(DefaultProj->IsHomingProjectile())) {
+            // Calculate lead using max speed
+            float TimeToTarget = Distance / DefaultProj->GetProjectileSpeed();
+            TargetLoc = ShipLoc + TargetVel * TimeToTarget;
+        }
         FVector TargetDir = (TargetLoc - TurretLoc).GetSafeNormal();
 
-        // Convert the turretrotationaxis (barrels default facing upwards) to world space
+        // Rotate turret (not barrel)
+        // Convert the turretrotationaxis (barrels default facing x axis) to world space
         FVector WorldTurretAxis = TurretBase->GetComponentTransform().TransformVectorNoScale(TurretRotationAxis).GetSafeNormal();
         FVector TurretForward = TurretBase->GetComponentTransform().TransformVectorNoScale(TurretForwardAxis).GetSafeNormal();
 
-        // Project target direction and turret forward direction onto plane perpendicular to rotation axis
+        // Project target direction and turret forward direction onto plane perpendicular to turret rotation axis
         FVector ProjectedTargetDir = FVector::VectorPlaneProject(TargetDir, WorldTurretAxis).GetSafeNormal();
         FVector ProjectedForward = FVector::VectorPlaneProject(TurretForward, WorldTurretAxis).GetSafeNormal();
-        float TurretAngle = MaxFiringAngle;//hacky solution to avoid check below in the event of small normals
-        if (!ProjectedTargetDir.IsNearlyZero() && !ProjectedForward.IsNearlyZero())
-        {
-            // Angle between current forward and target in plane
-            TurretAngle = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(ProjectedForward, ProjectedTargetDir)));
+        // Angle between current forward and target in plane
+        float TurretAngle = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(ProjectedForward, ProjectedTargetDir)));
 
-            // Axis of rotation (sign) along WorldAxis
-            float Sign = FVector::DotProduct(FVector::CrossProduct(ProjectedForward, ProjectedTargetDir), WorldTurretAxis) < 0.f ? -1.f : 1.f;
+        // Axis of rotation (sign) along WorldAxis
+        float Sign = FVector::DotProduct(FVector::CrossProduct(ProjectedForward, ProjectedTargetDir), WorldTurretAxis) < 0.f ? -1.f : 1.f;
 
-            // Clamp rotation speed
-            float DeltaAngle = FMath::Min(RotationSpeed * DeltaTime, TurretAngle);
-            float WouldBeRot = TurretCurrentRot + (DeltaAngle * Sign);
-            /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-                FString::Printf(TEXT("DeltaAngle %f CurrentRot %f"), DeltaAngle, WouldBeRot));*/
-            if (abs(WouldBeRot) <= MaxTurretArc) {
-                // Apply rotation
-                TurretCurrentRot += (DeltaAngle * Sign);
-                FQuat DeltaQuat = FQuat(WorldTurretAxis, FMath::DegreesToRadians(DeltaAngle * Sign));
-                FQuat NewRot = DeltaQuat * TurretBase->GetComponentQuat();
-                TurretBase->SetWorldRotation(NewRot);
-            }
+        // Clamp rotation speed
+        float DeltaAngle = FMath::Min(RotationSpeed * DeltaTime, TurretAngle);
+        float WouldBeRot = TurretCurrentRot + (DeltaAngle * Sign);
+        /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+            FString::Printf(TEXT("DeltaAngle %f CurrentRot %f"), DeltaAngle, WouldBeRot));*/
+        if (abs(WouldBeRot) <= MaxTurretArc) {
+            // Apply rotation
+            TurretCurrentRot += (DeltaAngle * Sign);
+            FQuat DeltaQuat = FQuat(WorldTurretAxis, FMath::DegreesToRadians(DeltaAngle * Sign));
+            FQuat NewRot = DeltaQuat * TurretBase->GetComponentQuat();
+            TurretBase->SetWorldRotation(NewRot);
         }
+        
        /* else {
             GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
                 FString::Printf(TEXT("NEAR ZERO")));
         }*/
 
         // Rotate barrel (pitch only)
-
-        // COMPUTE DELTA ANGLE
-
         // axis to pitch around
-        //FVector PitchPlaneNormal = Barrel->GetRightVector();
         FVector PitchPlaneNormal = Barrel->GetComponentTransform().TransformVectorNoScale(BarrelRotationAxis).GetSafeNormal();
         // Direction to target in world space
         FVector BarrelLoc = Barrel->GetComponentLocation();
-        FVector BarrelToTarget = -(TargetLoc - BarrelLoc).GetSafeNormal();
+        FVector BarrelToTarget = (TargetLoc - BarrelLoc).GetSafeNormal();
 
         // Project target onto plane perpendicular to pitch axis
         FVector ProjectedDir = FVector::VectorPlaneProject(BarrelToTarget, PitchPlaneNormal).GetSafeNormal();
 
         // Project barrel direction onto plane perpendicular to pitch axis
+        FVector MuzzleLoc = Muzzle->GetComponentLocation();
+        FVector BarrelForward = (MuzzleLoc - BarrelLoc);
+        FVector ProjectedBarrelDir = FVector::VectorPlaneProject(BarrelForward, PitchPlaneNormal).GetSafeNormal();
         //FVector BarrelForward = FVector::VectorPlaneProject(Barrel->GetForwardVector(), PitchPlaneNormal).RotateAngleAxis(90.f, PitchPlaneNormal).GetSafeNormal();
-        FVector BarrelForward = 
-            Barrel->GetComponentTransform().TransformVectorNoScale(BarrelForwardAxis).GetSafeNormal().RotateAngleAxis(180.f,PitchPlaneNormal);
-        /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-            FString::Printf(TEXT("Barrel forward normal: %f,%f,%f"), BarrelForward.X, BarrelForward.Y, BarrelForward.Z));*/
+
+
         // Angle between current barrel direction and target in pitch plane
-        float Dot = FVector::DotProduct(BarrelForward, ProjectedDir);
+        float Dot = FVector::DotProduct(ProjectedBarrelDir, ProjectedDir);
         float Angle = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(Dot, -1.f, 1.f)));
         
 
 
         // Determine rotation direction (sign)
-        float Sign = FVector::DotProduct(FVector::CrossProduct(BarrelForward, ProjectedDir), PitchPlaneNormal) < 0.f ? -1.f : 1.f;
+        Sign = FVector::DotProduct(FVector::CrossProduct(ProjectedBarrelDir, ProjectedDir), PitchPlaneNormal) < 0.f ? -1.f : 1.f;
+        //Sign = FVector::DotProduct(FVector::CrossProduct(ProjectedBarrelDir, ProjectedDir), PitchPlaneNormal) < 0.f ? 1.f : -1.f;
+
        /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
             FString::Printf(TEXT("Dot is %f, destination angle %f, sign %f"), Dot, Angle, Sign));*/
         // Incremental rotation in degrees (clamp by max rotation speed)
-        float DeltaAngle = FMath::Min(RotationSpeed * DeltaTime, Angle) * Sign;
+        DeltaAngle = FMath::Min(RotationSpeed * DeltaTime, Angle) * Sign;
         float NextPitch = DeltaAngle + BarrelCurrentPitch;
         /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
             FString::Printf(TEXT("DeltaAngle %f NextPitch %f"), DeltaAngle, NextPitch));*/
        /*if (!(NextPitch > 0 || NextPitch < -90))*/
         if (abs(NextPitch) <= MaxPitchArc)
         {
-           BarrelCurrentPitch += DeltaAngle;
+           BarrelCurrentPitch = NextPitch;
            // Compute rotation+transaltion around pivot 
            FVector PivotLoc = BarrelPivot->GetComponentLocation();
            FVector ToBarrel = Barrel->GetComponentLocation() - PivotLoc;
@@ -181,7 +191,7 @@ void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
 
         // Fire weapon if weapon is within certain angle
         /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-            FString::Printf(TEXT("TurretAngle %f BarrelAngle %f"), TurretAngle, Angle));*/
+            FString::Printf(TEXT("TurretAngle %f BarrelAngle %f"), TurretAngle, Angle))*/;
         if (Angle < MaxFiringAngle && TurretAngle < MaxFiringAngle)
         {
             /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
@@ -213,14 +223,16 @@ void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
     }
 }
 
-void AWeaponSystem::FireWeapon() {
+void AWeaponSystem::FireWeapon(AActor* Target) {
     if (!bIsDamaged && bTargetInArc && TimeSinceLastShot >= FireRate) {
         //get barrel right again
         FVector PitchPlaneNormal = Barrel->GetRightVector();
         // Project barrel direction onto plane perpendicular to pitch axis
-        FVector BarrelForward = FVector::VectorPlaneProject(Barrel->GetForwardVector(), PitchPlaneNormal).RotateAngleAxis(90.f, PitchPlaneNormal).GetSafeNormal();
+        FVector SpawnLocation = Muzzle->GetComponentLocation();
+        FVector BarrelLoc = Barrel->GetComponentLocation();
+        FVector BarrelForward = (SpawnLocation - BarrelLoc);
+        FVector ProjectedBarrelDir = FVector::VectorPlaneProject(BarrelForward, PitchPlaneNormal).GetSafeNormal();
         if (ProjectileClass) {
-            FVector SpawnLocation = Muzzle->GetComponentLocation();
             FRotator SpawnRotation = Barrel->GetComponentRotation();
             // Spawn projectile
             FActorSpawnParameters SpawnParams;
@@ -232,9 +244,14 @@ void AWeaponSystem::FireWeapon() {
             {
                 /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
                     FString::Printf(TEXT("Calling FireInDirection")));*/
-                Projectile->FireInDirection(-BarrelForward);
+                Projectile->SetupHoming(Target);
+                Projectile->FireInDirection(ProjectedBarrelDir);
                 TimeSinceLastShot = 0.f;
             }
         }
     }
+    /*else {
+        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+            FString::Printf(TEXT("Weapon %s is not in arc."), *this->GetName()));
+    }*/
 }
