@@ -20,6 +20,7 @@ void AShipPlayerController::BeginPlay() {
 	check(GEngine);
 	SetInputMode(FInputModeGameOnly());
 	bShouldPerformFullTickWhenPaused = true;
+
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
 		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 	{
@@ -28,9 +29,21 @@ void AShipPlayerController::BeginPlay() {
 		{
 			Subsystem->AddMappingContext(ControllerMappingContext, 0);
 		}
-		
+
 	}
 
+	if (AGameModeBase* CurrentGameMode = GetWorld()->GetAuthGameMode()) {
+		if (AHalcyonSimpleGameMode* HCSM = Cast<AHalcyonSimpleGameMode>(CurrentGameMode)) {
+			GameModeIndex = 1;
+			HCSM->OnLoss.AddDynamic(this, &AShipPlayerController::HandleLoss);
+			HCSM->OnVVin.AddDynamic(this, &AShipPlayerController::HandleWin);
+		}//else if else if....
+	}
+
+	GetWorldTimerManager().SetTimerForNextTick(this, &AShipPlayerController::InitializeHUD);
+}
+
+void AShipPlayerController::InitializeHUD() {
 	//1. ADD MOVEMENT WIDGET
 	if (ShipMovementWidget) {
 		HUDMovement = CreateWidget<UUserWidget>(this, ShipMovementWidget);
@@ -38,7 +51,7 @@ void AShipPlayerController::BeginPlay() {
 			StatWidget->OwningShip = GetPawn();
 			StatWidget->SetIsFocusable(false);
 			StatWidget->AddToViewport();
-}
+		}
 	}
 
 	//2. ADD ENERGY WIDGET
@@ -48,7 +61,7 @@ void AShipPlayerController::BeginPlay() {
 			StatWidget->OwningShip = GetPawn();
 			StatWidget->SetIsFocusable(false);
 			StatWidget->AddToViewport();
-}
+		}
 	}
 
 	//3. ADD INTEGRITY WIDGET
@@ -95,12 +108,11 @@ void AShipPlayerController::BeginPlay() {
 		}
 	}
 
-	if (AGameModeBase* CurrentGameMode = GetWorld()->GetAuthGameMode()) {
-		if (AHalcyonSimpleGameMode* HCSM = Cast<AHalcyonSimpleGameMode>(CurrentGameMode)) {
-			GameModeIndex = 1;
-			HCSM->OnLoss.AddDynamic(this,&AShipPlayerController::HandleLoss);
-			HCSM->OnVVin.AddDynamic(this,&AShipPlayerController::HandleWin);
-		}//else if else if....
+
+	if (WinWidgetClass) {
+		WinWidget = CreateWidget<UUserWidget>(this, WinWidgetClass);
+		WinWidget->SetVisibility(ESlateVisibility::Hidden);
+		WinWidget->AddToViewport();
 	}
 }
 

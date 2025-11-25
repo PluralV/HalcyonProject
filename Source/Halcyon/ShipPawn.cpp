@@ -29,11 +29,7 @@ AShipPawn::AShipPawn()
 	// Create movement component
 	MovementComponent = CreateDefaultSubobject<UShipPawnMovementComponent>(TEXT("MovementComponent"));
 	MovementComponent->SetUpdatedComponent(ShipMesh);
-	MovementComponent->SpeedLimit = SpeedLimit;
-	MovementComponent->PitchRate = PitchRate;
-	MovementComponent->YawRate = YawRate;
-	MovementComponent->SpeedConstant = SpeedConstant;
-	MovementComponent->AccelRate = AccelRate;
+
 
 	// Set up mesh
 	ShipMesh->SetSimulatePhysics(true);
@@ -70,6 +66,14 @@ AShipPawn::AShipPawn()
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	
 
+	
+}
+
+// Called when the game starts or when spawned
+void AShipPawn::BeginPlay()
+{
+	Super::BeginPlay();
+
 	//Initialize stats
 	LeftEngCurr = LeftEng;
 	RightEngCurr = RightEng;
@@ -87,12 +91,15 @@ AShipPawn::AShipPawn()
 	for (int8 i = 0; i < 6; i++) {
 		ShieldFacingsCurr[i] = ShieldFacings[i];
 	}
-}
 
-// Called when the game starts or when spawned
-void AShipPawn::BeginPlay()
-{
-	Super::BeginPlay();
+	//Setup movement component stats
+	if (MovementComponent) {
+		MovementComponent->SpeedLimit = SpeedLimit;
+		MovementComponent->PitchRate = PitchRate;
+		MovementComponent->YawRate = YawRate;
+		MovementComponent->SpeedConstant = SpeedConstant;
+		MovementComponent->AccelRate = AccelRate;
+	}
 
 	// Add the Input Mapping Context to the player's input subsystem
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
@@ -395,7 +402,7 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 		GetWorldTimerManager().SetTimer(ThrowAwayHandle, [this, ReinTotal, ShieldBand]() {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Is we releasin the energy?"));
 			ReleaseEnergy(ReinTotal);
-			}, 6.f, false, -1);
+			}, 24.f, false, -1);
 	}
 
 	if (ShieldReinforcements[ShieldBand] >= 0) {
@@ -552,16 +559,16 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 		GetWorldTimerManager().SetTimer(ThrowAwayHandle, [this, PowerDamage]() {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Is we releasin the energy?"));
 			EnergyLoss(PowerDamage);
-			}, 6.f, false, -1);
+			}, 18.f, false, -1);
 	}
 
 	if (HullIntegrity < StartingHull) {
-		OnHullIntegrityChanged.Broadcast(HullIntegrity);
 		if (HullIntegrity <= 0) {
 			//If you run out of hull, you are destroyed
 			HullIntegrity = 0;
 			DestroyShip(0);
 		}
+		OnHullIntegrityChanged.Broadcast(HullIntegrity);
 	}
 }
 

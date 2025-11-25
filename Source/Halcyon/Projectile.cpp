@@ -114,7 +114,7 @@ void AProjectile::SetupHoming(AActor* InTarget)
         Movement->HomingTargetComponent = Target->GetRootComponent();
     }
     else {
-        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("not homing projectile"));
+        //GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("not homing projectile"));
     }
 }
 

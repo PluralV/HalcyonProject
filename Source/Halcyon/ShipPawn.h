@@ -187,10 +187,10 @@ protected:
 	//Ship base stats
 	//Hull integrity
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base System Stats")
-	int32 HullIntegrity = 32;
+	int32 HullIntegrity;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
-	int32 MaxHullIntegrity = 32;
+	int32 MaxHullIntegrity;
 
 	//Shield values
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Base System Stats")
@@ -213,24 +213,24 @@ protected:
 	//Energy stats: The total amount of energy generated is the total integer sum of these
 	//Curr values indicate the current number remaining (initialised to the same amount as the base)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
-	int32 LeftEng = 16;
+	int32 LeftEng = 12;
 	int32 LeftEngCurr = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
-	int32 RightEng = 16;
+	int32 RightEng = 12;
 	int32 RightEngCurr = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
 	int32 CenterEng = 0;
 	int32 CenterEngCurr = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
-	int32 PowerReactor = 4;
+	int32 PowerReactor = 2;
 	int32 PowerReactorCurr = 0;
 
 	//TotalEnergy: maximum possible energy based on above stats
 	//TotalEnergyCurr: current maximum possible energy based on above stats/damage
 	//TotalEnergyAvailable: current energy not allocated
-	int32 TotalEnergy;
-	int32 TotalEnergyCurr;
-	int32 TotalEnergyAvailable;
+	int32 TotalEnergy = 26;
+	int32 TotalEnergyCurr = 26;
+	int32 TotalEnergyAvailable = 26;
 
 	//ARRAYS FOR STORING SYSTEMS
 	
@@ -238,20 +238,19 @@ protected:
 	//Engine settings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
 	float SpeedLimit = 1750.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
 	float CurrentThrottle = 0.f;
 
 	//Maneuverability
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
-	float PitchRate = 20.f;
+	float PitchRate = 25.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
-	float YawRate = 20.f;
+	float YawRate = 25.f;
 	//Acceleration rate, how fast velocity increases up to current maximum
-	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
 	float AccelRate = 20.f;
 	//Top speed, multiplied by amount of energy allocated to movement to get the maximum velocity (magnitude)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
-	float SpeedConstant = 20.f;
+	float SpeedConstant = 12.f;
 	
 	
 

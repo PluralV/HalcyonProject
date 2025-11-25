@@ -30,12 +30,14 @@ class HALCYON_API AShipPlayerController : public APlayerController
 public:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
+	
 	void AcquireTargetToHud(AActor* Target);
 	void AddWeaponWidget();
 
 	UFUNCTION(BlueprintCallable)
 	void SetWeaponDetails(AWeaponSystem* NewOwningWeapon, int32 ItsIndex);
 protected:
+	void InitializeHUD();
 	// Input Actions
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputMappingContext* ControllerMappingContext;
@@ -105,6 +107,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> WeaponDetailsWidget;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Win Widget")
+	TSubclassOf<UUserWidget> WinWidgetClass;
+
 
 	UUserWidget* HUDMovement;
 	UUserWidget* HUDEnergy;
@@ -114,6 +119,7 @@ protected:
 	UUserWidget* HUDTarget;
 	UUserWidget* HUDPaused;
 	UUserWidget* HUDWeaponDetails;
+	UUserWidget* WinWidget;
 
 	/*Separate functions will exist for allocating energy to systems that are static / default
 	(i.e. movement, shield reinforcement, <potential> repairs/electronic warfare) and those that

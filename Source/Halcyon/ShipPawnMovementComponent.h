@@ -47,18 +47,18 @@ public:
     float TorqueMultiplier = 50000.f;
 
     //Engine settings
-    UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
-    float SpeedLimit;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Base Mobility Stats")
+    float SpeedLimit = 1000.f;
     //Maneuverability
-    UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
-    float PitchRate;
-    UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
-    float YawRate;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Base Mobility Stats")
+    float PitchRate = 25.0;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Base Mobility Stats")
+    float YawRate = 25.0;
     //Top speed, multiplied by amount of energy allocated to movement to get the maximum velocity (magnitude)
-    UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
-    float SpeedConstant;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Base Mobility Stats")
+    float SpeedConstant = 12.f;
 
-    float AccelRate;
+    float AccelRate = 20.f;
 
 private:
     float CurrentThrust=0.f;

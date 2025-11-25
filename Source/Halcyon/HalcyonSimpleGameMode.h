@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "Blueprint/UserWidget.h"
 #include "HalcyonSimpleGameMode.generated.h"
 
 
@@ -39,6 +40,7 @@ public:
 
 	UFUNCTION()
 	void CauseLoss();
+
 private:
 	void CheckEnemies();
 };
