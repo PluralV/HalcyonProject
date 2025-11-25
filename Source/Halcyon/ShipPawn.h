@@ -99,9 +99,6 @@ public:
 	void SetTarget(AActor* Target) {
 		CurrentTarget = Target;
 	}
-	void AIFireWeapon() {
-		Fire();
-	}
 
 	UFUNCTION()
 	void AIFireWeapon() {
