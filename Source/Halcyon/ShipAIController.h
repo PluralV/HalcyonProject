@@ -34,7 +34,7 @@ public:
 
 	// range to set target
 	UPROPERTY(EditAnywhere)
-	float FireRange = 5000.0f;
+	float FireRange = 7500.0f;
 
 protected:
 	virtual void BeginPlay() override;

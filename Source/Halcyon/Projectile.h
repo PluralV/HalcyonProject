@@ -22,6 +22,13 @@ class HALCYON_API AProjectile : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AProjectile();
+	float GetProjectileSpeed() {
+		return Movement->MaxSpeed;
+	}
+	bool IsHomingProjectile() {
+		return Movement->bIsHomingProjectile;
+	}
+	AActor* Target;
 
 protected:
 	// Called when the game starts or when spawned
@@ -45,10 +52,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
 	float MaxRange = 3600.f;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
 	float InitialSpeed = 2000.f;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
 	float MaxSpeed = 2000.f;
 
@@ -67,11 +72,14 @@ protected:
 	float OverloadScaling = 0.f; //For each additional EnergyStep energy, add OverloadScaling * the total calculated damage to the final value
 	bool bIsOverloaded = false;
 
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	int32 team = -1;
 
 	void FireInDirection(const FVector& ProjectileDirection);
+	void SetupHoming(AActor* InTarget);
+
 
 };

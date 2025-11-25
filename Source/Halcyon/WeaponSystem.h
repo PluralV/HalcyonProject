@@ -52,7 +52,7 @@ public:
     UFUNCTION(BlueprintCallable)
     bool CauseDamage();
 
-    void FireWeapon();
+    void FireWeapon(AActor* Target);
 
     /* Root component of the weapon system */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
@@ -78,9 +78,6 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Turret")
     FVector BarrelRotationAxis = FVector::RightVector;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Turret")
-    FVector BarrelForwardAxis = FVector::ForwardVector;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
     TSubclassOf<AProjectile> ProjectileClass;

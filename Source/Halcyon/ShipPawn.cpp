@@ -352,7 +352,7 @@ void AShipPawn::Fire() {
 				AActor* Child = WeaponComp->GetChildActor();
 				if (AWeaponSystem* Weapon = Cast<AWeaponSystem>(Child))
 				{
-					Weapon->FireWeapon();
+					Weapon->FireWeapon(CurrentTarget);
 				}
 				else {
 					//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
