@@ -32,6 +32,9 @@ public:
 	virtual void SetupInputComponent() override;
 	void AcquireTargetToHud(AActor* Target);
 	void AddWeaponWidget();
+
+	UFUNCTION(BlueprintCallable)
+	void SetWeaponDetails(AWeaponSystem* NewOwningWeapon, int32 ItsIndex);
 protected:
 	// Input Actions
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
@@ -127,8 +130,7 @@ protected:
 
 	void PauseRealtimeGame();
 
-	UFUNCTION(BlueprintCallable)
-	void SetWeaponDetails(AWeaponSystem* NewOwningWeapon);
+	
 
 	UFUNCTION(BlueprintCallable)
 	void ClearWeaponDetails();

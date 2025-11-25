@@ -7,6 +7,9 @@
 #include "Projectile.h"
 #include "WeaponSystem.generated.h"
 
+
+
+
 UCLASS()
 class HALCYON_API AWeaponSystem : public AActor
 {
@@ -26,7 +29,6 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
     FText WeaponArc; //To be added manually?
-
 protected:
     virtual void BeginPlay() override;
     float BarrelCurrentPitch = 0.f;
@@ -111,6 +113,15 @@ public:
 
     UPROPERTY(BlueprintReadOnly, Category = "Weapon Energy")
     int32 AllocatedEnergy;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Energy")
+    int32 BaseDamage = 8;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Energy")
+    int32 DamageScaling = 4; //At each successive rangeband (MaxRange/3 meters traveled), lose 1/DamageScaling * BaseDamage damage
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Energy")
+    float OverloadScaling = 0.f; //For each additional EnergyStep energy, add OverloadScaling * the total calculated damage to the final value
 
     int32 team = -1;
     int32 ControlGroup = 0;

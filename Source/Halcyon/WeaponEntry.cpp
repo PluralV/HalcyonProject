@@ -2,6 +2,7 @@
 
 
 #include "WeaponEntry.h"
+#include "WeaponDetailedInfoWidget.h"
 #include "ShipPawn.h"
 #include "ShipPlayerController.h"
 #include "Components/Button.h"
@@ -17,19 +18,30 @@ void UWeaponEntry::NativeConstruct() {
 			if (LblWeaponArc) LblWeaponArc->SetText(OwningWeapon->WeaponArc);
 			if (LblStatus) LblStatus->SetText(FText::FromString("INACTIVE"));
 			if (EnergyLevelCurr) EnergyLevelCurr->SetText(FText::FromString(FString::Printf(TEXT("%d"), OwningWeapon->AllocatedEnergy)));
+			
+	}
+	if (OwningShip) {
+		if (AShipPawn* OSP = Cast<AShipPawn>(OwningShip)) OSP->OnWeaponDamaged.AddDynamic(this, &UWeaponEntry::RegisterDamage);
 	}
 }
 
 void UWeaponEntry::OnAllocButtonClicked() {
 	//Cycle energy - attempt to immediately allocate to minimum level
 	if (AShipPawn* OSP = Cast<AShipPawn>(OwningShip)) {
-		if (OwningWeapon && !OwningWeapon->bIsDamaged) {
+		if (OwningWeapon && !bIsDamaged) {
+			int32 AmountAlloced = 0;
 			if (OwningWeapon->AllocatedEnergy < OwningWeapon->MinEnergy) {//if less than minimum, allocate entirely up to min
 				//ALLOCATE THIS AMOUNT OF ENERGY TO WEAPON W/SHIP PAWN
-				OSP->AllocateWeapon(MyIndex, OwningWeapon->MinEnergy - OwningWeapon->AllocatedEnergy);
+				AmountAlloced = OSP->AllocateWeapon(MyIndex, OwningWeapon->MinEnergy - OwningWeapon->AllocatedEnergy);
+				if (!AmountAlloced) {
+					OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
+				}
 			}
 			else if (OwningWeapon->AllocatedEnergy < OwningWeapon->MaxEnergy) {//If between minimum and maximum, step up by 1
-				OSP->AllocateWeapon(MyIndex, OwningWeapon->EnergyStep);
+				AmountAlloced = OSP->AllocateWeapon(MyIndex, OwningWeapon->EnergyStep);
+				if (!AmountAlloced) {//If it failed, just free the energy
+					OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
+				}
 			}
 			else {//If at maximum, simply free all the energy
 				OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
@@ -45,7 +57,8 @@ void UWeaponEntry::OnInfoButtonClicked() {
 		if (OwningShip) {
 			if (AShipPawn* OSP = Cast<AShipPawn>(OwningShip)) {
 				if (AShipPlayerController* OPC = Cast<AShipPlayerController>(OSP->Controller)) {
-					
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Clicked info button"));
+					OPC->SetWeaponDetails(OwningWeapon,MyIndex);
 				}
 			}
 		}
@@ -54,7 +67,7 @@ void UWeaponEntry::OnInfoButtonClicked() {
 
 //Assigns weapon to control group on click
 void UWeaponEntry::OnCtrlGroupButtonClicked() {
-	if (OwningWeapon) {
+	if (OwningWeapon && !bIsDamaged) {
 		OwningWeapon->ControlGroup = (OwningWeapon->ControlGroup + 1) % 10;
 		if (LblControlGroup) {
 			LblControlGroup->SetText(FText::FromString(FString::Printf(TEXT("%d"), OwningWeapon->ControlGroup)));
@@ -63,7 +76,7 @@ void UWeaponEntry::OnCtrlGroupButtonClicked() {
 }
 
 void UWeaponEntry::OnEnergyChanged() {
-	if (OwningWeapon) {
+	if (OwningWeapon && !bIsDamaged) {
 		int32 Energy = OwningWeapon->AllocatedEnergy;
 		int32 Min = OwningWeapon->MinEnergy;
 		int32 Max = OwningWeapon->MaxEnergy;
@@ -129,7 +142,7 @@ void UWeaponEntry::OnEnergyChanged() {
 
 void UWeaponEntry::NativeTick(const FGeometry& MyGeometry, float InDeltaTime) {
 	Super::NativeTick(MyGeometry, InDeltaTime);
-	if (OwningWeapon) {
+	if (OwningWeapon && !bIsDamaged) {
 		if (OwningWeapon->AllocatedEnergy >= OwningWeapon->MinEnergy) {
 			if (OwningWeapon->bIsArming) {
 				bIsReady = false;
@@ -170,5 +183,25 @@ void UWeaponEntry::AdjustButtonBackgroundColor(FLinearColor StatusColor) {
 
 		// Apply the style to the button
 		AllocButton->SetStyle(ButtonStyle);
+	}
+}
+
+//if it matches this weapon's index, set the weapon's background color to red and show it as damaged
+//damaged buttons do not respond to clicks
+void UWeaponEntry::RegisterDamage(int32 Index) {
+	if (Index == MyIndex) {
+		bIsDamaged = true;
+		if (AllocButton) {
+			AdjustButtonBackgroundColor(FLinearColor(1.f, 0.f, 0.f));
+		}
+		if (LblStatus) {
+			LblStatus->SetText(FText::FromString("WEAPON DOWN"));
+		}
+		if (LblCooldownStatus) {
+			LblCooldownStatus->SetText(FText::FromString("CRITICAL"));
+		}
+		if (EnergyLevelCurr) {
+			EnergyLevelCurr->SetText(FText::FromString("N/A"));
+		}
 	}
 }

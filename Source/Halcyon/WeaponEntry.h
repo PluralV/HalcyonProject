@@ -80,7 +80,12 @@ protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	UFUNCTION(BlueprintImplementableEvent, Category = "Target")
 	void OnEnergyUpdated(int32 NewCurrentEnergy);
+
+	UFUNCTION(BlueprintCallable, Category="Events")
+	void RegisterDamage(int32 MyIndex);
+
 	void AdjustButtonBackgroundColor(FLinearColor StatusColor);
 private:
 	bool bIsReady = false;
+	bool bIsDamaged = false;
 };

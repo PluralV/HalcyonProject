@@ -2,8 +2,6 @@
 
 
 #include "WeaponSystem.h"
-
-#include "WeaponSystem.h"
 #include "Kismet/KismetMathLibrary.h"
 
 AWeaponSystem::AWeaponSystem()
@@ -80,8 +78,8 @@ int32 AWeaponSystem::FreeEnergy(int32 amt) {
 
 //Attempts to damage this weapon system. Returns true if it is not already damaged and false if it is.
 bool AWeaponSystem::CauseDamage() {
-    if (!bIsDamaged) {
-        bIsDamaged = true;
+    bIsDamaged = true;
+    if (AllocatedEnergy) {
         return true;
     }
     return false;

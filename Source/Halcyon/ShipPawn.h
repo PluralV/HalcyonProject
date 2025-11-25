@@ -36,11 +36,20 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementEnergyChanged, int32, Amt
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTotalEnergyChanged, int32, Amt);
 /*Used when hull integrity changes. Amt is the new total hull integrity.*/
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHullIntegrityChanged, int32, Amt);
+/*Used when left engine changes. Amt is the new total hull integrity.*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLeftEngChanged, int32, Amt);
+/*Used when right engine changes. Amt is the new total hull integrity.*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRightEngChanged, int32, Amt);
+/*Used when center engine changes. Amt is the new total hull integrity.*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCenterEngChanged, int32, Amt);
+/*Used when reactor changes. Amt is the new total hull integrity.*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnReactorChanged, int32, Amt);
 /*Used when a ship is destroyed. CauseOfDeath denotes the reason the ship was destroyed to be switched for animation/HUD purposes:
 * 0 - Hull integrity exhausted
 * DestroyedShip is a copy of the ship pointer used to determine things like whether the ship was targeted or whether it was an enemy.*/
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnShipDestroyed, int32, CauseOfDeath, AShipPawn*, DestroyedShip);
-
+/*Used when this weapon is damaged by an attack. Index stores its index within the array of weapons, used to reference HUD elements.*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponDamaged, int32, Index);
 
 
 
@@ -74,6 +83,20 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnHullIntegrityChanged OnHullIntegrityChanged;
 
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnLeftEngChanged OnLeftEngChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnRightEngChanged OnRightEngChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnCenterEngChanged OnCenterEngChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnReactorChanged OnReactorChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnWeaponDamaged OnWeaponDamaged;
 
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnShipDestroyed OnShipDestroyed;
@@ -253,7 +276,10 @@ public:
 	void FreeReinforceShield(int32 Amt, int32 Index);
 
 	UFUNCTION(BlueprintCallable)
-	void ReleaseEnergy(int32 Amt);
+	void ReleaseEnergy(int32 Amt);//When energy is released from a system back into the available pool due to freeing
+
+	UFUNCTION(BlueprintCallable)
+	void EnergyLoss(int32 Amt);//When energy is taken away from the available pool due to damage to power systems
 
 	UFUNCTION(BlueprintCallable)
 	void FreeMovement(int32 Amt);

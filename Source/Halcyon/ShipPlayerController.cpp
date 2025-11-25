@@ -86,6 +86,12 @@ void AShipPlayerController::BeginPlay() {
 		HUDWeaponDetails = CreateWidget<UUserWidget>(this, WeaponDetailsWidget);
 		if (UWeaponDetailedInfoWidget* WDIW = Cast<UWeaponDetailedInfoWidget>(HUDWeaponDetails)) {
 			//TODO: set its characteristics as possible
+			WDIW->OwningWeapon = nullptr;
+			WDIW->MyIndex = -1;
+			WDIW->OnNewOwningWeapon();
+			WDIW->SetIsFocusable(false);
+			WDIW->SetVisibility(ESlateVisibility::Hidden);
+			WDIW->AddToViewport();
 		}
 	}
 
@@ -203,10 +209,13 @@ void AShipPlayerController::AddWeaponWidget() {
 }
 
 //Set the weapon detail widget to be visible with a specific owning weapon
-void AShipPlayerController::SetWeaponDetails(AWeaponSystem* NewOwningWeapon) {
+void AShipPlayerController::SetWeaponDetails(AWeaponSystem* NewOwningWeapon, int32 ItsIndex) {
 	if (UWeaponDetailedInfoWidget* WDIW = Cast<UWeaponDetailedInfoWidget>(HUDWeaponDetails)) {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Cast success"));
 		WDIW->OwningWeapon = NewOwningWeapon;
-		WDIW->SetIsFocusable(false);
+		WDIW->MyIndex = ItsIndex;
+		WDIW->OnNewOwningWeapon();
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Setting visibility?"));
 		WDIW->SetVisibility(ESlateVisibility::Visible);
 	}
 }

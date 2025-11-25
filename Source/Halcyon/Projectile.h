@@ -55,13 +55,17 @@ protected:
 	float DistanceTraveled = 0.0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	int32 BaseDamage = 8;//Maximum damage
+	int32 BaseDamage = 0;//Maximum damage
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	int32 DamageScaling = 4;//What fraction of the original damage (rounded) should be lost at each range band
+	int32 DamageScaling = 0;//What fraction of the original damage (rounded) should be lost at each range band
 	
-	int32 EnergyLevel;
+	int32 MinEnergy;
+	int32 EnergyStep;
 	int32 MaxEnergy;
+	int32 EnergyLevel;
+	float OverloadScaling = 0.f; //For each additional EnergyStep energy, add OverloadScaling * the total calculated damage to the final value
+	bool bIsOverloaded = false;
 
 public:	
 	// Called every frame

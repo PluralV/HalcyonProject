@@ -377,7 +377,7 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 	//Possibility for random damage returning 0?
 
 	if (!DamageAmt) return;
-	
+
 	//Determine shield facing based on angle of hit
 	int32 ShieldBand = ((int)FromAngle % 360) / 60;
 	//Total amount of energy being released as a result of the hit
@@ -406,8 +406,8 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 		DamageAmt = -1 * ShieldReinforcements[ShieldBand];
 		ShieldReinforcements[ShieldBand] = 0;
 	}
-	
-	
+
+
 
 	//Allocate damage to shield itself
 	ShieldFacingsCurr[ShieldBand] -= DamageAmt;
@@ -423,14 +423,146 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 
 	//Allocate damage to internals
 	//CURRENT HACK: JUST DEAL TO HULL INTEGRITY
-	HullIntegrity -= DamageAmt;
-	if (HullIntegrity <= 0) {
-		//If you run out of hull, you are destroyed
-		HullIntegrity = 0;
-		DestroyShip(0);
+	bool HasHitWeapon = false;
+	int32 PowerDamage = 0;
+	bool HasHitLeft = false;
+	bool HasHitRight = false;
+	bool HasHitReactor = false;
+	bool HasHitCenter = false;
+	int32 StartingHull = HullIntegrity;
+	for (int i = 0; i < DamageAmt; i++) {
+		int32 TargetDamage = FMath::RandRange(0, 11);
+		//1/12 chance per hit to damage a weapon
+		if (TargetDamage < 1 && !HasHitWeapon) {
+			///*GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Is we hittin the weapon?")));*/
+			//int32 Len = WeaponComponents.Num();
+			//int32 IndexesCleared = 0;
+			//int32 TargetIndex = FMath::RandRange(0, Len-1);
+			////GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Is we hittin the RandRange %d"),TargetIndex));
+			//while (!HasHitWeapon) {
+			//	if (AWeaponSystem* WS = Cast<AWeaponSystem>(WeaponComponents[TargetIndex]->GetChildActor())) {
+			//		if (WS->bIsDamaged) {
+			//			TargetIndex = (TargetIndex + 1) % Len;
+			//			IndexesCleared++;
+			//			if (IndexesCleared > Len) {
+			//				HullIntegrity--;
+			//				if (!HullIntegrity) break;
+			//				HasHitWeapon = true;
+			//			}
+			//			else {
+			//				continue;
+			//			}
+			//		}
+			//		else {
+			//			//returns true if energy was freed
+			//			if (WS->CauseDamage()) {
+			//				//If energy was allocated, release it after 6s
+			//				int32 Alloc = WS->AllocatedEnergy;
+			//				OnEnergyToBeReleased.Broadcast(Alloc);
+			//				FTimerHandle ThrowAwayHandle;
+			//				//Release energy from weapon on a timer
+			//				GetWorldTimerManager().SetTimer(ThrowAwayHandle, [this, WS, Alloc]() {
+			//					//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Is we releasin the energy?"));
+			//					ReleaseEnergy(WS->FreeEnergy(Alloc));
+			//					}, 6.f, false, -1);
+			//			}
+			//			//otherwise no need to release energy - just broadcast
+			//			OnWeaponDamaged.Broadcast(TargetIndex);
+			//		}
+			//	}
+			//}
+			//HOLE INTEGRITY TODO: DELETE THIS DUMBASS THING
+			HullIntegrity--;
+			if (!HullIntegrity) break;
+		}
+		else if (TargetDamage < 3) {
+			if (RightEngCurr) {
+				HasHitRight = true;
+				RightEngCurr--;
+			}
+			else if (PowerReactorCurr) {
+				HasHitReactor = true;
+				PowerReactorCurr--;
+			}
+			else {
+				HullIntegrity--;
+				if (!HullIntegrity) break;
+				continue;
+			}
+			PowerDamage++;
+		}
+		else if (TargetDamage  == 3) {
+			if (CenterEngCurr) {
+				HasHitCenter = true;
+				CenterEngCurr--;
+			}
+			else if (PowerReactorCurr) {
+				HasHitReactor = true;
+				PowerReactorCurr--;
+			}
+			else {
+				HullIntegrity--;
+				if (!HullIntegrity) break;
+				continue;
+			}
+			PowerDamage++;
+		}
+		else if (TargetDamage < 6) {
+			if (LeftEngCurr) {
+				HasHitLeft = true;
+				LeftEngCurr--;
+			}
+			else if (PowerReactorCurr) {
+				HasHitReactor = true;
+				PowerReactorCurr--;
+			}
+			else {
+				HullIntegrity--;
+				if (!HullIntegrity) break;
+				continue;
+			}
+			PowerDamage++;
+		}
+		else {
+			HullIntegrity--;
+			if (!HullIntegrity) break;
+		}
 	}
-	OnHullIntegrityChanged.Broadcast(HullIntegrity);
+	
+	if (HasHitLeft) {
+		OnLeftEngChanged.Broadcast(LeftEngCurr);
+	}
 
+	if (HasHitRight) {
+		OnRightEngChanged.Broadcast(RightEngCurr);
+	}
+
+	if (HasHitCenter) {
+		OnCenterEngChanged.Broadcast(CenterEngCurr);
+	}
+	if (HasHitReactor) {
+		OnReactorChanged.Broadcast(PowerReactorCurr);
+	}
+
+	//sum total of all damage done to power systems
+	if (PowerDamage) {
+		OnEnergyToBeRestricted.Broadcast(PowerDamage);
+		FTimerHandle ThrowAwayHandle;
+		//Release energy from weapon on a timer
+		GetWorldTimerManager().SetTimer(ThrowAwayHandle, [this, PowerDamage]() {
+			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Is we releasin the energy?"));
+			EnergyLoss(PowerDamage);
+			}, 6.f, false, -1);
+	}
+
+	if (HullIntegrity < StartingHull) {
+		OnHullIntegrityChanged.Broadcast(HullIntegrity);
+		if (HullIntegrity <= 0) {
+			//If you run out of hull, you are destroyed
+			HullIntegrity = 0;
+			DestroyShip(0);
+		}
+	}
 }
 
 //Power Allocation Functions
@@ -479,6 +611,72 @@ void AShipPawn::ReleaseEnergy(int32 Amt) {
 	}
 	OnEnergyToBeReleased.Broadcast(-1*Amt);//Reduce the to-be-released energy bar on the HUD
 	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);//Set the energy bar to the new available total
+}
+
+void AShipPawn::EnergyLoss(int32 Amt) {
+	TotalEnergyCurr -= Amt;
+	TotalEnergyAvailable -= Amt;
+	
+	if (TotalEnergyAvailable < 0) {
+		int32 RemainingDamage = -1 * TotalEnergyAvailable;
+		TotalEnergyAvailable = 0;
+
+		//FIRST: Strip power from shield reinforcements
+		for (int i = 5; i >= 0; i--) {//Take off from all shields
+			if (int32 ReinEnergy = ShieldReinforcements[i]) {
+				ReinEnergy -= RemainingDamage;
+				if (ReinEnergy < 0) {
+					RemainingDamage = -1 * ReinEnergy;
+					ReinEnergy = 0;
+				}
+				ShieldReinforcements[i] = ReinEnergy;
+				OnShieldStrengthChanged.Broadcast(i, ShieldFacingsCurr[i] + ReinEnergy);
+				if (ReinEnergy) break;
+			}
+		}
+
+		if (RemainingDamage && MovementEnergy) {
+			MovementEnergy -= RemainingDamage;
+			if (MovementEnergy < 0) {
+				RemainingDamage = -1 * MovementEnergy;
+				MovementEnergy = 0;
+			}
+			if (UShipPawnMovementComponent* MC = Cast<UShipPawnMovementComponent>(MovementComponent)) {
+				MC->SetMovementEnergy(MovementEnergy);
+				OnMovementEnergyChanged.Broadcast(MovementEnergy);
+			}
+			if (MovementEnergy) {
+				RemainingDamage = 0;
+			}
+		}
+
+		if (RemainingDamage) {
+			//ITERATE OVER ALL WEAPONS TO STRIP ENERGY
+			for (int i = 0; i < WeaponComponents.Num(); i++) {
+				//
+				if (AWeaponSystem* WS = Cast<AWeaponSystem>(WeaponComponents[i]->GetChildActor())) {
+					//if the weapon has energy in it, wipe it out
+					if (WS->AllocatedEnergy) {
+						RemainingDamage -= WS->AllocatedEnergy;
+						if (RemainingDamage >= 0) FreeWeapon(i, WS->AllocatedEnergy);
+						else {
+							FreeWeapon(i, WS->AllocatedEnergy + RemainingDamage);
+						}
+						if (!RemainingDamage) break;
+					}
+				}
+			}
+		}
+	}
+
+	if (TotalEnergyCurr <= 0) {//if depowered, kill the ship
+		DestroyShip(1);
+	}
+
+	//Broadcast new energy
+	OnEnergyToBeRestricted.Broadcast(-1 * Amt);
+	OnTotalEnergyChanged.Broadcast(TotalEnergyCurr);
+	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 }
 
 //handlers for input
@@ -593,6 +791,9 @@ void AShipPawn::DestroyShip(int32 CauseOfDeath) {
 	
 	switch (CauseOfDeath) {//Ideally in the end TODO: we add some kind of death animation prior to vaporizing them
 	case 0://Currently: just destroy
+		this->Destroy();
+		return;
+	case 1:
 		this->Destroy();
 		return;
 	default:return;

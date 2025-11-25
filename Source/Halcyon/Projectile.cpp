@@ -88,9 +88,20 @@ void AProjectile::BeginPlay()
 	Super::BeginPlay();
 
     if (AWeaponSystem* OwningWeapon = Cast<AWeaponSystem>(Owner)) {
-        MaxRange = OwningWeapon->MaxRange;
+        BaseDamage = OwningWeapon->BaseDamage;
+        DamageScaling = OwningWeapon->DamageScaling;
         EnergyLevel = OwningWeapon->AllocatedEnergy;
+        MaxRange = OwningWeapon->MaxRange;
         MaxEnergy = OwningWeapon->MaxEnergy;
+        MinEnergy = OwningWeapon->MinEnergy;
+        EnergyStep = OwningWeapon->EnergyStep;
+        OverloadScaling = OwningWeapon->OverloadScaling;
+        if (EnergyLevel > MinEnergy) {
+            
+            bIsOverloaded = true;
+            EnergyLevel = EnergyLevel > MaxEnergy ? MaxEnergy : EnergyLevel;
+        }
+        else bIsOverloaded = false;
         team = OwningWeapon->team;
     }
 
@@ -118,11 +129,18 @@ void AProjectile::FireInDirection(const FVector& ShootDirection)
 
 //Default damage function; just decrease over range
 int32 AProjectile::GetDamage() {
-    if (!DamageScaling) return BaseDamage;
-    float RangeThreshold = MaxRange / 3;
-    int32 RangeBand = (int)(DistanceTraveled / RangeThreshold);
-  /*  GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-        FString::Printf(TEXT("Hit at range %f (Rangeband %d)"),
-            DistanceTraveled, RangeBand));*/
-    return (BaseDamage - RangeBand * (BaseDamage / DamageScaling));
+    int32 AdjustedBaseDamage = BaseDamage;
+    if (DamageScaling) {
+        float RangeThreshold = MaxRange / 3;
+        int32 RangeBand = (int)(DistanceTraveled / RangeThreshold);
+        /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+              FString::Printf(TEXT("Hit at range %f (Rangeband %d)"),
+                  DistanceTraveled, RangeBand));*/
+        AdjustedBaseDamage = (BaseDamage - RangeBand * (BaseDamage / DamageScaling));
+    }
+    if (bIsOverloaded) {
+        AdjustedBaseDamage += (int)(OverloadScaling * (float)AdjustedBaseDamage * (float)((EnergyLevel - MinEnergy) / EnergyStep));
+    }
+    return AdjustedBaseDamage;
+    
 }
