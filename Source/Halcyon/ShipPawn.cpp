@@ -372,10 +372,10 @@ void AShipPawn::UnlockTarget() {
 }
 
 //Allocate damage hitting ship from some angle
-void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
+EHitLayer AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 	//Possibility for random damage returning 0?
 
-	if (!DamageAmt) return;
+	if (!DamageAmt) return EHitLayer::None;
 	
 	//Determine shield facing based on angle of hit
 	int32 ShieldBand = ((int)FromAngle % 360) / 60;
@@ -399,7 +399,7 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 
 	if (ShieldReinforcements[ShieldBand] >= 0) {
 		OnShieldStrengthChanged.Broadcast(ShieldBand, ShieldReinforcements[ShieldBand] + ShieldFacingsCurr[ShieldBand]);
-		return;
+		return EHitLayer::Shield;
 	}
 	else {
 		DamageAmt = -1 * ShieldReinforcements[ShieldBand];
@@ -412,7 +412,7 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 	ShieldFacingsCurr[ShieldBand] -= DamageAmt;
 	if (ShieldFacingsCurr[ShieldBand] >= 0) {
 		OnShieldStrengthChanged.Broadcast(ShieldBand, ShieldFacingsCurr[ShieldBand]);
-		return;
+		return EHitLayer::Shield;
 	}
 	else {
 		DamageAmt = -1 * ShieldFacingsCurr[ShieldBand];
@@ -429,6 +429,7 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 		DestroyShip(0);
 	}
 	OnHullIntegrityChanged.Broadcast(HullIntegrity);
+	return EHitLayer::Hull;
 
 }
 

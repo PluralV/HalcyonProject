@@ -96,6 +96,9 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
     float FireRate = 1.5f; // seconds before next shot
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+    USoundBase* FireSound;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
     float MaxRange = 2500; // distance traveled (in-game cm) before loss
 

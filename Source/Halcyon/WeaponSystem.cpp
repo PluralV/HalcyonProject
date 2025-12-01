@@ -2,9 +2,8 @@
 
 
 #include "WeaponSystem.h"
-
-#include "WeaponSystem.h"
 #include "Kismet/KismetMathLibrary.h"
+#include <Kismet/GameplayStatics.h>
 
 AWeaponSystem::AWeaponSystem()
 {
@@ -250,6 +249,14 @@ void AWeaponSystem::FireWeapon(AActor* Target) {
             {
                 /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
                     FString::Printf(TEXT("Calling FireInDirection")));*/
+                if (FireSound && Muzzle)
+                {
+                    UGameplayStatics::PlaySoundAtLocation(
+                        this,
+                        FireSound,
+                        Muzzle->GetComponentLocation()
+                    );
+                }
                 Projectile->SetupHoming(Target);
                 Projectile->FireInDirection(ProjectedBarrelDir);
                 TimeSinceLastShot = 0.f;

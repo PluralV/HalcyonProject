@@ -67,6 +67,11 @@ protected:
 	
 	int32 EnergyLevel;
 	int32 MaxEnergy;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	USoundBase* ShieldHitAudio;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	USoundBase* HullHitAudio;
+
 
 
 public:	
