@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "WeaponListWidget.h"
 #include "HalcyonSimpleGameMode.h"
+#include "HalcyonMissionGameMode.h"
 #include "ShipStatWidget.h"
 #include "WeaponDetailedInfoWidget.h"
 #include "EnhancedInputComponent.h"
@@ -38,6 +39,11 @@ void AShipPlayerController::BeginPlay() {
 			HCSM->OnLoss.AddDynamic(this, &AShipPlayerController::HandleLoss);
 			HCSM->OnVVin.AddDynamic(this, &AShipPlayerController::HandleWin);
 		}//else if else if....
+		else if (AHalcyonMissionGameMode* HCMM = Cast<AHalcyonMissionGameMode>(CurrentGameMode)) {
+			GameModeIndex = 1;//TODO CHANGE
+			HCMM->OnMissionLoss.AddDynamic(this, &AShipPlayerController::HandleLoss);
+			HCMM->OnMissionWin.AddDynamic(this, &AShipPlayerController::HandleWin);
+		}
 	}
 
 	GetWorldTimerManager().SetTimerForNextTick(this, &AShipPlayerController::InitializeHUD);

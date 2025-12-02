@@ -1,6 +1,7 @@
 #include "ShipAIController.h"
 #include <Kismet/GameplayStatics.h>
 #include "Kismet/KismetMathLibrary.h"
+#include "WeaponSystem.h"
 
 void AShipAIController::BeginPlay()
 {
@@ -40,12 +41,13 @@ void AShipAIController::RotateToward(const FVector& TargetLocation)
 void AShipAIController::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
-
     if (!ControlledShip || !PlayerPawn) return;
 
     FVector PlayerLoc = PlayerPawn->GetActorLocation();
     FVector MyLoc = ControlledShip->GetActorLocation();
     float Distance = FVector::Dist(MyLoc, PlayerLoc);
+    
+    
 
     FVector LookAtPoint;
 
@@ -72,4 +74,18 @@ void AShipAIController::Tick(float DeltaSeconds)
     {
         ControlledShip->AIFireWeapon();
     }
+
+    AllocateEnergy();
+}
+
+void AShipAIController::AllocateEnergy() {    
+    TArray<UChildActorComponent*> WeaponComps = ControlledShip->GetWeaponComponents();
+    for (int i = 0; i < WeaponComps.Num(); i++) {
+        if (AWeaponSystem* TWS = Cast<AWeaponSystem>(WeaponComps[i]->GetChildActor())) {
+            ControlledShip->AllocateWeapon(i, TWS->MinEnergy);
+        }
+    }
+
+    ControlledShip->AllocateMovement(ControlledShip->GetMaxEnergyAvailable());
+
 }

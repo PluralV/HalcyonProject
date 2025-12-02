@@ -399,9 +399,12 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 		//Create cooldown timer before the energy is actually freed to be put in the system
 		FTimerHandle ThrowAwayHandle;
 		//TODO: Add logic to show that this is happening
-		GetWorldTimerManager().SetTimer(ThrowAwayHandle, [this, ReinTotal, ShieldBand]() {
+		TWeakObjectPtr<AShipPawn> WeakThis(this);
+		GetWorldTimerManager().SetTimer(ThrowAwayHandle, [WeakThis, ReinTotal, ShieldBand]() {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Is we releasin the energy?"));
-			ReleaseEnergy(ReinTotal);
+			if (WeakThis.IsValid()) {
+				WeakThis->ReleaseEnergy(ReinTotal);
+			}
 			}, 24.f, false, -1);
 	}
 
@@ -555,10 +558,11 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 	if (PowerDamage) {
 		OnEnergyToBeRestricted.Broadcast(PowerDamage);
 		FTimerHandle ThrowAwayHandle;
+		TWeakObjectPtr<AShipPawn> WeakThis(this);
 		//Release energy from weapon on a timer
-		GetWorldTimerManager().SetTimer(ThrowAwayHandle, [this, PowerDamage]() {
+		GetWorldTimerManager().SetTimer(ThrowAwayHandle, [WeakThis, PowerDamage]() {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Is we releasin the energy?"));
-			EnergyLoss(PowerDamage);
+			if (WeakThis.IsValid()) WeakThis->EnergyLoss(PowerDamage);
 			}, 18.f, false, -1);
 	}
 
