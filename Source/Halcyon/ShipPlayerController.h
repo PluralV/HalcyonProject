@@ -36,8 +36,14 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetWeaponDetails(AWeaponSystem* NewOwningWeapon, int32 ItsIndex);
+
+
+	UFUNCTION(BlueprintCallable)
+	float GetPauseChargePercent();
 protected:
 	void InitializeHUD();
+
+	virtual void Tick(float DeltaTime) override;
 	// Input Actions
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputMappingContext* ControllerMappingContext;
@@ -107,6 +113,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> WeaponDetailsWidget;
 
+	UPROPERTY(EditAnywhere, Category = "HUD")
+	TSubclassOf<UUserWidget> PauseStatusWidget;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Win Widget")
 	TSubclassOf<UUserWidget> WinWidgetClass;
 
@@ -119,6 +128,7 @@ protected:
 	UUserWidget* HUDTarget;
 	UUserWidget* HUDPaused;
 	UUserWidget* HUDWeaponDetails;
+	UUserWidget* HUDPauseStatus;
 	UUserWidget* WinWidget;
 
 	/*Separate functions will exist for allocating energy to systems that are static / default
@@ -147,9 +157,13 @@ protected:
 //	void DisableLook();
 //	void EnableLook();
 private:
+	
+	
+	int32 GameModeIndex = -1;
+	float TimeSinceLastPause = 32.f;
+	const float PauseTimeCooldown = 32.f;
 	bool bIsInHUDMode = false;
 	bool bIsPaused = false;
-	int32 GameModeIndex = -1;
 //	void OnRightMouseAxis(float Value);
 //	bool bIsRightMouseDown = false;
 	UFUNCTION()

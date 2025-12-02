@@ -49,6 +49,17 @@ void AShipPlayerController::BeginPlay() {
 	GetWorldTimerManager().SetTimerForNextTick(this, &AShipPlayerController::InitializeHUD);
 }
 
+
+void AShipPlayerController::Tick(float DeltaTime) {
+	Super::Tick(DeltaTime);
+
+	if (TimeSinceLastPause < PauseTimeCooldown && !bIsPaused) {
+		float TempTime = TimeSinceLastPause + DeltaTime;
+		TimeSinceLastPause = TempTime > PauseTimeCooldown ? PauseTimeCooldown : TempTime;
+	}
+
+}
+
 void AShipPlayerController::InitializeHUD() {
 	//1. ADD MOVEMENT WIDGET
 	if (ShipMovementWidget) {
@@ -113,7 +124,17 @@ void AShipPlayerController::InitializeHUD() {
 			WDIW->AddToViewport();
 		}
 	}
-
+	//7. ADD PAUSE STATUS WIDGET
+	if (PauseStatusWidget) {
+		HUDPauseStatus = CreateWidget<UUserWidget>(this, PauseStatusWidget);
+		if (UShipStatWidget* SSW = Cast<UShipStatWidget>(HUDPauseStatus)) {
+			//TODO: set its characteristics as possible
+			SSW->OwningShip = GetPawn();
+			SSW->OwningController = this;
+			SSW->SetIsFocusable(false);
+			SSW->AddToViewport();
+		}
+	}
 
 	if (WinWidgetClass) {
 		WinWidget = CreateWidget<UUserWidget>(this, WinWidgetClass);
@@ -188,6 +209,9 @@ void AShipPlayerController::HandleLoss() {
 
 void AShipPlayerController::PauseRealtimeGame() {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("PAUSE INPUT RECEIVED"));
+	if (TimeSinceLastPause < PauseTimeCooldown){
+		return;
+	}
 	bIsPaused = !bIsPaused;
 	if (bIsPaused) {
 		// Pausing
@@ -208,6 +232,7 @@ void AShipPlayerController::PauseRealtimeGame() {
 		if (HUDPaused) {
 			HUDPaused->RemoveFromParent();
 		}
+		TimeSinceLastPause = 0.f;
 	}
 	SetPause(bIsPaused, FCanUnpause());
 	
@@ -245,4 +270,8 @@ void AShipPlayerController::ClearWeaponDetails() {
 		WDIW->SetIsFocusable(false);
 		WDIW->SetVisibility(ESlateVisibility::Hidden);
 	}
+}
+
+float AShipPlayerController::GetPauseChargePercent() {
+	return TimeSinceLastPause > PauseTimeCooldown ? 1.0 : TimeSinceLastPause / PauseTimeCooldown;
 }
