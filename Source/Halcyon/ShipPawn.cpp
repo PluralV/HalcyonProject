@@ -34,7 +34,6 @@ AShipPawn::AShipPawn()
 	MovementComponent->YawRate = YawRate;
 	MovementComponent->SpeedConstant = SpeedConstant;
 	MovementComponent->AccelRate = AccelRate;
-
 	// Set up mesh
 	ShipMesh->SetSimulatePhysics(true);
 	ShipMesh->SetCollisionProfileName(TEXT("Vehicle"));

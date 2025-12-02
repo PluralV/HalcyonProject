@@ -7,6 +7,9 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include <Components/SphereComponent.h>
 #include "ShipPawn.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+
 
 #include "Projectile.generated.h"
 
@@ -72,6 +75,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	USoundBase* HullHitAudio;
 
+	UPROPERTY(EditAnywhere, Category = "FX")
+	UNiagaraSystem* ShieldHitEffect;
+
+	UPROPERTY(EditAnywhere, Category = "FX")
+	UNiagaraSystem* ExplosionEffect;
 
 
 public:	

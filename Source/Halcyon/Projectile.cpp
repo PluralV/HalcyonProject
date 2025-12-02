@@ -80,22 +80,34 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
             FVector ImpactLocation = GetActorLocation();
             switch (ShieldOrHull) {
                 case EHitLayer::Shield:
-                    UGameplayStatics::PlaySoundAtLocation(
-                        this,
-                        ShieldHitAudio,
-                        ImpactLocation
-                    );
+                    // spawn effect
+                    if (ShieldHitEffect) {
+                        UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+                            GetWorld(),
+                            ShieldHitEffect,
+                            ImpactLocation,
+                            GetActorRotation()  // or use an impact normal if you have one
+                        );
+                    }
+                    // audio
+                    UGameplayStatics::PlaySoundAtLocation(this, ShieldHitAudio, ImpactLocation);
                     break;
                 case EHitLayer::Hull:
-                    UGameplayStatics::PlaySoundAtLocation(
-                        this,
-                        HullHitAudio,
-                        ImpactLocation
-                    );
+                    // audio
+                    UGameplayStatics::PlaySoundAtLocation(this, HullHitAudio, ImpactLocation);
                     break;
                 default:
                     break;
             }
+            // spawn explosion effect if exists
+            if (ExplosionEffect) {
+            UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+                GetWorld(),
+                ExplosionEffect,
+                ImpactLocation,
+                GetActorRotation()
+            );
+        }
             // Destroy projectile
             this->Destroy();
         }
