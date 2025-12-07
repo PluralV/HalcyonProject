@@ -34,13 +34,14 @@ void AHalcyonMissionGameMode::StartPlay() {
     for (AActor* Actor : FoundActors) {
         if (AObjectivePoint* AOP = Cast<AObjectivePoint>(Actor)) {
             int32 ObjIndex = AOP->GetMyObjIndex();
+            //GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Associating objective %d with point %s!"),ObjIndex, *AOP->GetName()));
             ObjectiveList[ObjIndex].AssociatedObjective = AOP;
             AOP->OnMarkerReached.AddDynamic(this, &AHalcyonMissionGameMode::HandleObjectiveCompletion);
         }
     }
 
     //Register all spawnpoints to their corresponding index in the objective list
-    UGameplayStatics::GetAllActorsOfClass(GetWorld(), AObjectivePoint::StaticClass(), FoundActors);
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), AShipSpawnPoint::StaticClass(), FoundActors);
 
     //For each ShipSpawnPoint, if it is bound to an objective, bind it to that objective (will spawn when that objective is set to active)
     for (AActor* Actor : FoundActors) {
@@ -98,15 +99,13 @@ void AHalcyonMissionGameMode::CheckEnemies() {
 
 
 void AHalcyonMissionGameMode::HandleObjectiveCompletion(int32 ObjectiveIndex) {
-    GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Completing objective %d"),ObjectiveIndex));
     if (ObjectiveIndex != CurrentObjectiveIndex) return;
     OnCurrentObjectiveComplete.Broadcast();
+    if (CurrentObjective.ObjectiveType == 0) CurrentObjective.AssociatedObjective->SetActiveObjective(false);
     CurrentObjectiveIndex++;
-    GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Current objective index is now %d"), CurrentObjectiveIndex));
-    GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("(Objective Count %d)"), ObjectiveCount));
 
     if (CurrentObjectiveIndex >= ObjectiveCount) {
-        GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("You vvon n shid")));
+        //GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("You vvon n shid")));
         OnMissionWin.Broadcast();
     }
     else ActivateCurrentObjective();

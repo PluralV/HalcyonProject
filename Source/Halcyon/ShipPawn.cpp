@@ -268,7 +268,7 @@ void AShipPawn::Throttle(const FInputActionValue& Value) {
 
 void AShipPawn::Decelerate(const FInputActionValue& Value) {
 	const FVector2D MoveValue = Value.Get<FVector2D>();
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Braking"));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Braking"));
 	bool bPressed = Value.Get<bool>();
 	float AppliedThrottle = bPressed ? -1.f : 0.f;
 	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
@@ -322,11 +322,11 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 		ScreenLoc.Y /= ViewY;
 		bool bIsWithinMargin = (ScreenLoc.X >= 0.f && ScreenLoc.X <= 1.0f) && (ScreenLoc.Y >= 0.f && ScreenLoc.Y <= 1.0f);
 
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("bOnScreen: %d, ScreenLoc: %f %f, ergo bIsWithinMargin %d"), bOnCamera, ScreenLoc.X, ScreenLoc.Y, bIsWithinMargin));
+		//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("bOnScreen: %d, ScreenLoc: %f %f, ergo bIsWithinMargin %d"), bOnCamera, ScreenLoc.X, ScreenLoc.Y, bIsWithinMargin));
 		if (bOnCamera && bIsWithinMargin)
 		{
 			float Dist = FVector2D::Distance(ScreenLoc, ScreenCenter);
-			//ADDED LOGIC: Set ClosestEnemy only if the current target is not already pointing at this enemy
+			//ADDED LOGIC: Set ClosestEnemy only if the current target is not already pointing at this enemy and it is less than halfway between center and edge
 			if (Dist < ClosestDist && CurrentTarget != Enemy)
 			{
 				ClosestDist = Dist;

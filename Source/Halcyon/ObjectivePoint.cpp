@@ -42,7 +42,7 @@ AObjectivePoint::AObjectivePoint()
 void AObjectivePoint::BeginPlay()
 {
 	Super::BeginPlay();
-	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("BP: Binding objective interaction to distance %d"),(int32)InteractionDistance));
+	//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("BP: Binding objective interaction to distance %d"),(int32)InteractionDistance));
 	TriggerSphere->SetSphereRadius(InteractionDistance);
 
 	if (MapMarkerClass)
@@ -55,13 +55,13 @@ void AObjectivePoint::BeginPlay()
 void AObjectivePoint::OnInteract(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
 	bool bFromSweep, const FHitResult& SweepResult) {
-	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("OnInteract called!")));
+	//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("OnInteract called!")));
 	if (bWasTriggered || !bIsActive) return;
 
 	if (AShipPawn* ASP = Cast<AShipPawn>(OtherActor)) {
 		if (AShipPlayerController* SPC = Cast<AShipPlayerController>(ASP->Controller)) {
 			bWasTriggered = true;
-			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("INTERACTING WITH OBJECTIVE %d!"), MyObjectiveIndex));
+			//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("INTERACTING WITH OBJECTIVE %d!"), MyObjectiveIndex));
 			OnMarkerReached.Broadcast(MyObjectiveIndex);
 		}
 		return;
