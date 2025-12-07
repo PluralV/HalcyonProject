@@ -40,7 +40,8 @@ void AShipPlayerController::BeginPlay() {
 			HCSM->OnVVin.AddDynamic(this, &AShipPlayerController::HandleWin);
 		}//else if else if....
 		else if (AHalcyonMissionGameMode* HCMM = Cast<AHalcyonMissionGameMode>(CurrentGameMode)) {
-			GameModeIndex = 1;//TODO CHANGE
+			GameModeIndex = 2;//TODO CHANGE
+			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Binding win conditions for le Halcyon Mission")));
 			HCMM->OnMissionLoss.AddDynamic(this, &AShipPlayerController::HandleLoss);
 			HCMM->OnMissionWin.AddDynamic(this, &AShipPlayerController::HandleWin);
 		}
@@ -136,6 +137,17 @@ void AShipPlayerController::InitializeHUD() {
 		}
 	}
 
+	//8. ADD OBJECTIVE WIDGET
+	if (ObjectiveListWidget) {
+		HUDObjectiveList = CreateWidget<UUserWidget>(this, ObjectiveListWidget);
+		if (UShipStatWidget* SSW = Cast<UShipStatWidget>(HUDObjectiveList)) {
+			SSW->OwningShip = GetPawn();
+			SSW->OwningController = this;
+			SSW->SetIsFocusable(false);
+			SSW->AddToViewport();
+		}
+	}
+
 	if (WinWidgetClass) {
 		WinWidget = CreateWidget<UUserWidget>(this, WinWidgetClass);
 		WinWidget->SetVisibility(ESlateVisibility::Hidden);
@@ -189,21 +201,25 @@ void AShipPlayerController::AcquireTargetToHud(AActor* Target) {
 	}
 }
 
+
+//TODO (PREFERABLE): Better integrate the situation with the WinWidget
 void AShipPlayerController::HandleWin() {
 	switch (GameModeIndex) {
 	case 1:
+	case 2:
+	default:
 		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("You vvin :)")));
-		return;
-	default:break;
+		break;
 	}
 }
 
 void AShipPlayerController::HandleLoss() {
 	switch (GameModeIndex) {
 	case 1:
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("You lost :(")));
-		return;
-	default:break;
+	case 2:
+	default:
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("You lost :("))); 
+		break;
 	}
 }
 

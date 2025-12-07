@@ -6,7 +6,6 @@
 void AShipAIController::BeginPlay()
 {
     Super::BeginPlay();
-
     ControlledShip = Cast<AShipPawn>(GetPawn());
     if (!PlayerPawn) {
         PlayerPawn = Cast<AShipPawn>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
@@ -14,9 +13,20 @@ void AShipAIController::BeginPlay()
     else {
         GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("No player pawn set"));
     }
-    ControlledShip->AllocateMovement(ControlledShip->GetMaxEnergyCurr()/2);
     HeightOffset = FMath::RandRange(-1000.f, 1000.f);
+}
 
+void AShipAIController::OnPossess(APawn* InPawn)
+{
+    Super::OnPossess(InPawn);
+    ControlledShip = Cast<AShipPawn>(InPawn);
+    for (UChildActorComponent* WeaponComp : ControlledShip->GetWeaponComponents()) {
+        if (AWeaponSystem* AWS = Cast<AWeaponSystem>(WeaponComp->GetChildActor())) {
+            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Weapon with lesser range found %d"), (int)AWS->MaxRange));
+            if (AWS->MaxRange < FireRange) FireRange = AWS->MaxRange;//Only fire weapons when in range
+        }
+    }
+    GEngine->AddOnScreenDebugMessage(-1,5.0f,FColor::Yellow, FString::Printf(TEXT("AI Controller possessed: %s"), *InPawn->GetName()));
 
 }
 
@@ -72,6 +82,7 @@ void AShipAIController::Tick(float DeltaSeconds)
 
     if (Distance < FireRange)
     {
+        //GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("OPEN FUCKING FIRE!!!!")));
         ControlledShip->AIFireWeapon();
     }
 

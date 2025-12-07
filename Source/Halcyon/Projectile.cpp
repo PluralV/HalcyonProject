@@ -34,10 +34,6 @@ AProjectile::AProjectile()
     Collision->SetCollisionObjectType(ECC_WorldDynamic);
     Collision->SetNotifyRigidBodyCollision(true);
 
-    Collision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-    Collision->SetCollisionObjectType(ECC_WorldDynamic);
-
-    Collision->SetCollisionResponseToAllChannels(ECR_Overlap);
     Collision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
     Collision->SetGenerateOverlapEvents(true);
     Collision->OnComponentBeginOverlap.AddDynamic(this, &AProjectile::OnOverlapBegin);
@@ -50,7 +46,7 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
 {
     /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
         FString::Printf(TEXT("Hit Actor: %s"), OtherActor->GetName()));*/
-    if (OtherActor && OtherActor != this->GetOwner() && OtherActor->IsA(AShipPawn::StaticClass()))
+    if (OtherActor && OtherActor != this->GetOwner())
     {
         /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
             FString::Printf(TEXT("Collision detected:")));*/
@@ -79,6 +75,12 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
             // Destroy projectile
             this->Destroy();
         }
+        //LOGIC: ADD OBSTACLES THAT BLOCK PROJECTILES
+        /*else {
+            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,FString::Printf(TEXT("ACKK!!!!!")));
+            this->Destroy();
+            return;
+        }*/
     }
 }
 
@@ -86,7 +88,6 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
 void AProjectile::BeginPlay()
 {
 	Super::BeginPlay();
-
     if (AWeaponSystem* OwningWeapon = Cast<AWeaponSystem>(Owner)) {
         BaseDamage = OwningWeapon->BaseDamage;
         DamageScaling = OwningWeapon->DamageScaling;

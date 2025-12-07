@@ -8,7 +8,10 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "ShipPlayerController.h"
+#include "ShipAIController.h"
 #include "HalcyonSimpleGameMode.h"
+#include "HalcyonMissionGameMode.h"
+#include "ShipSpawnPoint.h"
 
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -65,7 +68,11 @@ AShipPawn::AShipPawn()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	
+	// Automatically spawn and possess with AI controller
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
+	// Specify which AI controller class to use
+	AIControllerClass = AShipAIController::StaticClass();
 	
 }
 
@@ -99,6 +106,13 @@ void AShipPawn::BeginPlay()
 		MovementComponent->YawRate = YawRate;
 		MovementComponent->SpeedConstant = SpeedConstant;
 		MovementComponent->AccelRate = AccelRate;
+	}
+
+	//If this ship was spawned by a spawn point, set its team to the owner's team
+	if (Owner) {
+		if (AShipSpawnPoint* OSSP = Cast<AShipSpawnPoint>(Owner)) {
+			Team = OSSP->GetTeam();
+		}
 	}
 
 	// Add the Input Mapping Context to the player's input subsystem
@@ -287,7 +301,7 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 	// Get screen center
 	int32 ViewX, ViewY;
 	PC->GetViewportSize(ViewX, ViewY);
-	FVector2D ScreenCenter(ViewX / 2.0f, ViewY / 2.0f);
+	FVector2D ScreenCenter(0.5, 0.5);
 
 	// Find all enemies in world, loop after projecting to screen to find closest enemy to center
 	TArray<AActor*> Enemies;
@@ -300,13 +314,20 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 	{
 		if (!Enemy || Enemy == this) continue;
 
+		//Find out if the target is on the screen
 		FVector2D ScreenLoc;
-		bool bOnScreen = PC->ProjectWorldLocationToScreen(Enemy->GetActorLocation(), ScreenLoc);
+		bool bOnCamera = PC->ProjectWorldLocationToScreen(Enemy->GetActorLocation(), ScreenLoc);//whether it is on front of camera
+		//Normalize the screenloc coordinates to determine if it falls on-screen
+		ScreenLoc.X /= ViewX;
+		ScreenLoc.Y /= ViewY;
+		bool bIsWithinMargin = (ScreenLoc.X >= 0.f && ScreenLoc.X <= 1.0f) && (ScreenLoc.Y >= 0.f && ScreenLoc.Y <= 1.0f);
 
-		if (bOnScreen)
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("bOnScreen: %d, ScreenLoc: %f %f, ergo bIsWithinMargin %d"), bOnCamera, ScreenLoc.X, ScreenLoc.Y, bIsWithinMargin));
+		if (bOnCamera && bIsWithinMargin)
 		{
 			float Dist = FVector2D::Distance(ScreenLoc, ScreenCenter);
-			if (Dist < ClosestDist)
+			//ADDED LOGIC: Set ClosestEnemy only if the current target is not already pointing at this enemy
+			if (Dist < ClosestDist && CurrentTarget != Enemy)
 			{
 				ClosestDist = Dist;
 				ClosestEnemy = Enemy;
@@ -351,7 +372,11 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 }
 
 void AShipPawn::Fire() {
+	
 	if (CurrentTarget) {
+		if (AShipPawn* ShipTarget = Cast<AShipPawn>(CurrentTarget)) {
+			if (ShipTarget->Team == Team) return;
+		}
 		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Still tracking target"));
 		for (UChildActorComponent* WeaponComp : WeaponComponents)
 		{
@@ -359,6 +384,7 @@ void AShipPawn::Fire() {
 				AActor* Child = WeaponComp->GetChildActor();
 				if (AWeaponSystem* Weapon = Cast<AWeaponSystem>(Child))
 				{
+					//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Firing!!!!!"));
 					Weapon->FireWeapon(CurrentTarget);
 				}
 				else {
@@ -791,11 +817,22 @@ void AShipPawn::DestroyShip(int32 CauseOfDeath) {
 		//POTENTIAL TODO: Add "team" flag; check based on team rather than controller type
 		if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
 			//Player death event: Cause a loss state in the gamemode (all Halcyon gamemodes should have one)
-			
+			HSGM->OnLoss.Broadcast();
 		}
 		else {
 			//Enemy death event
 			HSGM->DecrementEnemies();
+		}
+	}
+	else if (AHalcyonMissionGameMode* HMGM = Cast<AHalcyonMissionGameMode>(CurrentGameMode)) {
+		if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
+			//Player death event: Cause a loss state in the gamemode (all Halcyon gamemodes should have one)
+			HMGM->OnMissionLoss.Broadcast();
+		}
+		else {
+			//Enemy death event
+			if (Team == 1)
+				HMGM->DecrementEnemies();
 		}
 	}
 	//else if else if...
@@ -933,7 +970,7 @@ void AShipPawn::SetIsTargeted(bool bIsTargeted) {
 			if (MeshComp)
 			{
 				MeshComp->SetRenderCustomDepth(bIsTargeted);
-				MeshComp->SetCustomDepthStencilValue(bIsTargeted ? 255 : 0);
+				MeshComp->SetCustomDepthStencilValue(bIsTargeted ? (Team == 1 ? 255 : 250) : 0);
 			}
 		}
 		// Set stencil value (255 for red outline, you can use different values for different colors)

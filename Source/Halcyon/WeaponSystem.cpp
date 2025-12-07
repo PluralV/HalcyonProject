@@ -125,7 +125,7 @@ void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
         float WouldBeRot = TurretCurrentRot + (DeltaAngle * Sign);
         /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
             FString::Printf(TEXT("DeltaAngle %f CurrentRot %f"), DeltaAngle, WouldBeRot));*/
-        if (abs(WouldBeRot) <= MaxTurretArc) {
+        if (abs(WouldBeRot) <= MaxTurretArc || MaxTurretArc == 360.f) {
             // Apply rotation
             TurretCurrentRot += (DeltaAngle * Sign);
             FQuat DeltaQuat = FQuat(WorldTurretAxis, FMath::DegreesToRadians(DeltaAngle * Sign));
@@ -229,7 +229,11 @@ void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
 }
 
 void AWeaponSystem::FireWeapon(AActor* Target) {
-    if (!bIsDamaged && bTargetInArc && TimeSinceLastShot >= FireRate) {
+   
+    if (!bIsDamaged && bTargetInArc && TimeSinceLastShot >= FireRate && GetDistanceTo(Target) <= MaxRange) {
+        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+            FString::Printf(TEXT("bIsDamaged %d bTargetInArc %d TimeSinceLastShot %f")
+                , bIsDamaged, bTargetInArc, TimeSinceLastShot));
         //get barrel right again
         FVector PitchPlaneNormal = Barrel->GetRightVector();
         // Project barrel direction onto plane perpendicular to pitch axis
@@ -238,6 +242,7 @@ void AWeaponSystem::FireWeapon(AActor* Target) {
         FVector BarrelForward = (SpawnLocation - BarrelLoc);
         FVector ProjectedBarrelDir = FVector::VectorPlaneProject(BarrelForward, PitchPlaneNormal).GetSafeNormal();
         if (ProjectileClass) {
+            //GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Projectile class valid")));
             FRotator SpawnRotation = Barrel->GetComponentRotation();
             // Spawn projectile
             FActorSpawnParameters SpawnParams;
@@ -246,8 +251,7 @@ void AWeaponSystem::FireWeapon(AActor* Target) {
             AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
             if (Projectile)
             {
-                /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-                    FString::Printf(TEXT("Calling FireInDirection")));*/
+                //GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,FString::Printf(TEXT("Calling FireInDirection")));
                 Projectile->SetupHoming(Target);
                 Projectile->FireInDirection(ProjectedBarrelDir);
                 TimeSinceLastShot = 0.f;

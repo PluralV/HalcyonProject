@@ -116,6 +116,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> PauseStatusWidget;
 
+	UPROPERTY(EditAnywhere, Category = "HUD")
+	TSubclassOf<UUserWidget> ObjectiveListWidget;
+
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Win Widget")
 	TSubclassOf<UUserWidget> WinWidgetClass;
 
@@ -129,6 +133,7 @@ protected:
 	UUserWidget* HUDPaused;
 	UUserWidget* HUDWeaponDetails;
 	UUserWidget* HUDPauseStatus;
+	UUserWidget* HUDObjectiveList;
 	UUserWidget* WinWidget;
 
 	/*Separate functions will exist for allocating energy to systems that are static / default

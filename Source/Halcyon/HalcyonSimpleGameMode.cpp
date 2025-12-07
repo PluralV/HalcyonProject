@@ -46,6 +46,7 @@ void AHalcyonSimpleGameMode::IncrementEnemies() {
 }
 
 void AHalcyonSimpleGameMode::CheckEnemies() {
+    OnEnemyKilled.Broadcast(EnemiesRemaining);
 	if (EnemiesRemaining <= 0) {
 		OnVVin.Broadcast();
 	}

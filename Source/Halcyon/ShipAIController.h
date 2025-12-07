@@ -38,6 +38,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void OnPossess(APawn* InPawn) override;
 	void RotateToward(const FVector& TargetLocation);
 	bool bIsTargeting = false;
 private:

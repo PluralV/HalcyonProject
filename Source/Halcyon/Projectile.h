@@ -41,7 +41,7 @@ protected:
 	USphereComponent* Collision;
 
 	UFUNCTION()
-	int32 GetDamage();//returns damage amt for range
+	virtual int32 GetDamage();//returns damage amt for range
 
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
