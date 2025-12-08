@@ -362,9 +362,17 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 	}
 	else
 	{
+		if (CurrentTarget) {
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Removing old current-target"));
+			if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
+				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Unbinding from old target"));
+				EnemyShip->SetIsTargeted(false);
+				EnemyShip->OnShipDestroyed.RemoveDynamic(this, &AShipPawn::HandleShipDestroyed);
+			}
+		}
 		CurrentTarget = nullptr;
 		if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
-			SPC->AcquireTargetToHud(nullptr);
+			SPC->AcquireTargetToHud(CurrentTarget);
 		}
 		/*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
 			FString::Printf(TEXT("No target found")));*/

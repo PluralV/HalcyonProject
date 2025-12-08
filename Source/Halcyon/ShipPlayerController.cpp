@@ -199,6 +199,13 @@ void AShipPlayerController::AcquireTargetToHud(AActor* Target) {
 			}
 		}
 	}
+	else if (!Target) {
+		if (HUDTarget && ShipTargetWidget) {
+			if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDTarget)) {
+				StatWidget->SetOwningShip(nullptr);
+			}
+		}
+	}
 }
 
 
