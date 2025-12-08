@@ -29,9 +29,7 @@ AShipPawn::AShipPawn()
 	ShipMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShipMesh"));
 	RootComponent = ShipMesh;
 
-	// Create movement component
-	MovementComponent = CreateDefaultSubobject<UShipPawnMovementComponent>(TEXT("MovementComponent"));
-	MovementComponent->SetUpdatedComponent(ShipMesh);
+	
 
 
 	// Set up mesh
@@ -74,6 +72,9 @@ AShipPawn::AShipPawn()
 	// Specify which AI controller class to use
 	AIControllerClass = AShipAIController::StaticClass();
 	
+	// Create movement component
+	MovementComponent = CreateDefaultSubobject<UShipPawnMovementComponent>(TEXT("MovementComponent"));
+	MovementComponent->SetUpdatedComponent(ShipMesh);
 }
 
 // Called when the game starts or when spawned
