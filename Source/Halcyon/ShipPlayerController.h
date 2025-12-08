@@ -36,7 +36,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetWeaponDetails(AWeaponSystem* NewOwningWeapon, int32 ItsIndex);
-
+	
+	UFUNCTION(BlueprintCallable)
+	bool GetPauseStatus();
 
 	UFUNCTION(BlueprintCallable)
 	float GetPauseChargePercent();

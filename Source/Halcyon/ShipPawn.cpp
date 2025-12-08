@@ -381,7 +381,9 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 }
 
 void AShipPawn::Fire() {
-	
+	if (AShipPlayerController* ASPC = Cast<AShipPlayerController>(Controller)) {
+		if (ASPC->GetPauseStatus()) return;
+	}
 	if (CurrentTarget) {
 		if (AShipPawn* ShipTarget = Cast<AShipPawn>(CurrentTarget)) {
 			if (ShipTarget->Team == Team) return;

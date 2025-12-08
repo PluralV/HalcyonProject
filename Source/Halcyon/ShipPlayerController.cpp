@@ -298,3 +298,7 @@ void AShipPlayerController::ClearWeaponDetails() {
 float AShipPlayerController::GetPauseChargePercent() {
 	return TimeSinceLastPause > PauseTimeCooldown ? 1.0 : TimeSinceLastPause / PauseTimeCooldown;
 }
+
+bool AShipPlayerController::GetPauseStatus() {
+	return bIsPaused;
+}
