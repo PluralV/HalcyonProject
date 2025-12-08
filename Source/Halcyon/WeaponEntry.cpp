@@ -18,7 +18,7 @@ void UWeaponEntry::NativeConstruct() {
 			if (LblWeaponArc) LblWeaponArc->SetText(OwningWeapon->WeaponArc);
 			if (LblStatus) LblStatus->SetText(FText::FromString("INACTIVE"));
 			if (EnergyLevelCurr) EnergyLevelCurr->SetText(FText::FromString(FString::Printf(TEXT("%d"), OwningWeapon->AllocatedEnergy)));
-			
+			OwningWeapon->OnEnergyChangedExternal.AddDynamic(this, &UWeaponEntry::OnEnergyChanged);
 	}
 	if (OwningShip) {
 		if (AShipPawn* OSP = Cast<AShipPawn>(OwningShip)) OSP->OnWeaponDamaged.AddDynamic(this, &UWeaponEntry::RegisterDamage);

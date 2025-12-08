@@ -8,15 +8,18 @@
 #include "WeaponSystem.generated.h"
 
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEnergyChangedExternal);
 
-
-UCLASS()
+UCLASS(Blueprintable, BlueprintType)
 class HALCYON_API AWeaponSystem : public AActor
 {
     GENERATED_BODY()
 
 public:
     AWeaponSystem();
+
+    UPROPERTY(BlueprintAssignable, Category="Events")
+    FOnEnergyChangedExternal OnEnergyChangedExternal;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
     FText WeaponName;

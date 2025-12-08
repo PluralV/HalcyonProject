@@ -699,6 +699,7 @@ void AShipPawn::EnergyLoss(int32 Amt) {
 		}
 
 		if (RemainingDamage) {
+
 			//ITERATE OVER ALL WEAPONS TO STRIP ENERGY
 			for (int i = 0; i < WeaponComponents.Num(); i++) {
 				//
@@ -800,6 +801,7 @@ int32 AShipPawn::FreeWeapon(int32 Index, int32 Amt) {
 	AActor* TargetWeapon = WeaponComponents[Index]->GetChildActor();
 	if (AWeaponSystem* TW = Cast<AWeaponSystem>(TargetWeapon)) {
 		int32 AmountFreed = TW->FreeEnergy(Amt);
+		TW->OnEnergyChangedExternal.Broadcast();
 		if (TotalEnergyAvailable + AmountFreed > TotalEnergyCurr) {
 			AmountFreed = TotalEnergyCurr - TotalEnergyAvailable;
 			if (!AmountFreed) return 0;
