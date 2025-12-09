@@ -9,6 +9,8 @@
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEnergyChangedExternal);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFireAway);
+
 
 UCLASS(Blueprintable, BlueprintType)
 class HALCYON_API AWeaponSystem : public AActor
@@ -20,6 +22,9 @@ public:
 
     UPROPERTY(BlueprintAssignable, Category="Events")
     FOnEnergyChangedExternal OnEnergyChangedExternal;
+
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+    FOnFireAway OnFireAway;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
     FText WeaponName;
@@ -132,7 +137,16 @@ public:
     int32 team = -1;
     int32 ControlGroup = 0;
     float TimeSinceLastShot = 0.f;
+private:
+    //Amount of time it takes after firing before energy can be freed from the weapon (naturally)
+    const float FireEnergyLock = 8.0f;
+public:
+    //repreesents whether weapon has taken a hit
     bool bIsDamaged = false;
+    //represents whether current target is in arc or not
     bool bTargetInArc = false;
+    //If this is true, the weapon has not cooled down yet (i.e. less than FireRate time has passed since last shot)
     bool bIsArming = false;
+    //If this is true, further energy cannot be allocated/freed to this weapon
+    bool bIsFiring = false;
 };

@@ -84,8 +84,17 @@ protected:
 	UFUNCTION(BlueprintCallable, Category="Events")
 	void RegisterDamage(int32 MyIndex);
 
+	//Changes button background color to StatusColor
 	void AdjustButtonBackgroundColor(FLinearColor StatusColor);
+	//Changes button background color to be a darker version of what it is currently
+	void DarkenButtonBackgroundColor();
+	//Changes button background color to be a lighter version of what it is currently (inverts DarkenButtonBackgroundColor)
+	void LightenButtonBackgroundColor();
 private:
+	//Represents whether weapon has passed cooldown period or not
 	bool bIsReady = false;
+	//Represents whether weapon has been damaged or not
 	bool bIsDamaged = false;
+	//Whether weapon is "currently firing" (thus locking down ability to allocate energy)
+	bool bIsFiringSet = false;
 };
