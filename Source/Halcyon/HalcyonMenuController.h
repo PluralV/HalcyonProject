@@ -29,6 +29,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUserWidget> LevelSelectScreenWidgetClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUserWidget> MissionDescWidgetClass;
+
 	UPROPERTY()
 	UUserWidget* ScreenWidget;
 

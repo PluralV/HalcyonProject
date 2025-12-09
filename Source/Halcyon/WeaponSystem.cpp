@@ -50,10 +50,15 @@ void AWeaponSystem::Tick(float DeltaTime)
             if (TimeSinceLastShot >= FireRate) bIsArming = false;
         }
     }
+    //used to prevent weapon from being immediately freed after shooting
+    if (bIsFiring) {
+        if (TimeSinceLastShot >= 8.0f) bIsFiring = false;
+    }
 }
 
 //Attempts to allocate "amt" energy to this weapon. Returns the actual amount of energy allocated.
 int32 AWeaponSystem::AllocateEnergy(int32 amt) {
+    if (bIsFiring) return 0;
     int32 GapToMax = MaxEnergy - AllocatedEnergy;
     if (amt <= GapToMax) {
         AllocatedEnergy += amt;
@@ -66,6 +71,7 @@ int32 AWeaponSystem::AllocateEnergy(int32 amt) {
 }
 
 int32 AWeaponSystem::FreeEnergy(int32 amt) {
+    if (bIsFiring) return 0;
     if (AllocatedEnergy - amt >= 0) {
         AllocatedEnergy -= amt;
         return amt;
@@ -79,8 +85,8 @@ int32 AWeaponSystem::FreeEnergy(int32 amt) {
 
 //Attempts to damage this weapon system. Returns true if it is not already damaged and false if it is.
 bool AWeaponSystem::CauseDamage() {
-    if (!bIsDamaged) {
-        bIsDamaged = true;
+    bIsDamaged = true;
+    if (AllocatedEnergy) {
         return true;
     }
     return false;
@@ -126,7 +132,7 @@ void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
         float WouldBeRot = TurretCurrentRot + (DeltaAngle * Sign);
         /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
             FString::Printf(TEXT("DeltaAngle %f CurrentRot %f"), DeltaAngle, WouldBeRot));*/
-        if (abs(WouldBeRot) <= MaxTurretArc) {
+        if (abs(WouldBeRot) <= MaxTurretArc || MaxTurretArc == 360.f) {
             // Apply rotation
             TurretCurrentRot += (DeltaAngle * Sign);
             FQuat DeltaQuat = FQuat(WorldTurretAxis, FMath::DegreesToRadians(DeltaAngle * Sign));
@@ -230,7 +236,9 @@ void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
 }
 
 void AWeaponSystem::FireWeapon(AActor* Target) {
-    if (!bIsDamaged && bTargetInArc && TimeSinceLastShot >= FireRate) {
+    float MaxRangeCheck = (AllocatedEnergy > MinEnergy) ? MaxRangeOverload : MaxRange;
+    if (!bIsDamaged && bTargetInArc && TimeSinceLastShot >= FireRate && GetDistanceTo(Target) <= MaxRangeCheck) {
+        //GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("bIsDamaged %d bTargetInArc %d TimeSinceLastShot %f"), bIsDamaged, bTargetInArc, TimeSinceLastShot));
         //get barrel right again
         FVector PitchPlaneNormal = Barrel->GetRightVector();
         // Project barrel direction onto plane perpendicular to pitch axis
@@ -239,6 +247,7 @@ void AWeaponSystem::FireWeapon(AActor* Target) {
         FVector BarrelForward = (SpawnLocation - BarrelLoc);
         FVector ProjectedBarrelDir = FVector::VectorPlaneProject(BarrelForward, PitchPlaneNormal).GetSafeNormal();
         if (ProjectileClass) {
+            //GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Projectile class valid")));
             FRotator SpawnRotation = Barrel->GetComponentRotation();
             // Spawn projectile
             FActorSpawnParameters SpawnParams;
@@ -262,6 +271,8 @@ void AWeaponSystem::FireWeapon(AActor* Target) {
                 TimeSinceLastShot = 0.f;
                 bIsArming = true;
             }
+            bIsFiring = true;
+            OnFireAway.Broadcast();
         }
     }
     /*else {

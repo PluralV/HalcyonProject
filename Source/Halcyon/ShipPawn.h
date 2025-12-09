@@ -42,11 +42,20 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementEnergyChanged, int32, Amt
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTotalEnergyChanged, int32, Amt);
 /*Used when hull integrity changes. Amt is the new total hull integrity.*/
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHullIntegrityChanged, int32, Amt);
+/*Used when left engine changes. Amt is the new total hull integrity.*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLeftEngChanged, int32, Amt);
+/*Used when right engine changes. Amt is the new total hull integrity.*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRightEngChanged, int32, Amt);
+/*Used when center engine changes. Amt is the new total hull integrity.*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCenterEngChanged, int32, Amt);
+/*Used when reactor changes. Amt is the new total hull integrity.*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnReactorChanged, int32, Amt);
 /*Used when a ship is destroyed. CauseOfDeath denotes the reason the ship was destroyed to be switched for animation/HUD purposes:
 * 0 - Hull integrity exhausted
 * DestroyedShip is a copy of the ship pointer used to determine things like whether the ship was targeted or whether it was an enemy.*/
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnShipDestroyed, int32, CauseOfDeath, AShipPawn*, DestroyedShip);
-
+/*Used when this weapon is damaged by an attack. Index stores its index within the array of weapons, used to reference HUD elements.*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponDamaged, int32, Index);
 
 
 
@@ -80,6 +89,20 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnHullIntegrityChanged OnHullIntegrityChanged;
 
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnLeftEngChanged OnLeftEngChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnRightEngChanged OnRightEngChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnCenterEngChanged OnCenterEngChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnReactorChanged OnReactorChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnWeaponDamaged OnWeaponDamaged;
 
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnShipDestroyed OnShipDestroyed;
@@ -170,14 +193,14 @@ protected:
 	//Ship base stats
 	//Hull integrity
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base System Stats")
-	int32 HullIntegrity = 32;
+	int32 HullIntegrity;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
-	int32 MaxHullIntegrity = 32;
+	int32 MaxHullIntegrity;
 
 	//Shield values
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Base System Stats")
-	TArray<int32> ShieldFacings = { 30,24,18,18,18,24 };
+	TArray<int32> ShieldFacings = { 0,0,0,0,0,0 };
 	//ShieldReinforcements tracks any extra power put into a given shield and should be reduced FIRST by any external damage
 	UPROPERTY(BlueprintReadOnly)
 	TArray<int32> ShieldReinforcements = { 0,0,0,0,0,0 };
@@ -186,27 +209,27 @@ protected:
 	TArray<int32> ShieldFacingsCurr = {0,0,0,0,0,0};
 	
 	//Hull damage: Internal damage that does nothing
-	int32 CenterHull = 0;
+	int32 CenterHull;
 	int32 CenterHullCurr;
-	int32 ForwardHull = 8;
+	int32 ForwardHull;
 	int32 ForwardHullCurr;
-	int32 AftHull = 12;
+	int32 AftHull;
 	int32 AftHullCurr;
 	
 	//Energy stats: The total amount of energy generated is the total integer sum of these
 	//Curr values indicate the current number remaining (initialised to the same amount as the base)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
-	int32 LeftEng = 16;
-	int32 LeftEngCurr = 0;
+	int32 LeftEng;
+	int32 LeftEngCurr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
-	int32 RightEng = 16;
-	int32 RightEngCurr = 0;
+	int32 RightEng;
+	int32 RightEngCurr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
-	int32 CenterEng = 0;
-	int32 CenterEngCurr = 0;
+	int32 CenterEng;
+	int32 CenterEngCurr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
-	int32 PowerReactor = 4;
-	int32 PowerReactorCurr = 0;
+	int32 PowerReactor;
+	int32 PowerReactorCurr;
 
 	//TotalEnergy: maximum possible energy based on above stats
 	//TotalEnergyCurr: current maximum possible energy based on above stats/damage
@@ -220,21 +243,20 @@ protected:
 
 	//Engine settings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
-	float SpeedLimit = 1750.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
-	float CurrentThrottle = 0.f;
+	float SpeedLimit;
+	float CurrentThrottle;
 
 	//Maneuverability
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
-	float PitchRate = 20.f;
+	float PitchRate;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
-	float YawRate = 20.f;
+	float YawRate;
 	//Acceleration rate, how fast velocity increases up to current maximum
-	UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
-	float AccelRate = 20.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
+	float AccelRate;
 	//Top speed, multiplied by amount of energy allocated to movement to get the maximum velocity (magnitude)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
-	float SpeedConstant = 20.f;
+	float SpeedConstant;
 	
 	
 
@@ -259,13 +281,16 @@ public:
 	void FreeReinforceShield(int32 Amt, int32 Index);
 
 	UFUNCTION(BlueprintCallable)
-	void ReleaseEnergy(int32 Amt);
+	void ReleaseEnergy(int32 Amt);//When energy is released from a system back into the available pool due to freeing
+
+	UFUNCTION(BlueprintCallable)
+	void EnergyLoss(int32 Amt);//When energy is taken away from the available pool due to damage to power systems
 
 	UFUNCTION(BlueprintCallable)
 	void FreeMovement(int32 Amt);
 
 	UFUNCTION(BlueprintCallable)
-	int32 FreeWeapon(int32 Index, int32 Amt);
+	int32 FreeWeapon(int32 Index, int32 Amt, bool bIsRestricting=false);
 
 	UFUNCTION(BlueprintCallable)
 	EHitLayer AllocateDamage(float FromAngle, int32 DamageAmt);
