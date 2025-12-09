@@ -48,15 +48,14 @@ void UWeaponDetailedInfoWidget::OnNewOwningWeapon() {
 			}
 		}
 		if (LblWeaponDamageAndRange) {
-			if (!OwningWeapon->DamageScaling) {
+			if (OwningWeapon->MaxRange == OwningWeapon->MaxRangeOverload) {
 				LblWeaponDamageAndRange->SetText(FText::FromString(FString::Printf(TEXT("Base Damage: %d | Range: %dm"), OwningWeapon->BaseDamage, (int)OwningWeapon->MaxRange)));
 			}
 			else {
-				LblWeaponDamageAndRange->SetText(FText::FromString(FString::Printf(TEXT("Base Damage: %d | Range: %dm"), 
+				LblWeaponDamageAndRange->SetText(FText::FromString(FString::Printf(TEXT("Base Damage: %d | Range: %dm (STD) %dm (OVERLOAD)"), 
 					OwningWeapon->BaseDamage,
 					(int)OwningWeapon->MaxRange, 
-					(int32)((1.f/(float)OwningWeapon->DamageScaling)*100.f),
-					(int32)(OwningWeapon->MaxRange/3.f)
+					(int)OwningWeapon->MaxRangeOverload
 				)));
 			}
 			

@@ -49,10 +49,15 @@ void AWeaponSystem::Tick(float DeltaTime)
             if (TimeSinceLastShot >= FireRate) bIsArming = false;
         }
     }
+    //used to prevent weapon from being immediately freed after shooting
+    if (bIsFiring) {
+        if (TimeSinceLastShot >= 8.0f) bIsFiring = false;
+    }
 }
 
 //Attempts to allocate "amt" energy to this weapon. Returns the actual amount of energy allocated.
 int32 AWeaponSystem::AllocateEnergy(int32 amt) {
+    if (bIsFiring) return 0;
     int32 GapToMax = MaxEnergy - AllocatedEnergy;
     if (amt <= GapToMax) {
         AllocatedEnergy += amt;
@@ -65,6 +70,7 @@ int32 AWeaponSystem::AllocateEnergy(int32 amt) {
 }
 
 int32 AWeaponSystem::FreeEnergy(int32 amt) {
+    if (bIsFiring) return 0;
     if (AllocatedEnergy - amt >= 0) {
         AllocatedEnergy -= amt;
         return amt;
@@ -255,6 +261,8 @@ void AWeaponSystem::FireWeapon(AActor* Target) {
                 TimeSinceLastShot = 0.f;
                 bIsArming = true;
             }
+            bIsFiring = true;
+            OnFireAway.Broadcast();
         }
     }
     /*else {

@@ -727,16 +727,20 @@ void AShipPawn::EnergyLoss(int32 Amt) {
 						/*GEngine->AddOnScreenDebugMessage(-1, 12.0f, FColor::Red, FString::Printf(
 							TEXT("Remaining Damage Differential: %d"
 							), RemainingDamage));*/
+						WS->bIsFiring = false;
 						if (RemainingDamage > 0) {
 							FreeWeapon(i, WS->AllocatedEnergy,true);
+							WS->bIsFiring = true;
 							continue;
 						}
 						else if (RemainingDamage == 0) {
 							FreeWeapon(i, WS->AllocatedEnergy,true);
+							WS->bIsFiring = true;
 							break;
 						}
 						else {
 							FreeWeapon(i, WS->AllocatedEnergy + RemainingDamage,true);
+							WS->bIsFiring = true;
 							break;
 						}
 						//if (!RemainingDamage) break;

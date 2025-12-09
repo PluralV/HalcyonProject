@@ -28,7 +28,7 @@ void UWeaponEntry::NativeConstruct() {
 void UWeaponEntry::OnAllocButtonClicked() {
 	//Cycle energy - attempt to immediately allocate to minimum level
 	if (AShipPawn* OSP = Cast<AShipPawn>(OwningShip)) {
-		if (OwningWeapon && !bIsDamaged) {
+		if (OwningWeapon && !bIsDamaged && !OwningWeapon->bIsFiring) {
 			int32 AmountAlloced = 0;
 			if (OwningWeapon->AllocatedEnergy < OwningWeapon->MinEnergy) {//if less than minimum, allocate entirely up to min
 				//ALLOCATE THIS AMOUNT OF ENERGY TO WEAPON W/SHIP PAWN
@@ -133,15 +133,14 @@ void UWeaponEntry::OnEnergyChanged() {
 		}
 
 		//Update the button color to match status
-		if (AllocButton) {
-			AdjustButtonBackgroundColor(StatusColor);
-		}
+		AdjustButtonBackgroundColor(StatusColor);
 	}
 	
 }
 
 void UWeaponEntry::NativeTick(const FGeometry& MyGeometry, float InDeltaTime) {
 	Super::NativeTick(MyGeometry, InDeltaTime);
+	//Determine color/look of entry main panel and cooldown bars of various kinds
 	if (OwningWeapon && !bIsDamaged) {
 		if (OwningWeapon->AllocatedEnergy >= OwningWeapon->MinEnergy) {
 			if (OwningWeapon->bIsArming) {
@@ -165,7 +164,47 @@ void UWeaponEntry::NativeTick(const FGeometry& MyGeometry, float InDeltaTime) {
 					LblCooldownStatus->SetText(FText::FromString("ARMED"));
 				}
 			}
+			if (OwningWeapon->bIsFiring) {
+				if (!bIsFiringSet) {
+					bIsFiringSet = true;
+					DarkenButtonBackgroundColor();
+				}
+				LblCooldownStatus->SetText(FText::FromString("FIRING"));
+				
+			}
+			else {
+				if (bIsFiringSet) {
+					bIsFiringSet = false;
+					LightenButtonBackgroundColor();
+				}
+			}
 		}
+	}
+}
+
+void UWeaponEntry::DarkenButtonBackgroundColor() {
+	if (AllocButton) {
+		// Get current button style
+		FButtonStyle ButtonStyle = AllocButton->GetStyle();
+
+		ButtonStyle.Normal.TintColor = FSlateColor(ButtonStyle.Normal.TintColor.GetSpecifiedColor() * 0.75f);
+		ButtonStyle.Hovered.TintColor = FSlateColor(ButtonStyle.Hovered.TintColor.GetSpecifiedColor() * 0.75f);
+		ButtonStyle.Pressed.TintColor = FSlateColor(ButtonStyle.Pressed.TintColor.GetSpecifiedColor() * 0.75f);
+
+		AllocButton->SetStyle(ButtonStyle);
+	}
+}
+
+void UWeaponEntry::LightenButtonBackgroundColor() {
+	if (AllocButton) {
+		// Get current button style
+		FButtonStyle ButtonStyle = AllocButton->GetStyle();
+
+		ButtonStyle.Normal.TintColor = FSlateColor(ButtonStyle.Normal.TintColor.GetSpecifiedColor() / 0.75f);
+		ButtonStyle.Hovered.TintColor = FSlateColor(ButtonStyle.Hovered.TintColor.GetSpecifiedColor() / 0.75f);
+		ButtonStyle.Pressed.TintColor = FSlateColor(ButtonStyle.Pressed.TintColor.GetSpecifiedColor() / 0.75f);
+
+		AllocButton->SetStyle(ButtonStyle);
 	}
 }
 
@@ -174,14 +213,13 @@ void UWeaponEntry::AdjustButtonBackgroundColor(FLinearColor StatusColor) {
 		// Get the current button style
 		FButtonStyle ButtonStyle = AllocButton->GetStyle();
 
-		// Create a new slate brush with the color
+		//Change the normal, hovered, pressed colors to statuscolor (brighter on hover, darker on pressed)
 		ButtonStyle.Normal.TintColor = FSlateColor(StatusColor);
 
-		ButtonStyle.Hovered.TintColor = FSlateColor(StatusColor * 1.2f); // Slightly brighter on hover
+		ButtonStyle.Hovered.TintColor = FSlateColor(StatusColor * 1.2f);
 
-		ButtonStyle.Pressed.TintColor = FSlateColor(StatusColor * 0.8f); // Slightly darker when pressed
+		ButtonStyle.Pressed.TintColor = FSlateColor(StatusColor * 0.8f);
 
-		// Apply the style to the button
 		AllocButton->SetStyle(ButtonStyle);
 	}
 }
