@@ -662,13 +662,19 @@ void AShipPawn::ReleaseEnergy(int32 Amt) {
 }
 
 void AShipPawn::EnergyLoss(int32 Amt) {
+	/*GEngine->AddOnScreenDebugMessage(-1, 12.0f, FColor::Yellow, FString::Printf(
+		TEXT("AMOUNT: %d; TOTAL CURR: %d; TOTAL AVAILABLE: %d"
+		),Amt, TotalEnergyCurr,TotalEnergyAvailable));*/
 	TotalEnergyCurr -= Amt;
 	TotalEnergyAvailable -= Amt;
+	OnTotalEnergyChanged.Broadcast(TotalEnergyCurr);
 	
 	if (TotalEnergyAvailable < 0) {
 		int32 RemainingDamage = -1 * TotalEnergyAvailable;
 		TotalEnergyAvailable = 0;
-
+		/*GEngine->AddOnScreenDebugMessage(-1, 12.0f, FColor::Yellow, FString::Printf(
+			TEXT("ATTEMPTING SHIELD REINFORCEMENT STRIP (AMOUNT: %d; TOTAL CURR: %d; TOTAL AVAILABLE: %d)"
+			), RemainingDamage, TotalEnergyCurr, TotalEnergyAvailable));*/
 		//FIRST: Strip power from shield reinforcements
 		for (int i = 5; i >= 0; i--) {//Take off from all shields
 			if (int32 ReinEnergy = ShieldReinforcements[i]) {
@@ -682,6 +688,10 @@ void AShipPawn::EnergyLoss(int32 Amt) {
 				if (ReinEnergy) break;
 			}
 		}
+
+		/*GEngine->AddOnScreenDebugMessage(-1, 12.0f, FColor::Yellow, FString::Printf(
+			TEXT("ATTEMPTING MOV STRIP (AMOUNT: %d; TOTAL CURR: %d; TOTAL AVAILABLE: %d)"
+			), RemainingDamage, TotalEnergyCurr, TotalEnergyAvailable));*/
 
 		if (RemainingDamage && MovementEnergy) {
 			MovementEnergy -= RemainingDamage;
@@ -698,6 +708,10 @@ void AShipPawn::EnergyLoss(int32 Amt) {
 			}
 		}
 
+		/*GEngine->AddOnScreenDebugMessage(-1, 12.0f, FColor::Yellow, FString::Printf(
+			TEXT("ATTEMPTING WEAPON STRIP (AMOUNT: %d; TOTAL CURR: %d; TOTAL AVAILABLE: %d)"
+			), RemainingDamage, TotalEnergyCurr, TotalEnergyAvailable));*/
+
 		if (RemainingDamage) {
 
 			//ITERATE OVER ALL WEAPONS TO STRIP ENERGY
@@ -706,12 +720,26 @@ void AShipPawn::EnergyLoss(int32 Amt) {
 				if (AWeaponSystem* WS = Cast<AWeaponSystem>(WeaponComponents[i]->GetChildActor())) {
 					//if the weapon has energy in it, wipe it out
 					if (WS->AllocatedEnergy) {
+						/*GEngine->AddOnScreenDebugMessage(-1, 12.0f, FColor::Red, FString::Printf(
+							TEXT("Allocating Remaining Damage %d to Weapon %d (Allocated Energy %d)"
+							), RemainingDamage, i, WS->AllocatedEnergy));*/
 						RemainingDamage -= WS->AllocatedEnergy;
-						if (RemainingDamage >= 0) FreeWeapon(i, WS->AllocatedEnergy);
-						else {
-							FreeWeapon(i, WS->AllocatedEnergy + RemainingDamage);
+						/*GEngine->AddOnScreenDebugMessage(-1, 12.0f, FColor::Red, FString::Printf(
+							TEXT("Remaining Damage Differential: %d"
+							), RemainingDamage));*/
+						if (RemainingDamage > 0) {
+							FreeWeapon(i, WS->AllocatedEnergy,true);
+							continue;
 						}
-						if (!RemainingDamage) break;
+						else if (RemainingDamage == 0) {
+							FreeWeapon(i, WS->AllocatedEnergy,true);
+							break;
+						}
+						else {
+							FreeWeapon(i, WS->AllocatedEnergy + RemainingDamage,true);
+							break;
+						}
+						//if (!RemainingDamage) break;
 					}
 				}
 			}
@@ -724,7 +752,6 @@ void AShipPawn::EnergyLoss(int32 Amt) {
 
 	//Broadcast new energy
 	OnEnergyToBeRestricted.Broadcast(-1 * Amt);
-	OnTotalEnergyChanged.Broadcast(TotalEnergyCurr);
 	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 }
 
@@ -797,16 +824,19 @@ int32 AShipPawn::AllocateWeapon(int32 Index, int32 Amt) {
 	return 0;
 }
 
-int32 AShipPawn::FreeWeapon(int32 Index, int32 Amt) {
+//Returns the amount of energy freed
+int32 AShipPawn::FreeWeapon(int32 Index, int32 Amt, bool bIsRestricting) {
 	AActor* TargetWeapon = WeaponComponents[Index]->GetChildActor();
 	if (AWeaponSystem* TW = Cast<AWeaponSystem>(TargetWeapon)) {
 		int32 AmountFreed = TW->FreeEnergy(Amt);
+		//Broadcasts so the HUD picks up on the free action
 		TW->OnEnergyChangedExternal.Broadcast();
+		//If the free would cause Available energy to be greater than current max energy, set AmountFreed to the difference
 		if (TotalEnergyAvailable + AmountFreed > TotalEnergyCurr) {
 			AmountFreed = TotalEnergyCurr - TotalEnergyAvailable;
 			if (!AmountFreed) return 0;
 		}
-		TotalEnergyAvailable += AmountFreed;
+		if (!bIsRestricting) TotalEnergyAvailable += AmountFreed;
 		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 		return AmountFreed;
 	}

@@ -229,8 +229,8 @@ void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
 }
 
 void AWeaponSystem::FireWeapon(AActor* Target) {
-   
-    if (!bIsDamaged && bTargetInArc && TimeSinceLastShot >= FireRate && GetDistanceTo(Target) <= MaxRange) {
+    float MaxRangeCheck = (AllocatedEnergy > MinEnergy) ? MaxRangeOverload : MaxRange;
+    if (!bIsDamaged && bTargetInArc && TimeSinceLastShot >= FireRate && GetDistanceTo(Target) <= MaxRangeCheck) {
         //GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("bIsDamaged %d bTargetInArc %d TimeSinceLastShot %f"), bIsDamaged, bTargetInArc, TimeSinceLastShot));
         //get barrel right again
         FVector PitchPlaneNormal = Barrel->GetRightVector();

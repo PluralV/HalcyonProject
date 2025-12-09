@@ -42,6 +42,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	float GetPauseChargePercent();
+
+	UFUNCTION(BlueprintCallable)
+	void PauseRealtimeGame();
+
 protected:
 	void InitializeHUD();
 
@@ -91,6 +95,7 @@ protected:
 		- Buttons: Allocate/free energy from each weapon
 		- Key binds: Group weapons so they shoot together (TODO, future feature)
 	*/
+
 	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipMovementWidget;
 
@@ -111,6 +116,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> PauseWidget;
+
+	UPROPERTY(EditAnywhere, Category = "HUD")
+	TSubclassOf<UUserWidget> EAWidget;
 
 	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> WeaponDetailsWidget;
@@ -151,7 +159,7 @@ protected:
 	
 	void ToggleHUDInteraction();
 
-	void PauseRealtimeGame();
+	
 
 	
 
@@ -171,6 +179,7 @@ private:
 	const float PauseTimeCooldown = 32.f;
 	bool bIsInHUDMode = false;
 	bool bIsPaused = false;
+	bool bIsOnFirstPause = true;
 //	void OnRightMouseAxis(float Value);
 //	bool bIsRightMouseDown = false;
 	UFUNCTION()

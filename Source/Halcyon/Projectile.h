@@ -50,19 +50,21 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	class UProjectileMovementComponent* Movement;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile Stats")
 	float MaxRange = 3600.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile Stats")
+	float MaxRangeOverload = 3600.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile Stats")
 	float InitialSpeed = 2000.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile Stats")
 	float MaxSpeed = 2000.f;
 
 	float DistanceTraveled = 0.0;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile Stats")
 	int32 BaseDamage = 0;//Maximum damage
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile Stats")
 	int32 DamageScaling = 0;//What fraction of the original damage (rounded) should be lost at each range band
 	
 	int32 MinEnergy;

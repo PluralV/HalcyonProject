@@ -44,7 +44,7 @@ void UWeaponDetailedInfoWidget::OnNewOwningWeapon() {
 			}
 			else {
 				LblEnergyCost->SetText(FText::FromString(FString::Printf(TEXT("%d energy to activate"), OwningWeapon->MinEnergy)));
-				LblDamageScale->SetVisibility(ESlateVisibility::Hidden);
+				LblDamageScale->SetVisibility(ESlateVisibility::Collapsed);
 			}
 		}
 		if (LblWeaponDamageAndRange) {
@@ -65,7 +65,7 @@ void UWeaponDetailedInfoWidget::OnNewOwningWeapon() {
 		if (LblWeaponRangeScale) {
 			if (!OwningWeapon->DamageScaling) {
 				LblWeaponRangeScale->SetText(FText::FromString(FString::Printf(TEXT(""))));
-				LblWeaponRangeScale->SetVisibility(ESlateVisibility::Hidden);
+				LblWeaponRangeScale->SetVisibility(ESlateVisibility::Collapsed);
 			}
 			else {
 				LblWeaponRangeScale->SetText(FText::FromString(FString::Printf(TEXT("-%d%% damage per %dm range"),

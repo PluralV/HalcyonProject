@@ -58,7 +58,7 @@ public:
     void FireWeapon(AActor* Target);
 
     /* Root component of the weapon system */
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon Stats")
     USceneComponent* Root;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -82,27 +82,33 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Turret")
     FVector BarrelRotationAxis = FVector::RightVector;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Stats")
     TSubclassOf<AProjectile> ProjectileClass;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Stats")
     float RotationSpeed = 60.0f;
 
     /* Fire weapon if within this angle*/
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Stats")
     float MaxFiringAngle = 10.0f;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Stats")
     float MaxTurretArc = 10.0f;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Stats")
     float MaxPitchArc = 90.0f;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-    float FireRate = 1.5f; // seconds before next shot
+    // seconds before next shot
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Stats")
+    float FireRate = 1.5f; 
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-    float MaxRange = 2500; // distance traveled (in-game cm) before loss
+    // distance traveled (in-game cm) before loss
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Stats")
+    float MaxRange = 2500; 
+
+    // distance traveled (in-game cm) before loss if overloaded
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Stats")
+    float MaxRangeOverload = 2500; 
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Energy")
     int32 MinEnergy;

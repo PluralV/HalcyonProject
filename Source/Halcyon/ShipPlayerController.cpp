@@ -153,6 +153,20 @@ void AShipPlayerController::InitializeHUD() {
 		WinWidget->SetVisibility(ESlateVisibility::Hidden);
 		WinWidget->AddToViewport();
 	}
+
+	//IF we have this widget set up the Energy Allocation step widget - make it pause here
+	if (EAWidget) {
+		//Set opening pause
+		HUDPaused = CreateWidget<UUserWidget>(this, EAWidget);
+		if (UShipStatWidget* HPSSW = Cast<UShipStatWidget>(HUDPaused)) {
+			HPSSW->OwningController = this;
+			HPSSW->SetIsFocusable(false);
+			HPSSW->AddToViewport();
+			bIsPaused = true;
+			SetPause(bIsPaused, FCanUnpause());
+		}
+		
+	}
 }
 
 void AShipPlayerController::SetupInputComponent() {
@@ -164,7 +178,7 @@ void AShipPlayerController::SetupInputComponent() {
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent)) {
 		EnhancedInputComponent->BindAction(ToggleHUDAction, ETriggerEvent::Triggered, this, &AShipPlayerController::ToggleHUDInteraction);
 		EnhancedInputComponent->BindAction(PauseAction, ETriggerEvent::Triggered, this, &AShipPlayerController::PauseRealtimeGame);
-		}
+	}
 }
 	
 void AShipPlayerController::ToggleHUDInteraction() {
@@ -255,7 +269,8 @@ void AShipPlayerController::PauseRealtimeGame() {
 		if (HUDPaused) {
 			HUDPaused->RemoveFromParent();
 		}
-		TimeSinceLastPause = 0.f;
+		if (!bIsOnFirstPause) TimeSinceLastPause = 0.f;
+		else bIsOnFirstPause = false;
 	}
 	SetPause(bIsPaused, FCanUnpause());
 	
@@ -277,12 +292,12 @@ void AShipPlayerController::AddWeaponWidget() {
 //Set the weapon detail widget to be visible with a specific owning weapon
 void AShipPlayerController::SetWeaponDetails(AWeaponSystem* NewOwningWeapon, int32 ItsIndex) {
 	if (UWeaponDetailedInfoWidget* WDIW = Cast<UWeaponDetailedInfoWidget>(HUDWeaponDetails)) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Cast success"));
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Cast success"));
 		WDIW->OwningWeapon = NewOwningWeapon;
 		WDIW->MyIndex = ItsIndex;
 		WDIW->OnNewOwningWeapon();
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Setting visibility?"));
-		WDIW->SetVisibility(ESlateVisibility::Visible);
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Setting visibility?"));
+		WDIW->SetVisibility(ESlateVisibility::SelfHitTestInvisible);		
 	}
 }
 
@@ -290,7 +305,6 @@ void AShipPlayerController::SetWeaponDetails(AWeaponSystem* NewOwningWeapon, int
 void AShipPlayerController::ClearWeaponDetails() {
 	if (UWeaponDetailedInfoWidget* WDIW = Cast<UWeaponDetailedInfoWidget>(HUDWeaponDetails)) {
 		WDIW->OwningWeapon = nullptr;
-		WDIW->SetIsFocusable(false);
 		WDIW->SetVisibility(ESlateVisibility::Hidden);
 	}
 }

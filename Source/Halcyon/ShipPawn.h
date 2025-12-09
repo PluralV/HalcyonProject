@@ -284,7 +284,7 @@ public:
 	void FreeMovement(int32 Amt);
 
 	UFUNCTION(BlueprintCallable)
-	int32 FreeWeapon(int32 Index, int32 Amt);
+	int32 FreeWeapon(int32 Index, int32 Amt, bool bIsRestricting=false);
 
 	UFUNCTION(BlueprintCallable)
 	void AllocateDamage(float FromAngle, int32 DamageAmt);
