@@ -4,6 +4,7 @@
 #include "Projectile.h"
 #include "WeaponSystem.h"
 #include "Kismet/KismetMathLibrary.h"
+#include <Kismet/GameplayStatics.h>
 
 
 // Sets default values
@@ -70,8 +71,39 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
                     TargetVector.X, TargetVector.Y, TargetVector.Z,
                     ImpactVector.X, ImpactVector.Y, ImpactVector.Z,
                     ImpactAngle));*/
-            Ship->AllocateDamage(ImpactAngle, GetDamage());
-
+            // Play audio depending on whether shield or hull is hit
+            EHitLayer ShieldOrHull = Ship->AllocateDamage(ImpactAngle, GetDamage());
+            FVector ImpactLocation = GetActorLocation();
+            switch (ShieldOrHull) {
+                case EHitLayer::Shield:
+                    // spawn effect
+                    if (ShieldHitEffect) {
+                        UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+                            GetWorld(),
+                            ShieldHitEffect,
+                            ImpactLocation,
+                            GetActorRotation()  // or use an impact normal if you have one
+                        );
+                    }
+                    // audio
+                    UGameplayStatics::PlaySoundAtLocation(this, ShieldHitAudio, ImpactLocation);
+                    break;
+                case EHitLayer::Hull:
+                    // audio
+                    UGameplayStatics::PlaySoundAtLocation(this, HullHitAudio, ImpactLocation);
+                    break;
+                default:
+                    break;
+            }
+            // spawn explosion effect if exists
+            if (ExplosionEffect) {
+            UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+                GetWorld(),
+                ExplosionEffect,
+                ImpactLocation,
+                GetActorRotation()
+            );
+        }
             // Destroy projectile
             this->Destroy();
         }

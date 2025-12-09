@@ -12,7 +12,7 @@ public class Halcyon : ModuleRules
 			"CoreUObject", 
 			"Engine", 
 			"InputCore", 
-			"EnhancedInput", "AIModule", "UMG", "Slate", "SlateCore" });
+			"EnhancedInput", "AIModule", "UMG", "Slate", "SlateCore", "Niagara", "NiagaraCore", "NiagaraShader" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

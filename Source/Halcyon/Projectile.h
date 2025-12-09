@@ -7,6 +7,9 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include <Components/SphereComponent.h>
 #include "ShipPawn.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+
 
 #include "Projectile.generated.h"
 
@@ -70,6 +73,16 @@ protected:
 	int32 MinEnergy;
 	int32 EnergyStep;
 	int32 MaxEnergy;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	USoundBase* ShieldHitAudio;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	USoundBase* HullHitAudio;
+
+	UPROPERTY(EditAnywhere, Category = "FX")
+	UNiagaraSystem* ShieldHitEffect;
+
+	UPROPERTY(EditAnywhere, Category = "FX")
+	UNiagaraSystem* ExplosionEffect;
 	int32 EnergyLevel;
 	float OverloadScaling = 0.f; //For each additional EnergyStep energy, add OverloadScaling * the total calculated damage to the final value
 	bool bIsOverloaded = false;
