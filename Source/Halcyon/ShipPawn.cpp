@@ -581,9 +581,6 @@ EHitLayer AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 	if (HasHitRight) {
 		OnRightEngChanged.Broadcast(RightEngCurr);
 	}
-  
-	OnHullIntegrityChanged.Broadcast(HullIntegrity);
-	return EHitLayer::Hull;
 
 	if (HasHitCenter) {
 		OnCenterEngChanged.Broadcast(CenterEngCurr);
@@ -612,6 +609,9 @@ EHitLayer AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 		}
 		OnHullIntegrityChanged.Broadcast(HullIntegrity);
 	}
+
+	OnHullIntegrityChanged.Broadcast(HullIntegrity);
+	return EHitLayer::Hull;
 }
 
 //Power Allocation Functions
