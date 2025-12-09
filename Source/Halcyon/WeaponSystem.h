@@ -107,10 +107,13 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Stats")
     float FireRate = 1.5f; 
 
-    // distance traveled (in-game cm) before loss
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Stats")
-    float MaxRange = 2500; 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+    USoundBase* FireSound;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    // distance traveled (in-game cm) before loss
+    float MaxRange = 2500; 
+    
     // distance traveled (in-game cm) before loss if overloaded
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Stats")
     float MaxRangeOverload = 2500; 

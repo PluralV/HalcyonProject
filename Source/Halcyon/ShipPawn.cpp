@@ -28,10 +28,8 @@ AShipPawn::AShipPawn()
 
 	ShipMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShipMesh"));
 	RootComponent = ShipMesh;
-
-	
-
-
+  
+  
 	// Set up mesh
 	ShipMesh->SetSimulatePhysics(true);
 	ShipMesh->SetCollisionProfileName(TEXT("Vehicle"));
@@ -417,11 +415,11 @@ void AShipPawn::UnlockTarget() {
 }
 
 //Allocate damage hitting ship from some angle
-void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
+EHitLayer AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 	//Possibility for random damage returning 0?
 
-	if (!DamageAmt) return;
-
+	if (!DamageAmt) return EHitLayer::None;
+	
 	//Determine shield facing based on angle of hit
 	int32 ShieldBand = ((int)FromAngle % 360) / 60;
 	//Total amount of energy being released as a result of the hit
@@ -447,7 +445,7 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 
 	if (ShieldReinforcements[ShieldBand] >= 0) {
 		OnShieldStrengthChanged.Broadcast(ShieldBand, ShieldReinforcements[ShieldBand] + ShieldFacingsCurr[ShieldBand]);
-		return;
+		return EHitLayer::Shield;
 	}
 	else {
 		DamageAmt = -1 * ShieldReinforcements[ShieldBand];
@@ -460,7 +458,7 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 	ShieldFacingsCurr[ShieldBand] -= DamageAmt;
 	if (ShieldFacingsCurr[ShieldBand] >= 0) {
 		OnShieldStrengthChanged.Broadcast(ShieldBand, ShieldFacingsCurr[ShieldBand]);
-		return;
+		return EHitLayer::Shield;
 	}
 	else {
 		DamageAmt = -1 * ShieldFacingsCurr[ShieldBand];
@@ -583,6 +581,9 @@ void AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 	if (HasHitRight) {
 		OnRightEngChanged.Broadcast(RightEngCurr);
 	}
+  
+	OnHullIntegrityChanged.Broadcast(HullIntegrity);
+	return EHitLayer::Hull;
 
 	if (HasHitCenter) {
 		OnCenterEngChanged.Broadcast(CenterEngCurr);

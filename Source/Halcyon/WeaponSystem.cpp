@@ -3,6 +3,7 @@
 
 #include "WeaponSystem.h"
 #include "Kismet/KismetMathLibrary.h"
+#include <Kismet/GameplayStatics.h>
 
 AWeaponSystem::AWeaponSystem()
 {
@@ -255,7 +256,16 @@ void AWeaponSystem::FireWeapon(AActor* Target) {
             AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
             if (Projectile)
             {
-                //GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,FString::Printf(TEXT("Calling FireInDirection")));
+                /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+                    FString::Printf(TEXT("Calling FireInDirection")));*/
+                if (FireSound && Muzzle)
+                {
+                    UGameplayStatics::PlaySoundAtLocation(
+                        this,
+                        FireSound,
+                        Muzzle->GetComponentLocation()
+                    );
+                }
                 Projectile->SetupHoming(Target);
                 Projectile->FireInDirection(ProjectedBarrelDir);
                 TimeSinceLastShot = 0.f;

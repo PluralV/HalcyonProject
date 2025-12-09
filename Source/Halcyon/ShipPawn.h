@@ -11,6 +11,12 @@ class UInputMappingContext;
 class UInputAction;
 class UShipPawnMovementComponent;
 class AModularSystem;
+UENUM()
+enum class EHitLayer {
+	None,
+	Shield,
+	Hull
+};
 
 /*MULTICASTS AND THEIR PURPOSES*/
 /*Used when an enemy ship is destroyed (DEPRECATED?)*/
@@ -287,7 +293,7 @@ public:
 	int32 FreeWeapon(int32 Index, int32 Amt, bool bIsRestricting=false);
 
 	UFUNCTION(BlueprintCallable)
-	void AllocateDamage(float FromAngle, int32 DamageAmt);
+	EHitLayer AllocateDamage(float FromAngle, int32 DamageAmt);
 
 	//GETTERS
 	//Movement energy
