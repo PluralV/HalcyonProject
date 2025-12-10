@@ -44,7 +44,9 @@ AShipPawn::AShipPawn()
 	//Body mesh
 	HullMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
 	HullMesh->SetupAttachment(ShipMesh);
-	HullMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HullMesh->SetSimulatePhysics(false);
+	HullMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	ShipMesh->SetGenerateOverlapEvents(true);
 
 	//Build spring-arm component
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -362,7 +364,7 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 	else
 	{
 		if (CurrentTarget) {
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Removing old current-target"));
+			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Removing old current-target"));
 			if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
 				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Unbinding from old target"));
 				EnemyShip->SetIsTargeted(false);

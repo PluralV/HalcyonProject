@@ -11,7 +11,7 @@ void AShipAIController::BeginPlay()
         PlayerPawn = Cast<AShipPawn>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
     }
     else {
-        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("No player pawn set"));
+        //GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("No player pawn set"));
     }
     HeightOffset = FMath::RandRange(-1000.f, 1000.f);
 }
@@ -22,11 +22,11 @@ void AShipAIController::OnPossess(APawn* InPawn)
     ControlledShip = Cast<AShipPawn>(InPawn);
     for (UChildActorComponent* WeaponComp : ControlledShip->GetWeaponComponents()) {
         if (AWeaponSystem* AWS = Cast<AWeaponSystem>(WeaponComp->GetChildActor())) {
-            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Weapon with lesser range found %d"), (int)AWS->MaxRange));
+            //GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Weapon with lesser range found %d"), (int)AWS->MaxRange));
             if (AWS->MaxRange < FireRange) FireRange = AWS->MaxRange;//Only fire weapons when in range
         }
     }
-    GEngine->AddOnScreenDebugMessage(-1,5.0f,FColor::Yellow, FString::Printf(TEXT("AI Controller possessed: %s"), *InPawn->GetName()));
+    //GEngine->AddOnScreenDebugMessage(-1,5.0f,FColor::Yellow, FString::Printf(TEXT("AI Controller possessed: %s"), *InPawn->GetName()));
 
 }
 
@@ -41,9 +41,22 @@ void AShipAIController::RotateToward(const FVector& TargetLocation)
     FRotator CurrentRot = ControlledShip->GetActorRotation();
     CurrentRot.Yaw += 90.f; // add 90 for ship facing y axis
     float YawDelta = FMath::FindDeltaAngleDegrees(CurrentRot.Yaw, TargetRot.Yaw);
-    float YawInput = (YawDelta > 0.f) ? 1.f : -1.f;
     float PitchDelta = FMath::FindDeltaAngleDegrees(CurrentRot.Roll, -TargetRot.Pitch);
-    float PitchInput = (PitchDelta > 0.f) ? 1.f : -1.f;
+
+    // ADD DEAD ZONE - don't rotate if close enough
+    const float DeadZone = 5.0f; // Adjust this value
+
+    float YawInput = 0.f;
+    if (FMath::Abs(YawDelta) > DeadZone)
+    {
+        YawInput = (FMath::Abs(YawDelta) > 1.f ? 1.f : FMath::Abs(YawDelta)) * ((YawDelta > 0.f) ? 1.f : -1.f);
+    }
+
+    float PitchInput = 0.f;
+    if (FMath::Abs(PitchDelta) > DeadZone)
+    {
+        PitchInput = (FMath::Abs(PitchDelta) > 1.f ? 1.f : FMath::Abs(PitchDelta)) * ((PitchDelta > 0.f) ? 1.f : -1.f);
+    }
 
     ControlledShip->MovementComponent->SetRotationalInput(FRotator(PitchInput, YawInput, 0.f));
 }
@@ -93,7 +106,7 @@ void AShipAIController::AllocateEnergy() {
     TArray<UChildActorComponent*> WeaponComps = ControlledShip->GetWeaponComponents();
     for (int i = 0; i < WeaponComps.Num(); i++) {
         if (AWeaponSystem* TWS = Cast<AWeaponSystem>(WeaponComps[i]->GetChildActor())) {
-            ControlledShip->AllocateWeapon(i, TWS->MinEnergy);
+            if (TWS->MinEnergy <= ControlledShip->GetMaxEnergyAvailable()) ControlledShip->AllocateWeapon(i, TWS->MinEnergy);
         }
     }
 
