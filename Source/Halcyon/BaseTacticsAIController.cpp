@@ -11,7 +11,8 @@
 //
 void ABaseTacticsAIController::Tick(float DeltaSeconds) {
     Super::Tick(DeltaSeconds);
-    TimeSinceLastRealloc, TimeSinceLastTarget += DeltaSeconds;
+    TimeSinceLastRealloc += DeltaSeconds; 
+    TimeSinceLastTarget += DeltaSeconds;
     if (TimeSinceLastRealloc >= EnergyCycle) {
         AllocateEnergy();
     }
@@ -51,6 +52,7 @@ void ABaseTacticsAIController::BeginPlay() {
     //Acquire all targets on first tick (once all initialized)
     WeaponCount = ControlledShip->GetWeaponComponents().Num();
     GetWorldTimerManager().SetTimerForNextTick(this, &ABaseTacticsAIController::AcquireEligibleTargets);
+    CurrentWeaponStatus = ECombatStatus::ArmedClose;
 }
 
 void ABaseTacticsAIController::OnPossess(APawn* InPawn) {
@@ -165,7 +167,7 @@ int32 ABaseTacticsAIController::AppraiseTarget(AActor* PossibleTarget) {
 //Go back through the list of targets and calculate an appraisal score for each
 void ABaseTacticsAIController::ReappraiseTargets() {
     if (EligibleTargets.IsEmpty()) CurrentTarget = nullptr;
-    for (FTargetScore EligibleTarget : EligibleTargets) {
+    for (FTargetScore& EligibleTarget : EligibleTargets) {
         EligibleTarget.AppraisalScore = AppraiseTarget(EligibleTarget.Target);
         if (EligibleTarget.AppraisalScore > EligibleTargets[0].AppraisalScore) {
             FTargetScore Temp = EligibleTargets[0];
@@ -218,7 +220,7 @@ FVector ABaseTacticsAIController::AcquireLookAtPoint() {
 void ABaseTacticsAIController::EngageTarget() {
     int32 FiredWeapons = 0;
     
-    for (FWeaponCapability WPEntry : ShipWeapons) {
+    for (FWeaponCapability& WPEntry : ShipWeapons) {
         if (WPEntry.bInRange && WPEntry.bInArc && (WPEntry.Weapon->DamageScaling == 0 || WPEntry.Weapon->MaxRange / 3 <= RangeToTarget)) {
             WPEntry.Weapon->FireWeapon(CurrentTarget);
         }
@@ -279,7 +281,7 @@ void ABaseTacticsAIController::AllocateEnergy() {
     //}
 
     TArray<AWeaponSystem*> ComeBackLater;
-    for (FWeaponCapability WeaponCapability : ShipWeapons) {
+    for (FWeaponCapability& WeaponCapability : ShipWeapons) {
         if (AWeaponSystem* AWS = WeaponCapability.Weapon) {
             //GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Weapon with lesser range found %d"), (int)AWS->MaxRange));
             if (AWS->MinEnergy > AWS->AllocatedEnergy) {

@@ -103,6 +103,7 @@ protected:
 
 	//VARIABLES
 	//List of weapons with ancillary info modified as needed
+	UPROPERTY()
 	TArray<FWeaponCapability> ShipWeapons;
 
 	//List of targetable ships
