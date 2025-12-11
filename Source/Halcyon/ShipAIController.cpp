@@ -95,7 +95,6 @@ void AShipAIController::Tick(float DeltaSeconds)
 
     if (Distance < FireRange)
     {
-        //GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("OPEN FUCKING FIRE!!!!")));
         ControlledShip->AIFireWeapon();
     }
 

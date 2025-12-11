@@ -29,9 +29,8 @@ public:
 	APlasmaProjectile();
 	virtual void BeginPlay() override;
 
-
+	virtual int32 GetDamage(float Range) override;
 protected:
-	virtual int32 GetDamage() override;
 	//2D Array of pairs of floats; the first denotes a range threshold, the second denotes damage dealt by the projectile within that range-band
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	TArray<FRangePair> RangeThresholds;

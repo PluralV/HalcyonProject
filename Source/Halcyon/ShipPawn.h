@@ -40,6 +40,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementEnergyChanged, int32, Amt
 /*Used when maximum energy changes (TotalEnergyCurr) - i.e. the maximum possible energy changes due to damage to power systems 
 * or (TBD) repair - Amt is the new total energy.*/
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTotalEnergyChanged, int32, Amt);
+/*Used when maximum engine power changes (TotalEngineCurr) - i.e. due to damage to power systems or (TBD) repair - Amt is the new total energy.*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTotalEngineChanged, int32, Amt);
 /*Used when hull integrity changes. Amt is the new total hull integrity.*/
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHullIntegrityChanged, int32, Amt);
 /*Used when left engine changes. Amt is the new total hull integrity.*/
@@ -77,6 +79,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnAvailableEnergyChanged OnAvailableEnergyChanged;
 	
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnTotalEngineChanged OnTotalEngineChanged;
+
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnTotalEnergyChanged OnTotalEnergyChanged;
 
@@ -121,6 +126,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
 	FText ShipClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
+	FText ShipDesc;
 
 	//AI functions - used to directly interface with ship pawn for AI controllers
 
@@ -205,7 +213,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	TArray<int32> ShieldReinforcements = { 0,0,0,0,0,0 };
 	//Stores current strength of each shield
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Current System Stats")
 	TArray<int32> ShieldFacingsCurr = {0,0,0,0,0,0};
 	
 	//Hull damage: Internal damage that does nothing
@@ -220,22 +228,34 @@ protected:
 	//Curr values indicate the current number remaining (initialised to the same amount as the base)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
 	int32 LeftEng;
-	int32 LeftEngCurr;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
 	int32 RightEng;
-	int32 RightEngCurr;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
 	int32 CenterEng;
-	int32 CenterEngCurr;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
 	int32 PowerReactor;
-	int32 PowerReactorCurr;
+	
 
+	UPROPERTY(EditAnywhere, Category = "Current System Stats")
+	int32 LeftEngCurr = 0;
+	UPROPERTY(EditAnywhere, Category = "Current System Stats")
+	int32 RightEngCurr = 0;
+	UPROPERTY(EditAnywhere, Category = "Current System Stats")
+	int32 CenterEngCurr = 0;
+	UPROPERTY(EditAnywhere, Category = "Current System Stats")
+	int32 PowerReactorCurr = 0;
 	//TotalEnergy: maximum possible energy based on above stats
-	//TotalEnergyCurr: current maximum possible energy based on above stats/damage
-	//TotalEnergyAvailable: current energy not allocated
 	int32 TotalEnergy;
+	//TotalEnergyCurr: current maximum possible energy based on above stats/damage
 	int32 TotalEnergyCurr;
+	//Total engine power
+	int32 TotalEngine;
+	//Total possible power to be allocated to movement (can be reduced)
+	int32 TotalEngineCurr;
+	//TotalEnergyAvailable: current energy not allocated
 	int32 TotalEnergyAvailable;
 
 	//ARRAYS FOR STORING SYSTEMS
@@ -243,7 +263,7 @@ protected:
 
 	//Engine settings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base Mobility Stats")
-	float SpeedLimit;
+	float SpeedLimit = 750.f;
 	float CurrentThrottle;
 
 	//Maneuverability
@@ -299,6 +319,21 @@ public:
 	//Movement energy
 	UFUNCTION(BlueprintCallable)
 	int32 GetMovementEnergy();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetMaxEngine() {
+		return TotalEngine;
+	}
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetMaxEngineCurr() {
+		return TotalEngineCurr;
+	}
+
+	UFUNCTION(BlueprintCallable)
+	bool GetIsObjective() {
+		return bIsProtectObjective;
+	}
 
 	UFUNCTION(BlueprintCallable)
 	int32 GetMaxEnergyCurr();
@@ -380,17 +415,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
 	int32 Team = 1;
 
+	//If true, override the current system stats with their editor values; otherwise just set them to the defaults
+	UPROPERTY(EditAnywhere, Category = "Current System Stats")
+	bool bCurrentSystemOverride = false;
+
+	UPROPERTY(EditAnywhere, Category = "Mission Objective")
+	bool bIsProtectObjective = false;
+
 private:
 	UFUNCTION()
 	void HandleShipDestroyed(int32 CauseOfDeath, AShipPawn* DestroyedShip);
-
+	//Destroys the ship and handles broadcasts about cause of destruction
 	void DestroyShip(int32 CauseOfDeath);
+	//Releases current target and sets to none. 
 	void UnlockTarget();
-	
-	
-
-	
-	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* SpringArm;

@@ -74,12 +74,19 @@ public:
 	uint8 EnemiesRemaining = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mission Details")
+	int32 MissionNumber;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mission Details")
 	FText MissionName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mission Details")
+	FText MissionWinDesc;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mission Details")
+	FText MissionLossDesc;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Win Condition")
 	TArray<FObjectiveInfo> ObjectiveList;
-
-	FObjectiveInfo CurrentObjective = FObjectiveInfo();
 
 	UFUNCTION(BlueprintCallable)
 	FObjectiveInfo GetCurrentObjective();

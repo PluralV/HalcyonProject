@@ -48,7 +48,7 @@ public:
 
     //Engine settings
     UPROPERTY(BlueprintReadOnly, Category = "Base Mobility Stats")
-    float SpeedLimit = 1000.f;
+    float SpeedLimit = 720.f;
     //Maneuverability
     UPROPERTY(BlueprintReadOnly, Category = "Base Mobility Stats")
     float PitchRate = 25.0;

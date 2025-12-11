@@ -12,11 +12,11 @@ void APlasmaProjectile::BeginPlay() {
 
 }
 
-int32 APlasmaProjectile::GetDamage() {
+int32 APlasmaProjectile::GetDamage(float Range) {
 	int32 AdjustedBaseDamage = BaseDamage;
 	if (!RangeThresholds.IsEmpty()) {
 		for (int32 i = 0; i < RangeThresholds.Num(); i++) {
-			if (DistanceTraveled <= RangeThresholds[i].RangeThreshold) {
+			if (Range <= RangeThresholds[i].RangeThreshold) {
 				AdjustedBaseDamage = (int)RangeThresholds[i].DamageAtRange;
 				break;
 			}

@@ -71,7 +71,6 @@ void AHalcyonMissionGameMode::StartPlay() {
     }
 
     //Set the first one to active
-    CurrentObjective = ObjectiveList[0];
     CurrentObjectiveIndex = 0;
     ActivateCurrentObjective();
 
@@ -92,7 +91,7 @@ void AHalcyonMissionGameMode::IncrementEnemies(int32 ByAmt) {
 }
 
 void AHalcyonMissionGameMode::CheckEnemies() {
-    if (EnemiesRemaining <= 0 && CurrentObjective.ObjectiveType == 1) {
+    if (EnemiesRemaining <= 0 && ObjectiveList[CurrentObjectiveIndex].ObjectiveType == 1) {
         HandleObjectiveCompletion(CurrentObjectiveIndex);
     }
 }
@@ -100,19 +99,19 @@ void AHalcyonMissionGameMode::CheckEnemies() {
 
 void AHalcyonMissionGameMode::HandleObjectiveCompletion(int32 ObjectiveIndex) {
     if (ObjectiveIndex != CurrentObjectiveIndex) return;
+    FObjectiveInfo CurrentObjective = ObjectiveList[CurrentObjectiveIndex];
     OnCurrentObjectiveComplete.Broadcast();
     if (CurrentObjective.ObjectiveType == 0) CurrentObjective.AssociatedObjective->SetActiveObjective(false);
     CurrentObjectiveIndex++;
-
+    //GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("CurrentObjectiveIndex: %d ObjectiveCount: %d")));
     if (CurrentObjectiveIndex >= ObjectiveCount) {
-        //GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("You vvon n shid")));
         OnMissionWin.Broadcast();
     }
     else ActivateCurrentObjective();
 }
 
 void AHalcyonMissionGameMode::ActivateCurrentObjective() {
-    CurrentObjective = ObjectiveList[CurrentObjectiveIndex];
+    FObjectiveInfo CurrentObjective = ObjectiveList[CurrentObjectiveIndex];
     OnCurrentObjectiveSet.Broadcast(CurrentObjective);
     if (CurrentObjective.AssociatedObjective) {
         CurrentObjective.AssociatedObjective->SetActiveObjective(true);
@@ -137,5 +136,5 @@ void AHalcyonMissionGameMode::ActivateCurrentObjective() {
 }
 
 FObjectiveInfo AHalcyonMissionGameMode::GetCurrentObjective() {
-    return CurrentObjective;
+    return ObjectiveList[CurrentObjectiveIndex];
 }

@@ -72,7 +72,7 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
                     ImpactVector.X, ImpactVector.Y, ImpactVector.Z,
                     ImpactAngle));*/
             // Play audio depending on whether shield or hull is hit
-            EHitLayer ShieldOrHull = Ship->AllocateDamage(ImpactAngle, GetDamage());
+            EHitLayer ShieldOrHull = Ship->AllocateDamage(ImpactAngle, GetDamage(DistanceTraveled));
             FVector ImpactLocation = GetActorLocation();
             switch (ShieldOrHull) {
                 case EHitLayer::Shield:
@@ -173,11 +173,11 @@ void AProjectile::FireInDirection(const FVector& ShootDirection)
 
 
 //Default damage function; just decrease over range
-int32 AProjectile::GetDamage() {
+int32 AProjectile::GetDamage(float Range) {
     int32 AdjustedBaseDamage = BaseDamage;
     if (DamageScaling) {
         float RangeThreshold = MaxRange / 3;
-        int32 RangeBand = (int)(DistanceTraveled / RangeThreshold);
+        int32 RangeBand = (int)(Range / RangeThreshold);
         /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
               FString::Printf(TEXT("Hit at range %f (Rangeband %d)"),
                   DistanceTraveled, RangeBand));*/

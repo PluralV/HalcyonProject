@@ -31,7 +31,12 @@ public:
 	bool IsHomingProjectile() {
 		return Movement->bIsHomingProjectile;
 	}
+	UPROPERTY()
 	AActor* Target;
+
+	//returns damage amt for range
+	UFUNCTION()
+	virtual int32 GetDamage(float Range);
 
 protected:
 	// Called when the game starts or when spawned
@@ -43,8 +48,7 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	USphereComponent* Collision;
 
-	UFUNCTION()
-	virtual int32 GetDamage();//returns damage amt for range
+	
 
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,

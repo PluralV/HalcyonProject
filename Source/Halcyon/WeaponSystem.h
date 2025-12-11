@@ -51,14 +51,22 @@ public:
     
     void TrackTarget(float DeltaTime, AActor* CurrentTarget);
 
+    //returns the actual amount of energy allocated/freed for owning ship calculation purposes
     UFUNCTION(BlueprintCallable)
-    int32 AllocateEnergy(int32 amt); //returns the actual amount of energy allocated/freed for owning ship calculation purposes
+    int32 AllocateEnergy(int32 amt); 
 
+    //returns the actual amount of energy allocated/freed for owning ship calculation purposes
     UFUNCTION(BlueprintCallable)
     int32 FreeEnergy(int32 amt);
 
     UFUNCTION(BlueprintCallable)
     bool CauseDamage();
+
+    //returns true if weapon is in arc of the target
+    bool IsInArc(AActor* Target);
+
+    //returns true if weapon is in arc of the target
+    bool IsInRange(AActor* Target, bool bOverloadRange=false);
 
     void FireWeapon(AActor* Target);
 
@@ -99,6 +107,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Stats")
     float MaxTurretArc = 10.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Stats")
+    float MaxTurretArcNegative = 10.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Stats")
     float MaxPitchArc = 90.0f;

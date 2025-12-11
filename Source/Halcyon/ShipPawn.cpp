@@ -45,7 +45,7 @@ AShipPawn::AShipPawn()
 	HullMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
 	HullMesh->SetupAttachment(ShipMesh);
 	HullMesh->SetSimulatePhysics(false);
-	HullMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	HullMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndProbe);
 	ShipMesh->SetGenerateOverlapEvents(true);
 
 	//Build spring-arm component
@@ -83,21 +83,27 @@ void AShipPawn::BeginPlay()
 	Super::BeginPlay();
 
 	//Initialize stats
-	LeftEngCurr = LeftEng;
-	RightEngCurr = RightEng;
-	CenterEngCurr = CenterEng;
-	PowerReactorCurr = PowerReactor;
+	LeftEngCurr = bCurrentSystemOverride ? LeftEngCurr : LeftEng;
+	RightEngCurr = bCurrentSystemOverride ? RightEngCurr : RightEng;
+	CenterEngCurr = bCurrentSystemOverride ? CenterEngCurr : CenterEng;
+	PowerReactorCurr = bCurrentSystemOverride ? PowerReactorCurr : PowerReactor;
+	//GEngine->AddOnScreenDebugMessage(-1, 12.0f, FColor::Red, FString::Printf(TEXT("Beginplay: %s: L %d R %d C %d REAC %d"), ShipName.ToString(), LeftEngCurr, RightEngCurr, CenterEngCurr, PowerReactorCurr));
 
 	ForwardHullCurr = ForwardHull;
 	AftHullCurr = AftHull;
 	CenterHullCurr = CenterHull;
 
 	TotalEnergy = LeftEng + RightEng + CenterEng + PowerReactor;
-	TotalEnergyCurr = TotalEnergy;
-	TotalEnergyAvailable = TotalEnergy;
+	TotalEnergyCurr = LeftEngCurr + RightEngCurr + CenterEngCurr + PowerReactorCurr;
+
+
+	TotalEngine = LeftEng + RightEng + CenterEng;
+	TotalEngineCurr = LeftEngCurr + RightEngCurr + CenterEngCurr;
+	TotalEnergyAvailable = TotalEnergyCurr;
+
 
 	for (int8 i = 0; i < 6; i++) {
-		ShieldFacingsCurr[i] = ShieldFacings[i];
+		if (!bCurrentSystemOverride) ShieldFacingsCurr[i] = ShieldFacings[i];
 	}
 
 	//Setup movement component stats
@@ -469,9 +475,11 @@ EHitLayer AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 	}
 
 	//Allocate damage to internals
-	//CURRENT HACK: JUST DEAL TO HULL INTEGRITY
 	bool HasHitWeapon = false;
+	//Damage to all power (total)
 	int32 PowerDamage = 0;
+	//Damage to engine power (for movement purposes)
+	int32 EngineDamage = 0;
 	bool HasHitLeft = false;
 	bool HasHitRight = false;
 	bool HasHitReactor = false;
@@ -526,6 +534,7 @@ EHitLayer AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 			if (RightEngCurr) {
 				HasHitRight = true;
 				RightEngCurr--;
+				EngineDamage++;
 			}
 			else if (PowerReactorCurr) {
 				HasHitReactor = true;
@@ -542,6 +551,7 @@ EHitLayer AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 			if (CenterEngCurr) {
 				HasHitCenter = true;
 				CenterEngCurr--;
+				EngineDamage++;
 			}
 			else if (PowerReactorCurr) {
 				HasHitReactor = true;
@@ -558,6 +568,7 @@ EHitLayer AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 			if (LeftEngCurr) {
 				HasHitLeft = true;
 				LeftEngCurr--;
+				EngineDamage++;
 			}
 			else if (PowerReactorCurr) {
 				HasHitReactor = true;
@@ -601,6 +612,15 @@ EHitLayer AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Is we releasin the energy?"));
 			if (WeakThis.IsValid()) WeakThis->EnergyLoss(PowerDamage);
 			}, 18.f, false, -1);
+	}
+
+	//If damage done to engines, reduce movement energy if necessary.
+	if (EngineDamage) {
+		TotalEngineCurr -= EngineDamage;
+		OnTotalEngineChanged.Broadcast(TotalEngineCurr);
+		if (TotalEngineCurr < MovementEnergy) {
+			FreeMovement(MovementEnergy - TotalEngineCurr);
+		}
 	}
 
 	if (HullIntegrity < StartingHull) {
@@ -771,22 +791,36 @@ void AShipPawn::HandleArrowFree() {
 	FreeMovement(1);
 }
 
+//Attempts to allocate Amt energy to movement from the engines. If there is not enough available energy to do so, it will allocate the maximum
+//possible.
 void AShipPawn::AllocateMovement(int32 Amt) {
-	if (TotalEnergyAvailable >= Amt) {
-		//Reduce total available energy by Amt, then increase movement energy by Amt
-		TotalEnergyAvailable -= Amt;
-		MovementEnergy += Amt;
+	
+	int32 temp = Amt; 
+	//The amount requested might be more than is available
+	if (TotalEnergyAvailable < temp) {
+		//Check if removing all of TotalEnergyAvailable and adding to movement would overallocate engines
+		if (MovementEnergy + TotalEnergyAvailable <= TotalEngineCurr) {
+			//If it doesn't, temp is just the available energy
+			temp = TotalEnergyAvailable;
+		}
+		else {
+			//otherwise, temp is the difference
+			temp = TotalEngineCurr - MovementEnergy;
+		}
 	}
-	else {
-		//Otherwise just use all remaining energy on movement
-		int32 temp = TotalEnergyAvailable;
-		TotalEnergyAvailable = 0;
-		MovementEnergy += temp;
+	//If TotalEnergyAvailable is greater/equal to temp, we only have to check if MovementEnergy+temp >/< TotalEngineCurr
+	else if (MovementEnergy + temp > TotalEngineCurr) {
+		//if it would be, set Temp to the difference
+		temp = TotalEngineCurr - MovementEnergy;
 	}
-	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 	//Pass final movement energy down to the movement component to determine max speed
+	//Only modify energy if we have a working movement component
 	if (UShipPawnMovementComponent* MC = Cast<UShipPawnMovementComponent>(MovementComponent)) {
+		//Reduce total available energy by temp, then increase movement energy by temp
+		TotalEnergyAvailable -= temp;
+		MovementEnergy += temp;
 		MC->SetMovementEnergy(MovementEnergy);
+		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 		OnMovementEnergyChanged.Broadcast(MovementEnergy);
 	}
 }

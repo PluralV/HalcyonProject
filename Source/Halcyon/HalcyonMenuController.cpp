@@ -91,3 +91,12 @@ void AHalcyonMenuController::HideScreen()
         ScreenWidget = nullptr;
     }
 }
+
+FMissionInfo AHalcyonMenuController::GetActiveMissionGameMode() {
+    return CurrentActiveMissionMode;
+}
+
+
+void AHalcyonMenuController::SetActiveMissionGameMode(FMissionInfo ActiveMissionMode) {
+    CurrentActiveMissionMode = ActiveMissionMode;
+}

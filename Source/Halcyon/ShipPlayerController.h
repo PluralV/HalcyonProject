@@ -133,17 +133,27 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Win Widget")
 	TSubclassOf<UUserWidget> WinWidgetClass;
 
-
+	UPROPERTY()
 	UUserWidget* HUDMovement;
+	UPROPERTY()
 	UUserWidget* HUDEnergy;
+	UPROPERTY()
 	UUserWidget* HUDIntegrity;
+	UPROPERTY()
 	UUserWidget* HUDWeapons;
+	UPROPERTY()
 	UUserWidget* HUDHull;
+	UPROPERTY()
 	UUserWidget* HUDTarget;
+	UPROPERTY()
 	UUserWidget* HUDPaused;
+	UPROPERTY()
 	UUserWidget* HUDWeaponDetails;
+	UPROPERTY()
 	UUserWidget* HUDPauseStatus;
+	UPROPERTY()
 	UUserWidget* HUDObjectiveList;
+	UPROPERTY()
 	UUserWidget* WinWidget;
 
 	/*Separate functions will exist for allocating energy to systems that are static / default
