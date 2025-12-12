@@ -239,10 +239,26 @@ void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
                 FString::Printf(TEXT("Weapon %s is not in arc."), *this->GetName()));*/
             bTargetInArc = false;
         }
+        ///DEBUG STUFF REMOVE WHEN NEEDED
+        /*if (IsInArc(CurrentTarget)) {
+            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Target is in arc")));
+        }
+        else {
+            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Target is not in arc")));
+        }
+        if (IsInRange(CurrentTarget)) {
+            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Target is in range")));
+        }
+        else {
+            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Target is not in range")));
+        }*/
     }
     else {
         bTargetInArc = false;
     }
+
+    
+    
     
 }
 
@@ -279,6 +295,7 @@ bool AWeaponSystem::IsInArc(AActor* Target) {
 bool AWeaponSystem::IsInRange(AActor* Target, bool bOverloadRange)
 {
     int32 MaxRangeCheck = ((AllocatedEnergy > MinEnergy) || bOverloadRange) ? MaxRangeOverload : MaxRange;
+    //GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Using range %d (bOverloadRange: %d)"),MaxRangeCheck,bOverloadRange));
     return FVector::Dist(Muzzle->GetComponentLocation(), Target->GetActorLocation()) <= MaxRangeCheck;
 }
 

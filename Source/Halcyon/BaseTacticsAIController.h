@@ -42,7 +42,8 @@ struct FWeaponCapability {
 
 	UPROPERTY()
 	AWeaponSystem* Weapon;
-
+	UPROPERTY()
+	int32 Index;
 	UPROPERTY()
 	int32 ExpectedDamage;
 
@@ -100,7 +101,7 @@ protected:
 	//Allocate energy to systems - typically once per cycle, or sometimes immediately following an event
 	virtual void AllocateEnergy();
 	virtual void FreeEnergyByPriority(int32 EnergyGoal);
-
+	virtual void InitializeAfterLoad();
 	//VARIABLES
 	//List of weapons with ancillary info modified as needed
 	UPROPERTY()

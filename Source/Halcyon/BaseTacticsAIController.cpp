@@ -13,13 +13,8 @@ void ABaseTacticsAIController::Tick(float DeltaSeconds) {
     Super::Tick(DeltaSeconds);
     TimeSinceLastRealloc += DeltaSeconds; 
     TimeSinceLastTarget += DeltaSeconds;
-    if (TimeSinceLastRealloc >= EnergyCycle) {
-        AllocateEnergy();
-    }
-    if (TimeSinceLastTarget >= TargetCycle && EligibleTargets.Num() > 1) {
-        ReappraiseTargets();
-    }
 
+    //update records on whether target is in arc
     if (CurrentTarget) {
         FVector ToTarget = CurrentTarget->GetActorLocation() - ControlledShip->GetActorLocation();
         RotToTarget = ToTarget.Rotation();
@@ -31,6 +26,15 @@ void ABaseTacticsAIController::Tick(float DeltaSeconds) {
             CheckIsBearing(i);
         }
     }
+
+    if (TimeSinceLastRealloc >= EnergyCycle) {
+        AllocateEnergy();
+    }
+    if (TimeSinceLastTarget >= TargetCycle && EligibleTargets.Num() > 1) {
+        ReappraiseTargets();
+    }
+
+    
 
     FVector LookAtPoint = AcquireLookAtPoint();
 
@@ -49,10 +53,57 @@ void ABaseTacticsAIController::BeginPlay() {
     ControlledShip = Cast<AShipPawn>(GetPawn());
     HeightOffset = FMath::RandRange(-1000.f, 1000.f);
     TimeSinceLastRealloc = EnergyCycle;
+
     //Acquire all targets on first tick (once all initialized)
-    WeaponCount = ControlledShip->GetWeaponComponents().Num();
-    GetWorldTimerManager().SetTimerForNextTick(this, &ABaseTacticsAIController::AcquireEligibleTargets);
+    GetWorldTimerManager().SetTimerForNextTick(this, &ABaseTacticsAIController::InitializeAfterLoad);
+}
+
+//Sets up things like the weapon list/targets; has to be delayed in order to handle out-of-order initialization
+void ABaseTacticsAIController::InitializeAfterLoad() {
+    //Initialize weapons list
+    TArray<UChildActorComponent*> WeaponComps = ControlledShip->GetWeaponComponents();
+    WeaponCount = WeaponComps.Num();
+    for (int32 i = 0; i < WeaponCount; i++) {
+        if (AWeaponSystem* AWS = Cast<AWeaponSystem>(WeaponComps[i]->GetChildActor())) {
+            //DEBUG DEBUG
+            FText WeaponName = AWS->WeaponAbbreviatedName;
+            UE_LOG(LogTemp, Warning, TEXT("Found weapon: %s"), *WeaponName.ToString());
+            //GET RID OF ABOVE
+
+            //Adds weaponcapability to the list
+            int32 AtIndex = ShipWeapons.Add(FWeaponCapability());
+            ShipWeapons[AtIndex].Weapon = AWS;
+            ShipWeapons[AtIndex].ExpectedDamage = AWS->BaseDamage;
+            ShipWeapons[AtIndex].Index = i;
+            ShipWeapons[AtIndex].bInRange = false;
+            ShipWeapons[AtIndex].bInArc = false;
+            if (SideOffset > AWS->MaxRange) SideOffset = AWS->MaxRange;
+        }
+        else {
+            //DEBUG DEBUG
+            UE_LOG(LogTemp, Warning, TEXT("Did not find weapon."));
+        }
+    }
+
+    AcquireEligibleTargets();
+
+    //Update whether weapons are bearing
+    if (CurrentTarget) {
+        UE_LOG(LogTemp, Warning, TEXT("FOUND TARGET."));
+        FVector ToTarget = CurrentTarget->GetActorLocation() - ControlledShip->GetActorLocation();
+        RotToTarget = ToTarget.Rotation();
+        RangeToTarget = ToTarget.Length();
+        FRotator CurrentRot = ControlledShip->GetActorRotation();
+        float YawField = FMath::FindDeltaAngleDegrees(CurrentRot.Yaw + 90, RotToTarget.Yaw) + 30.f;
+        ShieldFacingIndex = (int)(YawField / 60.f);
+        for (int32 i = 0; i < WeaponCount; i++) {
+            CheckIsBearing(i);
+        }
+    }
+
+    AllocateEnergy();
     CurrentWeaponStatus = ECombatStatus::ArmedClose;
+
 }
 
 void ABaseTacticsAIController::OnPossess(APawn* InPawn) {
@@ -95,6 +146,7 @@ void ABaseTacticsAIController::AcquireBestTarget() {
         TargetAsShip->OnShipDestroyed.RemoveDynamic(this, &ABaseTacticsAIController::HandleTargetDestroyed);
     }
     CurrentTarget = EligibleTargets[0].Target;
+    ControlledShip->SetTarget(EligibleTargets[0].Target);
     if (AShipPawn* TargetAsShip = Cast<AShipPawn>(CurrentTarget)) {
         TargetAsShip->OnShipDestroyed.AddDynamic(this, &ABaseTacticsAIController::HandleTargetDestroyed);
     }
@@ -221,12 +273,17 @@ void ABaseTacticsAIController::EngageTarget() {
     int32 FiredWeapons = 0;
     
     for (FWeaponCapability& WPEntry : ShipWeapons) {
-        if (WPEntry.bInRange && WPEntry.bInArc && (WPEntry.Weapon->DamageScaling == 0 || WPEntry.Weapon->MaxRange / 3 <= RangeToTarget)) {
-            WPEntry.Weapon->FireWeapon(CurrentTarget);
+        if (WPEntry.Weapon->bIsArming) {
+            FiredWeapons++;
+            continue;
         }
-        if (WPEntry.Weapon->bIsArming) FiredWeapons++;
+        else if (WPEntry.bInRange && WPEntry.bInArc && (WPEntry.Weapon->DamageScaling == 0 || WPEntry.Weapon->MaxRange / 3 >= RangeToTarget || (WPEntry.Weapon->MaxRange < 2000 && 1200 >= RangeToTarget))) {
+            WPEntry.Weapon->FireWeapon(CurrentTarget);
+            FiredWeapons++;
+        }
+        
     }
-    if (FiredWeapons >= WeaponCount / 2) {
+    if (FiredWeapons >= ((WeaponCount * 4) / 5)) {
         CurrentWeaponStatus = ECombatStatus::Arming;
     }
     else {
@@ -280,29 +337,42 @@ void ABaseTacticsAIController::AllocateEnergy() {
     //    }
     //}
 
-    TArray<AWeaponSystem*> ComeBackLater;
+    TArray<FWeaponCapability*> ComeBackLater;
+    UE_LOG(LogTemp, Warning, TEXT("ALLOCATING ENERGY TO WEAPONS:"));
     for (FWeaponCapability& WeaponCapability : ShipWeapons) {
         if (AWeaponSystem* AWS = WeaponCapability.Weapon) {
-            //GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Weapon with lesser range found %d"), (int)AWS->MaxRange));
+            UE_LOG(LogTemp, Warning, TEXT("ALLOCATING ENERGY TO WEAPON %s?"),*AWS->WeaponAbbreviatedName.ToString());
+            //If weapon has not been alloced yet, check if in range
             if (AWS->MinEnergy > AWS->AllocatedEnergy) {
+                //If weapon is in range, then allocate minimum energy to it
+                UE_LOG(LogTemp, Warning, TEXT("Weapon not already allocated."));
                 if (WeaponCapability.bInRange) {
+                    UE_LOG(LogTemp,Warning,TEXT("Weapon in range."))
                     int32 AttemptedEnergy = AWS->MinEnergy - AWS->AllocatedEnergy;
-                    int32 Success = AWS->AllocateEnergy(AttemptedEnergy);
-                    if (Success < AttemptedEnergy) ComeBackLater.Add(AWS);
+                    int32 Success = ControlledShip->AllocateWeapon(WeaponCapability.Index, AttemptedEnergy);
+                    UE_LOG(LogTemp, Warning, TEXT("Allocated %d/%d energy to weapon %s."), Success, AttemptedEnergy, *AWS->WeaponAbbreviatedName.ToString());
+                    if (Success < AttemptedEnergy) ComeBackLater.Add(&WeaponCapability);
                 }
-                if (WeaponCapability.bCouldOverload) {
-                    ComeBackLater.Add(AWS);
-                }
+                
             }
             else {
-                if (!WeaponCapability.bInRange && !AWS->bIsArming) AWS->FreeEnergy(AWS->AllocatedEnergy);
+                UE_LOG(LogTemp, Warning, TEXT("Weapon already allocated."));
+                if (!WeaponCapability.bInRange && !AWS->bIsArming) 
+                {
+                    UE_LOG(LogTemp, Warning, TEXT("Weapon not in range and not arming - FREE NOW"));
+                    ControlledShip->FreeWeapon(WeaponCapability.Index, AWS->AllocatedEnergy);
+                }
+                //handle this later
+                //if (WeaponCapability.bCouldOverload) {
+                //    ComeBackLater.Add(AWS);
+                //}
             }
         }
     }
     
-    for (AWeaponSystem* AWS : ComeBackLater) {
-        int32 AttemptedEnergy = AWS->MinEnergy - AWS->AllocatedEnergy;
-        int32 Success = AWS->AllocateEnergy(AttemptedEnergy);
+    for (FWeaponCapability* WC : ComeBackLater) {
+        int32 AttemptedEnergy = WC->Weapon->MinEnergy - WC->Weapon->AllocatedEnergy;
+        int32 Success = ControlledShip->AllocateWeapon(WC->Index, AttemptedEnergy);
         if (Success < AttemptedEnergy) break;
     }
 
