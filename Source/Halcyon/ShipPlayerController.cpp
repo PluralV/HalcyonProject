@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "WeaponListWidget.h"
 #include "HalcyonSimpleGameMode.h"
+#include "HalcyonMissionGameMode.h"
 #include "ShipStatWidget.h"
 #include "WeaponDetailedInfoWidget.h"
 #include "EnhancedInputComponent.h"
@@ -20,6 +21,7 @@ void AShipPlayerController::BeginPlay() {
 	check(GEngine);
 	SetInputMode(FInputModeGameOnly());
 	bShouldPerformFullTickWhenPaused = true;
+
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
 		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 	{
@@ -28,9 +30,38 @@ void AShipPlayerController::BeginPlay() {
 		{
 			Subsystem->AddMappingContext(ControllerMappingContext, 0);
 		}
-		
+
 	}
 
+	if (AGameModeBase* CurrentGameMode = GetWorld()->GetAuthGameMode()) {
+		if (AHalcyonSimpleGameMode* HCSM = Cast<AHalcyonSimpleGameMode>(CurrentGameMode)) {
+			GameModeIndex = 1;
+			HCSM->OnLoss.AddDynamic(this, &AShipPlayerController::HandleLoss);
+			HCSM->OnVVin.AddDynamic(this, &AShipPlayerController::HandleWin);
+		}//else if else if....
+		else if (AHalcyonMissionGameMode* HCMM = Cast<AHalcyonMissionGameMode>(CurrentGameMode)) {
+			GameModeIndex = 2;//TODO CHANGE
+			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Binding win conditions for le Halcyon Mission")));
+			HCMM->OnMissionLoss.AddDynamic(this, &AShipPlayerController::HandleLoss);
+			HCMM->OnMissionWin.AddDynamic(this, &AShipPlayerController::HandleWin);
+		}
+	}
+
+	GetWorldTimerManager().SetTimerForNextTick(this, &AShipPlayerController::InitializeHUD);
+}
+
+
+void AShipPlayerController::Tick(float DeltaTime) {
+	Super::Tick(DeltaTime);
+
+	if (TimeSinceLastPause < PauseTimeCooldown && !bIsPaused) {
+		float TempTime = TimeSinceLastPause + DeltaTime;
+		TimeSinceLastPause = TempTime > PauseTimeCooldown ? PauseTimeCooldown : TempTime;
+	}
+
+}
+
+void AShipPlayerController::InitializeHUD() {
 	//1. ADD MOVEMENT WIDGET
 	if (ShipMovementWidget) {
 		HUDMovement = CreateWidget<UUserWidget>(this, ShipMovementWidget);
@@ -38,7 +69,7 @@ void AShipPlayerController::BeginPlay() {
 			StatWidget->OwningShip = GetPawn();
 			StatWidget->SetIsFocusable(false);
 			StatWidget->AddToViewport();
-}
+		}
 	}
 
 	//2. ADD ENERGY WIDGET
@@ -48,7 +79,7 @@ void AShipPlayerController::BeginPlay() {
 			StatWidget->OwningShip = GetPawn();
 			StatWidget->SetIsFocusable(false);
 			StatWidget->AddToViewport();
-}
+		}
 	}
 
 	//3. ADD INTEGRITY WIDGET
@@ -86,15 +117,55 @@ void AShipPlayerController::BeginPlay() {
 		HUDWeaponDetails = CreateWidget<UUserWidget>(this, WeaponDetailsWidget);
 		if (UWeaponDetailedInfoWidget* WDIW = Cast<UWeaponDetailedInfoWidget>(HUDWeaponDetails)) {
 			//TODO: set its characteristics as possible
+			WDIW->OwningWeapon = nullptr;
+			WDIW->MyIndex = -1;
+			WDIW->OnNewOwningWeapon();
+			WDIW->SetIsFocusable(false);
+			WDIW->SetVisibility(ESlateVisibility::Hidden);
+			WDIW->AddToViewport();
+		}
+	}
+	//7. ADD PAUSE STATUS WIDGET
+	if (PauseStatusWidget) {
+		HUDPauseStatus = CreateWidget<UUserWidget>(this, PauseStatusWidget);
+		if (UShipStatWidget* SSW = Cast<UShipStatWidget>(HUDPauseStatus)) {
+			//TODO: set its characteristics as possible
+			SSW->OwningShip = GetPawn();
+			SSW->OwningController = this;
+			SSW->SetIsFocusable(false);
+			SSW->AddToViewport();
 		}
 	}
 
-	if (AGameModeBase* CurrentGameMode = GetWorld()->GetAuthGameMode()) {
-		if (AHalcyonSimpleGameMode* HCSM = Cast<AHalcyonSimpleGameMode>(CurrentGameMode)) {
-			GameModeIndex = 1;
-			HCSM->OnLoss.AddDynamic(this,&AShipPlayerController::HandleLoss);
-			HCSM->OnVVin.AddDynamic(this,&AShipPlayerController::HandleWin);
-		}//else if else if....
+	//8. ADD OBJECTIVE WIDGET
+	if (ObjectiveListWidget) {
+		HUDObjectiveList = CreateWidget<UUserWidget>(this, ObjectiveListWidget);
+		if (UShipStatWidget* SSW = Cast<UShipStatWidget>(HUDObjectiveList)) {
+			SSW->OwningShip = GetPawn();
+			SSW->OwningController = this;
+			SSW->SetIsFocusable(false);
+			SSW->AddToViewport();
+		}
+	}
+
+	if (WinWidgetClass) {
+		WinWidget = CreateWidget<UUserWidget>(this, WinWidgetClass);
+		WinWidget->SetVisibility(ESlateVisibility::Hidden);
+		WinWidget->AddToViewport();
+	}
+
+	//IF we have this widget set up the Energy Allocation step widget - make it pause here
+	if (EAWidget) {
+		//Set opening pause
+		HUDPaused = CreateWidget<UUserWidget>(this, EAWidget);
+		if (UShipStatWidget* HPSSW = Cast<UShipStatWidget>(HUDPaused)) {
+			HPSSW->OwningController = this;
+			HPSSW->SetIsFocusable(false);
+			HPSSW->AddToViewport();
+			bIsPaused = true;
+			SetPause(bIsPaused, FCanUnpause());
+		}
+		
 	}
 }
 
@@ -107,7 +178,7 @@ void AShipPlayerController::SetupInputComponent() {
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent)) {
 		EnhancedInputComponent->BindAction(ToggleHUDAction, ETriggerEvent::Triggered, this, &AShipPlayerController::ToggleHUDInteraction);
 		EnhancedInputComponent->BindAction(PauseAction, ETriggerEvent::Triggered, this, &AShipPlayerController::PauseRealtimeGame);
-		}
+	}
 }
 	
 void AShipPlayerController::ToggleHUDInteraction() {
@@ -142,28 +213,42 @@ void AShipPlayerController::AcquireTargetToHud(AActor* Target) {
 			}
 		}
 	}
+	else if (!Target) {
+		if (HUDTarget && ShipTargetWidget) {
+			if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDTarget)) {
+				StatWidget->SetOwningShip(nullptr);
+			}
+		}
+	}
 }
 
+
+//TODO (PREFERABLE): Better integrate the situation with the WinWidget
 void AShipPlayerController::HandleWin() {
 	switch (GameModeIndex) {
 	case 1:
+	case 2:
+	default:
 		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("You vvin :)")));
-		return;
-	default:break;
+		break;
 	}
 }
 
 void AShipPlayerController::HandleLoss() {
 	switch (GameModeIndex) {
 	case 1:
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("You lost :(")));
-		return;
-	default:break;
+	case 2:
+	default:
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("You lost :("))); 
+		break;
 	}
 }
 
 void AShipPlayerController::PauseRealtimeGame() {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("PAUSE INPUT RECEIVED"));
+	if (TimeSinceLastPause < PauseTimeCooldown){
+		return;
+	}
 	bIsPaused = !bIsPaused;
 	if (bIsPaused) {
 		// Pausing
@@ -184,6 +269,8 @@ void AShipPlayerController::PauseRealtimeGame() {
 		if (HUDPaused) {
 			HUDPaused->RemoveFromParent();
 		}
+		if (!bIsOnFirstPause) TimeSinceLastPause = 0.f;
+		else bIsOnFirstPause = false;
 	}
 	SetPause(bIsPaused, FCanUnpause());
 	
@@ -203,11 +290,14 @@ void AShipPlayerController::AddWeaponWidget() {
 }
 
 //Set the weapon detail widget to be visible with a specific owning weapon
-void AShipPlayerController::SetWeaponDetails(AWeaponSystem* NewOwningWeapon) {
+void AShipPlayerController::SetWeaponDetails(AWeaponSystem* NewOwningWeapon, int32 ItsIndex) {
 	if (UWeaponDetailedInfoWidget* WDIW = Cast<UWeaponDetailedInfoWidget>(HUDWeaponDetails)) {
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Cast success"));
 		WDIW->OwningWeapon = NewOwningWeapon;
-		WDIW->SetIsFocusable(false);
-		WDIW->SetVisibility(ESlateVisibility::Visible);
+		WDIW->MyIndex = ItsIndex;
+		WDIW->OnNewOwningWeapon();
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Setting visibility?"));
+		WDIW->SetVisibility(ESlateVisibility::SelfHitTestInvisible);		
 	}
 }
 
@@ -215,7 +305,14 @@ void AShipPlayerController::SetWeaponDetails(AWeaponSystem* NewOwningWeapon) {
 void AShipPlayerController::ClearWeaponDetails() {
 	if (UWeaponDetailedInfoWidget* WDIW = Cast<UWeaponDetailedInfoWidget>(HUDWeaponDetails)) {
 		WDIW->OwningWeapon = nullptr;
-		WDIW->SetIsFocusable(false);
 		WDIW->SetVisibility(ESlateVisibility::Hidden);
 	}
+}
+
+float AShipPlayerController::GetPauseChargePercent() {
+	return TimeSinceLastPause > PauseTimeCooldown ? 1.0 : TimeSinceLastPause / PauseTimeCooldown;
+}
+
+bool AShipPlayerController::GetPauseStatus() {
+	return bIsPaused;
 }

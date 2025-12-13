@@ -49,17 +49,18 @@ void UWeaponListWidget::NativeConstruct() {
 			// Create a Size Box to control dimensions
 			USizeBox* SizeBox = NewObject<USizeBox>(this);
 			SizeBox->SetHeightOverride(160.0f);  // Overridden height of each cell
+			SizeBox->SetWidthOverride(220.0f);
 			//Add the child to the SizeBox
 			SizeBox->AddChild(WeaponEntryList[i]);
 
 			if (UScrollBoxSlot* ScrollSlot = Cast<UScrollBoxSlot>(ContainerPanel->AddChild(SizeBox))) {
 				// Configure the slot
 				//ScrollSlot->SetPadding(FMargin(0.f, 0.f, 0.f, 0.f));
-				ScrollSlot->SetHorizontalAlignment(HAlign_Fill);
-				ScrollSlot->SetVerticalAlignment(VAlign_Top);
+				ScrollSlot->SetHorizontalAlignment(HAlign_Left);
+				ScrollSlot->SetVerticalAlignment(VAlign_Fill);
 				ScrollSlot->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
 				// Spacing between items
-				ScrollSlot->SetPadding(FMargin(0.0f, 5.0f));
+				ScrollSlot->SetPadding(FMargin(5.0f, 0.0f));
 			}
 		}
 	}

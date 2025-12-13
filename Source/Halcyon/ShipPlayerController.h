@@ -30,9 +30,26 @@ class HALCYON_API AShipPlayerController : public APlayerController
 public:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
+	
 	void AcquireTargetToHud(AActor* Target);
 	void AddWeaponWidget();
+
+	UFUNCTION(BlueprintCallable)
+	void SetWeaponDetails(AWeaponSystem* NewOwningWeapon, int32 ItsIndex);
+	
+	UFUNCTION(BlueprintCallable)
+	bool GetPauseStatus();
+
+	UFUNCTION(BlueprintCallable)
+	float GetPauseChargePercent();
+
+	UFUNCTION(BlueprintCallable)
+	void PauseRealtimeGame();
+
 protected:
+	void InitializeHUD();
+
+	virtual void Tick(float DeltaTime) override;
 	// Input Actions
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputMappingContext* ControllerMappingContext;
@@ -78,6 +95,7 @@ protected:
 		- Buttons: Allocate/free energy from each weapon
 		- Key binds: Group weapons so they shoot together (TODO, future feature)
 	*/
+
 	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ShipMovementWidget;
 
@@ -100,17 +118,43 @@ protected:
 	TSubclassOf<UUserWidget> PauseWidget;
 
 	UPROPERTY(EditAnywhere, Category = "HUD")
+	TSubclassOf<UUserWidget> EAWidget;
+
+	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> WeaponDetailsWidget;
 
+	UPROPERTY(EditAnywhere, Category = "HUD")
+	TSubclassOf<UUserWidget> PauseStatusWidget;
 
+	UPROPERTY(EditAnywhere, Category = "HUD")
+	TSubclassOf<UUserWidget> ObjectiveListWidget;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Win Widget")
+	TSubclassOf<UUserWidget> WinWidgetClass;
+
+	UPROPERTY()
 	UUserWidget* HUDMovement;
+	UPROPERTY()
 	UUserWidget* HUDEnergy;
+	UPROPERTY()
 	UUserWidget* HUDIntegrity;
+	UPROPERTY()
 	UUserWidget* HUDWeapons;
+	UPROPERTY()
 	UUserWidget* HUDHull;
+	UPROPERTY()
 	UUserWidget* HUDTarget;
+	UPROPERTY()
 	UUserWidget* HUDPaused;
+	UPROPERTY()
 	UUserWidget* HUDWeaponDetails;
+	UPROPERTY()
+	UUserWidget* HUDPauseStatus;
+	UPROPERTY()
+	UUserWidget* HUDObjectiveList;
+	UPROPERTY()
+	UUserWidget* WinWidget;
 
 	/*Separate functions will exist for allocating energy to systems that are static / default
 	(i.e. movement, shield reinforcement, <potential> repairs/electronic warfare) and those that
@@ -125,10 +169,9 @@ protected:
 	
 	void ToggleHUDInteraction();
 
-	void PauseRealtimeGame();
+	
 
-	UFUNCTION(BlueprintCallable)
-	void SetWeaponDetails(AWeaponSystem* NewOwningWeapon);
+	
 
 	UFUNCTION(BlueprintCallable)
 	void ClearWeaponDetails();
@@ -139,9 +182,14 @@ protected:
 //	void DisableLook();
 //	void EnableLook();
 private:
+	
+	
+	int32 GameModeIndex = -1;
+	float TimeSinceLastPause = 32.f;
+	const float PauseTimeCooldown = 32.f;
 	bool bIsInHUDMode = false;
 	bool bIsPaused = false;
-	int32 GameModeIndex = -1;
+	bool bIsOnFirstPause = true;
 //	void OnRightMouseAxis(float Value);
 //	bool bIsRightMouseDown = false;
 	UFUNCTION()

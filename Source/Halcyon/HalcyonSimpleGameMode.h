@@ -4,11 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "Blueprint/UserWidget.h"
 #include "HalcyonSimpleGameMode.generated.h"
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnVVin);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLoss);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyKilled, int32, RemainingEnemies);
 
 /**
  * 
@@ -27,6 +29,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnLoss OnLoss;
 
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnEnemyKilled OnEnemyKilled;
+
 	//TODO CHANGE!!!
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Win Condition")
 	uint8 EnemiesRemaining = 0;
@@ -39,6 +44,7 @@ public:
 
 	UFUNCTION()
 	void CauseLoss();
+
 private:
 	void CheckEnemies();
 };

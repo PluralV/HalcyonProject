@@ -71,7 +71,7 @@ void UShipPawnMovementComponent::TickComponent(float DeltaTime,
         PrimComp->AddForce(ForceToApply, NAME_None,false);
         CurrentVelocity = PrimComp->GetPhysicsLinearVelocity();
         float NewSpeed = FVector::DotProduct(CurrentVelocity, Right);
-        /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+       /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
             FString::Printf(TEXT("Before check: NewSpeed: %f SpeedConstant: %f MovementEnergy: %d"), NewSpeed, SpeedConstant, MovementEnergy));*/
         if (abs(NewSpeed) > SpeedConstant * (float)MovementEnergy) {
             NewSpeed = NewSpeed > 0 ? SpeedConstant * (float)MovementEnergy : -1.0 * SpeedConstant * (float)MovementEnergy;

@@ -90,6 +90,9 @@ void UShipStatWidget::SetOwningShip(AActor* NewOwningShip) {
 		OwningShip = ShipPawn;
 		OnOwningShipChanged(OwningShip);
 	}
+	else if (!NewOwningShip) {
+		OnOwningShipChanged(nullptr);
+	}
 }
 
 FReply UShipStatWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) {

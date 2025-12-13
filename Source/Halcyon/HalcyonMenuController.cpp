@@ -13,6 +13,18 @@ void AHalcyonMenuController::BeginPlay() {
     /*GEngine->AddOnScreenDebugMessage(-1, 3.0f,FColor::Yellow,TEXT("Showing screen:"));
     if (MainMenuWidgetClass) {
         GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("There is a main menu widget:"));
+    }
+    if (HelpScreenWidgetClass) {
+        GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("There is a help widget:"));
+    }
+    if (CreditsScreenWidgetClass) {
+        GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("There is a credits widget:"));
+    }
+    if (LevelSelectScreenWidgetClass) {
+        GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("There is a level select widget:"));
+    }
+    if (MissionDescWidgetClass) {
+        GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("There is a mission desc widget:"));
     }*/
 	ShowScreen(0);
 }
@@ -26,6 +38,7 @@ void AHalcyonMenuController::BeginPlay() {
 
 */
 void AHalcyonMenuController::ShowScreen(int32 which) {
+    //GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, FString::Printf(TEXT("Setting for widget %d:"),which));
     TSubclassOf<UUserWidget> ScreenWidgetClass;
     FName ScreenName = NAME_None;
     switch (which) {
@@ -53,6 +66,12 @@ void AHalcyonMenuController::ShowScreen(int32 which) {
             ScreenName = TEXT("LevelSelectScreen");
         }
         break;
+    case 4:
+        if (MissionDescWidgetClass) {
+            ScreenWidgetClass = MissionDescWidgetClass;
+            ScreenName = TEXT("MissionDescScreen");
+        }
+        break;
     default:break;
     }
     ScreenWidget = CreateWidget<UUserWidget>(this, ScreenWidgetClass, ScreenName);
@@ -63,9 +82,21 @@ void AHalcyonMenuController::ShowScreen(int32 which) {
 
 void AHalcyonMenuController::HideScreen()
 {
+    //GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Checking for widget validity:"));
     if (ScreenWidget)
     {
+        //GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Removing current widget:"));
+        ScreenWidget->SetVisibility(ESlateVisibility::Hidden);
         ScreenWidget->RemoveFromParent();
         ScreenWidget = nullptr;
     }
+}
+
+FMissionInfo AHalcyonMenuController::GetActiveMissionGameMode() {
+    return CurrentActiveMissionMode;
+}
+
+
+void AHalcyonMenuController::SetActiveMissionGameMode(FMissionInfo ActiveMissionMode) {
+    CurrentActiveMissionMode = ActiveMissionMode;
 }

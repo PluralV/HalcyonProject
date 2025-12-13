@@ -39,26 +39,26 @@ public:
         FActorComponentTickFunction* ThisTickFunction) override;
 
     // Amount of force applied for full throttle
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    UPROPERTY(BlueprintReadWrite, Category = "Movement")
     float ForceMultiplier = 25000.f;
 
     // Amount of torque applied for rotational input
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    UPROPERTY(BlueprintReadWrite, Category = "Movement")
     float TorqueMultiplier = 50000.f;
 
     //Engine settings
-    UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
-    float SpeedLimit;
+    UPROPERTY(BlueprintReadOnly, Category = "Base Mobility Stats")
+    float SpeedLimit = 720.f;
     //Maneuverability
-    UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
-    float PitchRate;
-    UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
-    float YawRate;
+    UPROPERTY(BlueprintReadOnly, Category = "Base Mobility Stats")
+    float PitchRate = 25.0;
+    UPROPERTY(BlueprintReadOnly, Category = "Base Mobility Stats")
+    float YawRate = 25.0;
     //Top speed, multiplied by amount of energy allocated to movement to get the maximum velocity (magnitude)
-    UPROPERTY(BlueprintReadWrite, Category = "Base Mobility Stats")
-    float SpeedConstant;
+    UPROPERTY(BlueprintReadOnly, Category = "Base Mobility Stats")
+    float SpeedConstant = 12.f;
 
-    float AccelRate;
+    float AccelRate = 20.f;
 
 private:
     float CurrentThrust=0.f;

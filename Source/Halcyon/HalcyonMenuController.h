@@ -6,6 +6,20 @@
 
 class UUserWidget;
 
+USTRUCT(BlueprintType)
+struct FMissionInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MissionNum;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText MissionName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText MissionDesc;
+};
 /**
  * 
  */
@@ -29,8 +43,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUserWidget> LevelSelectScreenWidgetClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUserWidget> MissionDescWidgetClass;
+
 	UPROPERTY()
 	UUserWidget* ScreenWidget;
+
+	FMissionInfo CurrentActiveMissionMode;
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
@@ -38,5 +57,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void HideScreen();
+
+	//Used to determine what appears on the mission description screen
+	UFUNCTION(BlueprintCallable, Category = "Mission Gamemode")
+	void SetActiveMissionGameMode(FMissionInfo ActiveMissionMode);
+
+
+	UFUNCTION(BlueprintCallable, Category = "Mission Gamemode")
+	FMissionInfo GetActiveMissionGameMode();
 
 };

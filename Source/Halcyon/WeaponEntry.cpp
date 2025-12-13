@@ -2,6 +2,7 @@
 
 
 #include "WeaponEntry.h"
+#include "WeaponDetailedInfoWidget.h"
 #include "ShipPawn.h"
 #include "ShipPlayerController.h"
 #include "Components/Button.h"
@@ -17,19 +18,30 @@ void UWeaponEntry::NativeConstruct() {
 			if (LblWeaponArc) LblWeaponArc->SetText(OwningWeapon->WeaponArc);
 			if (LblStatus) LblStatus->SetText(FText::FromString("INACTIVE"));
 			if (EnergyLevelCurr) EnergyLevelCurr->SetText(FText::FromString(FString::Printf(TEXT("%d"), OwningWeapon->AllocatedEnergy)));
+			OwningWeapon->OnEnergyChangedExternal.AddDynamic(this, &UWeaponEntry::OnEnergyChanged);
+	}
+	if (OwningShip) {
+		if (AShipPawn* OSP = Cast<AShipPawn>(OwningShip)) OSP->OnWeaponDamaged.AddDynamic(this, &UWeaponEntry::RegisterDamage);
 	}
 }
 
 void UWeaponEntry::OnAllocButtonClicked() {
 	//Cycle energy - attempt to immediately allocate to minimum level
 	if (AShipPawn* OSP = Cast<AShipPawn>(OwningShip)) {
-		if (OwningWeapon && !OwningWeapon->bIsDamaged) {
+		if (OwningWeapon && !bIsDamaged && !OwningWeapon->bIsFiring) {
+			int32 AmountAlloced = 0;
 			if (OwningWeapon->AllocatedEnergy < OwningWeapon->MinEnergy) {//if less than minimum, allocate entirely up to min
 				//ALLOCATE THIS AMOUNT OF ENERGY TO WEAPON W/SHIP PAWN
-				OSP->AllocateWeapon(MyIndex, OwningWeapon->MinEnergy - OwningWeapon->AllocatedEnergy);
+				AmountAlloced = OSP->AllocateWeapon(MyIndex, OwningWeapon->MinEnergy - OwningWeapon->AllocatedEnergy);
+				if (!AmountAlloced) {
+					OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
+				}
 			}
 			else if (OwningWeapon->AllocatedEnergy < OwningWeapon->MaxEnergy) {//If between minimum and maximum, step up by 1
-				OSP->AllocateWeapon(MyIndex, OwningWeapon->EnergyStep);
+				AmountAlloced = OSP->AllocateWeapon(MyIndex, OwningWeapon->EnergyStep);
+				if (!AmountAlloced) {//If it failed, just free the energy
+					OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
+				}
 			}
 			else {//If at maximum, simply free all the energy
 				OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
@@ -45,7 +57,8 @@ void UWeaponEntry::OnInfoButtonClicked() {
 		if (OwningShip) {
 			if (AShipPawn* OSP = Cast<AShipPawn>(OwningShip)) {
 				if (AShipPlayerController* OPC = Cast<AShipPlayerController>(OSP->Controller)) {
-					
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Clicked info button"));
+					OPC->SetWeaponDetails(OwningWeapon,MyIndex);
 				}
 			}
 		}
@@ -54,7 +67,7 @@ void UWeaponEntry::OnInfoButtonClicked() {
 
 //Assigns weapon to control group on click
 void UWeaponEntry::OnCtrlGroupButtonClicked() {
-	if (OwningWeapon) {
+	if (OwningWeapon && !bIsDamaged) {
 		OwningWeapon->ControlGroup = (OwningWeapon->ControlGroup + 1) % 10;
 		if (LblControlGroup) {
 			LblControlGroup->SetText(FText::FromString(FString::Printf(TEXT("%d"), OwningWeapon->ControlGroup)));
@@ -63,7 +76,7 @@ void UWeaponEntry::OnCtrlGroupButtonClicked() {
 }
 
 void UWeaponEntry::OnEnergyChanged() {
-	if (OwningWeapon) {
+	if (OwningWeapon && !bIsDamaged) {
 		int32 Energy = OwningWeapon->AllocatedEnergy;
 		int32 Min = OwningWeapon->MinEnergy;
 		int32 Max = OwningWeapon->MaxEnergy;
@@ -120,16 +133,15 @@ void UWeaponEntry::OnEnergyChanged() {
 		}
 
 		//Update the button color to match status
-		if (AllocButton) {
-			AdjustButtonBackgroundColor(StatusColor);
-		}
+		AdjustButtonBackgroundColor(StatusColor);
 	}
 	
 }
 
 void UWeaponEntry::NativeTick(const FGeometry& MyGeometry, float InDeltaTime) {
 	Super::NativeTick(MyGeometry, InDeltaTime);
-	if (OwningWeapon) {
+	//Determine color/look of entry main panel and cooldown bars of various kinds
+	if (OwningWeapon && !bIsDamaged) {
 		if (OwningWeapon->AllocatedEnergy >= OwningWeapon->MinEnergy) {
 			if (OwningWeapon->bIsArming) {
 				bIsReady = false;
@@ -152,7 +164,47 @@ void UWeaponEntry::NativeTick(const FGeometry& MyGeometry, float InDeltaTime) {
 					LblCooldownStatus->SetText(FText::FromString("ARMED"));
 				}
 			}
+			if (OwningWeapon->bIsFiring) {
+				if (!bIsFiringSet) {
+					bIsFiringSet = true;
+					DarkenButtonBackgroundColor();
+				}
+				LblCooldownStatus->SetText(FText::FromString("FIRING"));
+				
+			}
+			else {
+				if (bIsFiringSet) {
+					bIsFiringSet = false;
+					LightenButtonBackgroundColor();
+				}
+			}
 		}
+	}
+}
+
+void UWeaponEntry::DarkenButtonBackgroundColor() {
+	if (AllocButton) {
+		// Get current button style
+		FButtonStyle ButtonStyle = AllocButton->GetStyle();
+
+		ButtonStyle.Normal.TintColor = FSlateColor(ButtonStyle.Normal.TintColor.GetSpecifiedColor() * 0.75f);
+		ButtonStyle.Hovered.TintColor = FSlateColor(ButtonStyle.Hovered.TintColor.GetSpecifiedColor() * 0.75f);
+		ButtonStyle.Pressed.TintColor = FSlateColor(ButtonStyle.Pressed.TintColor.GetSpecifiedColor() * 0.75f);
+
+		AllocButton->SetStyle(ButtonStyle);
+	}
+}
+
+void UWeaponEntry::LightenButtonBackgroundColor() {
+	if (AllocButton) {
+		// Get current button style
+		FButtonStyle ButtonStyle = AllocButton->GetStyle();
+
+		ButtonStyle.Normal.TintColor = FSlateColor(ButtonStyle.Normal.TintColor.GetSpecifiedColor() / 0.75f);
+		ButtonStyle.Hovered.TintColor = FSlateColor(ButtonStyle.Hovered.TintColor.GetSpecifiedColor() / 0.75f);
+		ButtonStyle.Pressed.TintColor = FSlateColor(ButtonStyle.Pressed.TintColor.GetSpecifiedColor() / 0.75f);
+
+		AllocButton->SetStyle(ButtonStyle);
 	}
 }
 
@@ -161,14 +213,33 @@ void UWeaponEntry::AdjustButtonBackgroundColor(FLinearColor StatusColor) {
 		// Get the current button style
 		FButtonStyle ButtonStyle = AllocButton->GetStyle();
 
-		// Create a new slate brush with the color
+		//Change the normal, hovered, pressed colors to statuscolor (brighter on hover, darker on pressed)
 		ButtonStyle.Normal.TintColor = FSlateColor(StatusColor);
 
-		ButtonStyle.Hovered.TintColor = FSlateColor(StatusColor * 1.2f); // Slightly brighter on hover
+		ButtonStyle.Hovered.TintColor = FSlateColor(StatusColor * 1.2f);
 
-		ButtonStyle.Pressed.TintColor = FSlateColor(StatusColor * 0.8f); // Slightly darker when pressed
+		ButtonStyle.Pressed.TintColor = FSlateColor(StatusColor * 0.8f);
 
-		// Apply the style to the button
 		AllocButton->SetStyle(ButtonStyle);
+	}
+}
+
+//if it matches this weapon's index, set the weapon's background color to red and show it as damaged
+//damaged buttons do not respond to clicks
+void UWeaponEntry::RegisterDamage(int32 Index) {
+	if (Index == MyIndex) {
+		bIsDamaged = true;
+		if (AllocButton) {
+			AdjustButtonBackgroundColor(FLinearColor(1.f, 0.f, 0.f));
+		}
+		if (LblStatus) {
+			LblStatus->SetText(FText::FromString("WEAPON DOWN"));
+		}
+		if (LblCooldownStatus) {
+			LblCooldownStatus->SetText(FText::FromString("CRITICAL"));
+		}
+		if (EnergyLevelCurr) {
+			EnergyLevelCurr->SetText(FText::FromString("N/A"));
+		}
 	}
 }
