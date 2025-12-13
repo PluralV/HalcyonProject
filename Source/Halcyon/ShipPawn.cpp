@@ -17,6 +17,7 @@
 #include "WeaponSystem.h"
 
 // Sets default values
+int32 AShipPawn::NextStencilValue = 1;
 AShipPawn::AShipPawn()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -85,6 +86,16 @@ AShipPawn::AShipPawn()
 
 	for (int8 i = 0; i < 6; i++) {
 		ShieldFacingsCurr[i] = ShieldFacings[i];
+	}
+	// enable custom depth, set stencil value
+	CustomStencilValue = NextStencil();
+	for (UActorComponent* Comp : GetComponents())
+	{
+		if (UStaticMeshComponent* MeshComp = Cast<UStaticMeshComponent>(Comp))
+		{
+			MeshComp->SetRenderCustomDepth(true);
+			MeshComp->SetCustomDepthStencilValue(CustomStencilValue);
+		}
 	}
 }
 
@@ -590,8 +601,17 @@ void AShipPawn::DestroyShip(int32 CauseOfDeath) {
 	}
 	//else if else if...
 	
-	switch (CauseOfDeath) {//Ideally in the end TODO: we add some kind of death animation prior to vaporizing them
-	case 0://Currently: just destroy
+	switch (CauseOfDeath) {
+	case 0:// destroy
+		// spawn explosion fx
+		if (ExplosionFX) {
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				GetWorld(),
+				ExplosionFX,
+				GetActorLocation(),
+				GetActorRotation()
+			);
+		}
 		this->Destroy();
 		return;
 	default:return;

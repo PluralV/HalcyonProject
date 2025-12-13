@@ -5,8 +5,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "InputActionValue.h"
+#include "Components/StaticMeshComponent.h"
 #include "ShipPawn.generated.h"
 
+class UNiagaraSystem;
+class AProjectile;
 class UInputMappingContext;
 class UInputAction;
 class UShipPawnMovementComponent;
@@ -58,7 +61,7 @@ class HALCYON_API AShipPawn : public APawn
 public:
 	// Sets default values for this pawn's properties
 	AShipPawn();
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UShipPawnMovementComponent* MovementComponent;
 
@@ -98,7 +101,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
 	FText ShipClass;
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shield FX")
+	TSubclassOf<AActor> ShieldHitBPClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
+	UNiagaraSystem* ExplosionFX;
 	//AI functions - used to directly interface with ship pawn for AI controllers
 
 	UFUNCTION()
@@ -115,6 +121,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	virtual void BeginDestroy() override;
+
 	
 	// Input Actions
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
@@ -150,6 +157,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapons")
 	TArray<UChildActorComponent*> WeaponComponents;
 
+
 	//Handle player input
 	void Look(const FInputActionValue& Value);
 	void Throttle(const FInputActionValue& Value);
@@ -184,7 +192,7 @@ protected:
 	//Stores current strength of each shield
 	UPROPERTY(BlueprintReadOnly)
 	TArray<int32> ShieldFacingsCurr = {0,0,0,0,0,0};
-	
+	TArray<UStaticMeshComponent*> ShieldSegments;
 	//Hull damage: Internal damage that does nothing
 	int32 CenterHull = 0;
 	int32 CenterHullCurr;
@@ -244,6 +252,31 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	static int32 NextStencilValue;
+	int32 NextStencil() {
+		NextStencilValue++;
+		// wrap around
+		if (NextStencilValue > 255)
+		{
+			NextStencilValue = 1; 
+		}
+		return NextStencilValue;
+	}
+	int32 CustomStencilValue;
+
+	// Array of missiles currently locked onto ship, use for countermeasures
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	TArray<AProjectile*> IncomingMissiles;
+
+	void AddIncomingMissile(AProjectile* Missile) {
+		if (!Missile) return;
+		IncomingMissiles.AddUnique(Missile);
+	}
+	void RemoveIncomingMissile(AProjectile* Missile) {
+		if (!Missile) return;
+		IncomingMissiles.Remove(Missile);
+	}
 
 	//Functions for allocating energy to specific functions
 	UFUNCTION(BlueprintCallable)

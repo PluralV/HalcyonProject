@@ -5,6 +5,8 @@
 #include "WeaponSystem.h"
 #include "Kismet/KismetMathLibrary.h"
 #include <Kismet/GameplayStatics.h>
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 
 
 // Sets default values
@@ -26,22 +28,20 @@ AProjectile::AProjectile()
     RootComponent = Collision;
 
     Mesh->SetMassOverrideInKg(NAME_None, 0.f, true);
+    Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     Mesh->SetupAttachment(Collision);
 
     // collision
     Collision->InitSphereRadius(12.f); // adjust size later?
     Collision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
     Collision->SetCollisionResponseToAllChannels(ECR_Overlap); 
+    //Collision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
     Collision->SetCollisionObjectType(ECC_WorldDynamic);
     Collision->SetNotifyRigidBodyCollision(true);
 
-    Collision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-    Collision->SetCollisionObjectType(ECC_WorldDynamic);
-
-    Collision->SetCollisionResponseToAllChannels(ECR_Overlap);
-    Collision->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-    Collision->SetGenerateOverlapEvents(true);
     Collision->OnComponentBeginOverlap.AddDynamic(this, &AProjectile::OnOverlapBegin);
+
+
 
 }
 
@@ -77,24 +77,72 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
                     ImpactAngle));*/
             // Play audio depending on whether shield or hull is hit
             EHitLayer ShieldOrHull = Ship->AllocateDamage(ImpactAngle, GetDamage());
-            FVector ImpactLocation = GetActorLocation();
+            FVector ProjectileLoc = GetActorLocation();
+            FVector ExplosionSpawnLoc = ProjectileLoc;
             switch (ShieldOrHull) {
                 case EHitLayer::Shield:
-                    // spawn effect
+                    // spawn projectile effect
                     if (ShieldHitEffect) {
                         UNiagaraFunctionLibrary::SpawnSystemAtLocation(
                             GetWorld(),
                             ShieldHitEffect,
-                            ImpactLocation,
+                            ProjectileLoc,
                             GetActorRotation()  // or use an impact normal if you have one
                         );
                     }
-                    // audio
-                    UGameplayStatics::PlaySoundAtLocation(this, ShieldHitAudio, ImpactLocation);
+                    // spawn shield FX
+                    if (Ship->ShieldHitBPClass) {
+                        float OffsetDistance = 50.f; // distance from hull
+                        float LifeTime = 1.f; // how long FX plane lasts
+                        FVector ShipCenter = OtherActor->GetActorLocation();
+                        FVector ImpactLoc = SweepResult.ImpactPoint;
+                        FVector ImpactNormal = SweepResult.ImpactNormal;
+                        
+                        FVector ProjectileDir = GetVelocity().GetSafeNormal();
+                        FRotator ImpactNormalRot = ImpactNormal.Rotation();
+                        // average of opposite projectile vector and normal vector
+                        FQuat NormalQuat = ImpactNormal.ToOrientationQuat();
+                        FQuat ProjectileQuat = (-ProjectileDir).ToOrientationQuat();
+                        FQuat AvgQuat = FQuat::Slerp(NormalQuat, ProjectileQuat, 0.5f);
+                        FRotator ShieldFXSpawnRot = AvgQuat.Rotator();
+
+                        //FVector ShieldFXSpawnLoc = ImpactLoc + ImpactNormal * OffsetDistance;
+                        FVector ShieldFXSpawnLoc = ImpactLoc + AvgQuat.GetForwardVector() * OffsetDistance;                        FActorSpawnParameters SpawnParams;
+                        SpawnParams.Owner = this;
+                        SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+                        AActor* ShieldPlane = GetWorld()->SpawnActor<AActor>(Ship->ShieldHitBPClass, ShieldFXSpawnLoc, ShieldFXSpawnRot, SpawnParams);
+                        // attach to ship so it moves with it
+                        if (ShieldPlane)
+                        {
+                            ShieldPlane->AttachToActor(OtherActor, FAttachmentTransformRules::KeepWorldTransform);
+
+                            // destroy after LifeTime
+                            FTimerHandle TimerHandle;
+                            GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ShieldPlane]() {
+                                    if (ShieldPlane)
+                                    {
+                                        ShieldPlane->Destroy();
+                                    }
+                                }, LifeTime, false); // lifespan in seconds
+                        }
+                        ExplosionSpawnLoc = ShieldFXSpawnLoc;
+                    }
+                    // shield hit audio
+                    if (ShieldHitAudio) {
+                        UGameplayStatics::PlaySoundAtLocation(this, ShieldHitAudio, ProjectileLoc);
+                    }
+                    /*GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("test"));*/
+
+                    // shield spawn audio
+                    /*if (ShieldSpawnAudio) {
+                        UGameplayStatics::PlaySoundAtLocation(this, ShieldSpawnAudio, ProjectileLoc);
+                    }*/
                     break;
                 case EHitLayer::Hull:
-                    // audio
-                    UGameplayStatics::PlaySoundAtLocation(this, HullHitAudio, ImpactLocation);
+                    // hull hit audio
+                    if (HullHitAudio) {
+                        UGameplayStatics::PlaySoundAtLocation(this, HullHitAudio, ProjectileLoc);
+                    }
                     break;
                 default:
                     break;
@@ -104,7 +152,7 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
             UNiagaraFunctionLibrary::SpawnSystemAtLocation(
                 GetWorld(),
                 ExplosionEffect,
-                ImpactLocation,
+                ExplosionSpawnLoc,
                 GetActorRotation()
             );
         }
@@ -129,15 +177,32 @@ void AProjectile::BeginPlay()
 void AProjectile::SetupHoming(AActor* InTarget)
 {
     Target = InTarget;
-
+    
     if (Movement->bIsHomingProjectile && Target)
     {
+        // set target
         Movement->HomingTargetComponent = Target->GetRootComponent();
+        // add to array of missiles currently locked on ship
+        if (AShipPawn* ShipPawn = Cast<AShipPawn>(Target))
+        {
+            ShipPawn->AddIncomingMissile(this);
+        }
     }
     else {
         GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("not homing projectile"));
     }
 }
+
+void AProjectile::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    if (AShipPawn* Ship = Cast<AShipPawn>(Target))
+    {
+        Ship->RemoveIncomingMissile(this);
+    }
+
+    Super::EndPlay(EndPlayReason);
+}
+
 
 // Called every frame
 void AProjectile::Tick(float DeltaTime)
