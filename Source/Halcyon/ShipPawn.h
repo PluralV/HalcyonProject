@@ -129,10 +129,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
 	FText ShipClass;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shield FX")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
 	TSubclassOf<AActor> ShieldHitBPClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
+	USoundBase* ShieldHitAudio;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
 	UNiagaraSystem* ExplosionFX;
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
 	FText ShipDesc;
@@ -148,6 +151,19 @@ public:
 	void AIFireWeapon() {
 		Fire();
 	}
+
+
+	// flash highlight when hull damage is taken, tick will check if timer>0
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
+	UMaterialInterface* HullDamageHighlightBP;  // The material to flash
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FX")
+	float HullDamageHighlightTime = 0.0f;
+
+	void EnableHullDamageHighlight() {
+		HullDamageHighlightTime = 1.0f;
+	};
+
 
 protected:
 	// Called when the game starts or when spawned
@@ -182,6 +198,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* FreeMovementAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* CountermeasuresAction;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Targeting")
 	AActor* CurrentTarget = nullptr;
@@ -296,17 +315,6 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	static int32 NextStencilValue;
-	int32 NextStencil() {
-		NextStencilValue++;
-		// wrap around
-		if (NextStencilValue > 255)
-		{
-			NextStencilValue = 1; 
-		}
-		return NextStencilValue;
-	}
-	int32 CustomStencilValue;
 
 	// Array of missiles currently locked onto ship, use for countermeasures
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
@@ -320,6 +328,8 @@ public:
 		if (!Missile) return;
 		IncomingMissiles.Remove(Missile);
 	}
+	// Countermeasures
+	void DeployCountermeasures();
 
 	//Functions for allocating energy to specific functions
 	UFUNCTION(BlueprintCallable)

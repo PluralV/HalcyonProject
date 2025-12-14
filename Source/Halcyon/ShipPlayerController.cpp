@@ -62,11 +62,18 @@ void AShipPlayerController::Tick(float DeltaTime) {
 }
 
 void AShipPlayerController::InitializeHUD() {
+	APawn* ControlledPawn = GetPawn();
+	if (!ControlledPawn || !ControlledPawn->IsActorInitialized()) {
+		UE_LOG(LogTemp, Warning, TEXT("InitializeHUD: No pawn available yet, retrying..."));
+		GetWorldTimerManager().SetTimerForNextTick(this, &AShipPlayerController::InitializeHUD);
+		return;
+	}
+
 	//1. ADD MOVEMENT WIDGET
 	if (ShipMovementWidget) {
 		HUDMovement = CreateWidget<UUserWidget>(this, ShipMovementWidget);
 		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDMovement)) {
-			StatWidget->OwningShip = GetPawn();
+			StatWidget->OwningShip = ControlledPawn;
 			StatWidget->SetIsFocusable(false);
 			StatWidget->AddToViewport();
 		}
@@ -76,7 +83,7 @@ void AShipPlayerController::InitializeHUD() {
 	if (ShipEnergyWidget) {
 		HUDEnergy = CreateWidget<UUserWidget>(this, ShipEnergyWidget);
 		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDEnergy)) {
-			StatWidget->OwningShip = GetPawn();
+			StatWidget->OwningShip = ControlledPawn;
 			StatWidget->SetIsFocusable(false);
 			StatWidget->AddToViewport();
 		}
@@ -96,7 +103,7 @@ void AShipPlayerController::InitializeHUD() {
 	if (ShipHullWidget) {
 		HUDHull = CreateWidget<UUserWidget>(this, ShipHullWidget);
 		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDHull)) {
-			StatWidget->OwningShip = GetPawn();
+			StatWidget->OwningShip = ControlledPawn;
 			StatWidget->SetIsFocusable(false);
 			StatWidget->AddToViewport();
 		}
@@ -130,7 +137,7 @@ void AShipPlayerController::InitializeHUD() {
 		HUDPauseStatus = CreateWidget<UUserWidget>(this, PauseStatusWidget);
 		if (UShipStatWidget* SSW = Cast<UShipStatWidget>(HUDPauseStatus)) {
 			//TODO: set its characteristics as possible
-			SSW->OwningShip = GetPawn();
+			SSW->OwningShip = ControlledPawn;
 			SSW->OwningController = this;
 			SSW->SetIsFocusable(false);
 			SSW->AddToViewport();
@@ -141,7 +148,7 @@ void AShipPlayerController::InitializeHUD() {
 	if (ObjectiveListWidget) {
 		HUDObjectiveList = CreateWidget<UUserWidget>(this, ObjectiveListWidget);
 		if (UShipStatWidget* SSW = Cast<UShipStatWidget>(HUDObjectiveList)) {
-			SSW->OwningShip = GetPawn();
+			SSW->OwningShip = ControlledPawn;
 			SSW->OwningController = this;
 			SSW->SetIsFocusable(false);
 			SSW->AddToViewport();

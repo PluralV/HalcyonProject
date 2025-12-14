@@ -31,6 +31,11 @@ public:
 	bool IsHomingProjectile() {
 		return Movement->bIsHomingProjectile;
 	}
+	// also makes it veer in random direction
+	void RemoveMissileTarget();
+	bool bVeering = false;
+	FVector DesiredVelocity;
+	// only set if has a homing target
 	UPROPERTY()
 	AActor* Target;
 
@@ -78,8 +83,7 @@ protected:
 	int32 MinEnergy;
 	int32 EnergyStep;
 	int32 MaxEnergy;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-	USoundBase* ShieldHitAudio;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	USoundBase* HullHitAudio;
 

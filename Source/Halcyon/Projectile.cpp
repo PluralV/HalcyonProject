@@ -78,7 +78,7 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
                     ImpactVector.X, ImpactVector.Y, ImpactVector.Z,
                     ImpactAngle));*/
             // Play audio depending on whether shield or hull is hit
-            EHitLayer ShieldOrHull = Ship->AllocateDamage(ImpactAngle, GetDamage());
+            EHitLayer ShieldOrHull = Ship->AllocateDamage(ImpactAngle, GetDamage(DistanceTraveled));
             FVector ProjectileLoc = GetActorLocation();
             FVector ExplosionSpawnLoc = ProjectileLoc;
             switch (ShieldOrHull) {
@@ -130,20 +130,19 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
                         ExplosionSpawnLoc = ShieldFXSpawnLoc;
                     }
                     // shield hit audio
-                    if (ShieldHitAudio) {
-                        UGameplayStatics::PlaySoundAtLocation(this, ShieldHitAudio, ProjectileLoc);
+                    if (Ship->ShieldHitAudio) {
+                        UGameplayStatics::PlaySoundAtLocation(this, Ship->ShieldHitAudio, ProjectileLoc);
                     }
                     /*GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("test"));*/
 
-                    // shield spawn audio
-                    /*if (ShieldSpawnAudio) {
-                        UGameplayStatics::PlaySoundAtLocation(this, ShieldSpawnAudio, ProjectileLoc);
-                    }*/
                     break;
                 case EHitLayer::Hull:
                     // hull hit audio
                     if (HullHitAudio) {
                         UGameplayStatics::PlaySoundAtLocation(this, HullHitAudio, ProjectileLoc);
+                    }
+                    if (Ship->HullDamageHighlightBP) {
+                        Ship->EnableHullDamageHighlight();
                     }
                     break;
                 default:
@@ -211,9 +210,33 @@ void AProjectile::SetupHoming(AActor* InTarget)
         //GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("not homing projectile"));
     }
 }
+void AProjectile::RemoveMissileTarget() {
+    if (!Movement) return;
+    Movement->HomingTargetComponent = nullptr;
+    Movement->bIsHomingProjectile = false;
+
+    FVector CurrentVel = Movement->Velocity;
+    float Speed = CurrentVel.Size();
+
+    FVector Forward = CurrentVel.GetSafeNormal();
+    FVector Right = FVector::CrossProduct(Forward, FVector::UpVector).GetSafeNormal();
+    // calculate random direction
+    FVector RandomOffset =
+        Right * FMath::FRandRange(-1.f, 1.f) +
+        FVector::UpVector * FMath::FRandRange(-1.f, 1.f);
+    float VeerStrength = .6f;
+    FVector NewDir = (Forward + RandomOffset * VeerStrength).GetSafeNormal();
+    // interp velocity to new direction in Tick()
+    bVeering = true;
+    DesiredVelocity = NewDir * Speed;
+
+
+
+}
 
 void AProjectile::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+
     if (AShipPawn* Ship = Cast<AShipPawn>(Target))
     {
         Ship->RemoveIncomingMissile(this);
@@ -231,7 +254,14 @@ void AProjectile::Tick(float DeltaTime)
     //Tracks how far the projectile has moved and destroys it if it exceeds maximum range
     DistanceTraveled += ((float)(Movement->Velocity.Length()) * DeltaTime);
     if (DistanceTraveled > MaxRange) this->Destroy();
-
+    if (bVeering && Movement) {
+        Movement->Velocity = FMath::VInterpTo(
+            Movement->Velocity,
+            DesiredVelocity,
+            DeltaTime,
+            5.f
+        );
+    }
 }
 
 void AProjectile::FireInDirection(const FVector& ShootDirection)

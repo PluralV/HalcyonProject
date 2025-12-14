@@ -12,7 +12,7 @@
 #include "HalcyonSimpleGameMode.h"
 #include "HalcyonMissionGameMode.h"
 #include "ShipSpawnPoint.h"
-
+#include "Projectile.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -20,13 +20,10 @@
 #include "WeaponSystem.h"
 
 // Sets default values
-int32 AShipPawn::NextStencilValue = 1;
 AShipPawn::AShipPawn()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
-
 	ShipMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShipMesh"));
 	RootComponent = ShipMesh;
   
@@ -106,20 +103,10 @@ void AShipPawn::BeginPlay()
 	for (int8 i = 0; i < 6; i++) {
 		if (!bCurrentSystemOverride) ShieldFacingsCurr[i] = ShieldFacings[i];
 	}
-	// enable custom depth, set stencil value
-	CustomStencilValue = NextStencil();
-	for (UActorComponent* Comp : GetComponents())
-	{
-		if (UStaticMeshComponent* MeshComp = Cast<UStaticMeshComponent>(Comp))
-		{
-			MeshComp->SetRenderCustomDepth(true);
-			MeshComp->SetCustomDepthStencilValue(CustomStencilValue);
-		}
-	}
-}
+
 
 	//Setup movement component stats
-	if (MovementComponent) {
+	if(MovementComponent){
 		MovementComponent->SpeedLimit = SpeedLimit;
 		MovementComponent->PitchRate = PitchRate;
 		MovementComponent->YawRate = YawRate;
@@ -175,6 +162,7 @@ void AShipPawn::BeginPlay()
 void AShipPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	// weapon tracking
 	if (CurrentTarget) {
 		for (UChildActorComponent* WeaponComp : WeaponComponents)
 		{
@@ -194,6 +182,9 @@ void AShipPawn::Tick(float DeltaTime)
 			}
 		}
 	}
+	// display hull damage highlight if timer>0
+
+	
 }
 
 // Called to bind functionality to input
@@ -212,7 +203,7 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		//EnhancedInputComponent->BindAction(BrakeAction, ETriggerEvent::Ongoing, this, &AShipPawn::Brake);
 		EnhancedInputComponent->BindAction(DecelerateAction, ETriggerEvent::Completed, this, &AShipPawn::ZeroDecel);
 		//steering
-		EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Started, this, &AShipPawn::Steer);
+		EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Triggered, this, &AShipPawn::Steer);
 		//EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Ongoing, this, &AShipPawn::Steer);
 		EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Completed, this, &AShipPawn::Steer);
 		//Look action
@@ -225,6 +216,7 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(AllocMovementAction, ETriggerEvent::Triggered, this, &AShipPawn::HandleArrowAlloc);
 
 		EnhancedInputComponent->BindAction(FreeMovementAction, ETriggerEvent::Triggered, this, &AShipPawn::HandleArrowFree);
+		EnhancedInputComponent->BindAction(CountermeasuresAction, ETriggerEvent::Started, this, &AShipPawn::DeployCountermeasures);
 
 	}
 }
@@ -1089,6 +1081,12 @@ float AShipPawn::GetCurrentVelocity(bool bForDisplay) {
 		return bForDisplay ? roundf(Velocity * 100) / 100.f : Velocity;
 	}
 	return -1.f;
+}
+
+void AShipPawn::DeployCountermeasures() {
+	for (AProjectile* Missile : IncomingMissiles) {
+		Missile->RemoveMissileTarget();
+	}
 }
 
 void AShipPawn::BeginDestroy() {
