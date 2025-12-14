@@ -46,9 +46,13 @@ AShipPawn::AShipPawn()
 	HullMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndProbe);
 	ShipMesh->SetGenerateOverlapEvents(true);
 
+	CameraPivot = CreateDefaultSubobject<USceneComponent>(TEXT("CameraPivot"));
+	CameraPivot->SetupAttachment(RootComponent);
+	CameraPivot->SetUsingAbsoluteRotation(true);
 	//Build spring-arm component
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);
+	SpringArm->SetupAttachment(CameraPivot);
 	SpringArm->TargetArmLength = 500.0f;
 	SpringArm->bUsePawnControlRotation = false;
 	SpringArm->bInheritPitch = false;
@@ -257,7 +261,7 @@ void AShipPawn::Look(const FInputActionValue& Value) {
 	if (SpringArm) {
 		FRotator CurrentRotator = SpringArm->GetRelativeRotation();
 		CurrentRotator.Yaw += LookValue.X * CameraRotationSpeed;
-		CurrentRotator.Pitch = FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -360,360);//FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -80.0f, 0.0f);
+		CurrentRotator.Pitch = FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -60,60);//FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -80.0f, 0.0f);
 		SpringArm->SetRelativeRotation(CurrentRotator);
 	}
 }

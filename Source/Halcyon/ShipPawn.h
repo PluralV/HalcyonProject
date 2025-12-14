@@ -215,6 +215,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
 	float CameraRotationSpeed = 1.f;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	USceneComponent* CameraPivot;
+
+
 	//Ship base stats
 	//Hull integrity
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base System Stats")

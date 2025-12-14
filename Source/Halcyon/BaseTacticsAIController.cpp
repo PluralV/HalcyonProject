@@ -251,7 +251,7 @@ FVector ABaseTacticsAIController::AcquireLookAtPoint() {
         }
         
     }
-    else  // if closer, orbit by pointing at player offset to the side
+    else // if closer, approach diagonally by pointing at player offset to the side
     {
         
         FVector FlankDirection = (MyLoc - PlayerLoc).GetSafeNormal();
