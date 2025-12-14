@@ -80,39 +80,32 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
             // Play audio depending on whether shield or hull is hit
             EHitLayer ShieldOrHull = Ship->AllocateDamage(ImpactAngle, GetDamage(DistanceTraveled));
             FVector ProjectileLoc = GetActorLocation();
-            FVector ExplosionSpawnLoc = ProjectileLoc;
+            FVector FXSpawnLoc = ProjectileLoc;
+
+            // calculate fx spawn rotation
+            FVector ShipCenter = OtherActor->GetActorLocation();
+            FVector ImpactLoc = SweepResult.ImpactPoint;
+            FVector ImpactNormal = SweepResult.ImpactNormal;
+
+            FVector ProjectileDir = GetVelocity().GetSafeNormal();
+            FRotator ImpactNormalRot = ImpactNormal.Rotation();
+            // average of opposite projectile vector and normal vector
+            FQuat NormalQuat = ImpactNormal.ToOrientationQuat();
+            FQuat ProjectileQuat = (-ProjectileDir).ToOrientationQuat();
+            FQuat AvgQuat = FQuat::Slerp(NormalQuat, ProjectileQuat, 0.5f);
+            FRotator FXSpawnRot = AvgQuat.Rotator();
             switch (ShieldOrHull) {
                 case EHitLayer::Shield:
-                    // spawn projectile effect
-                    if (ShieldHitEffect) {
-                        UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-                            GetWorld(),
-                            ShieldHitEffect,
-                            ProjectileLoc,
-                            GetActorRotation()  // or use an impact normal if you have one
-                        );
-                    }
                     // spawn shield FX
                     if (Ship->ShieldHitBPClass) {
                         float OffsetDistance = 50.f; // distance from hull
                         float LifeTime = 1.f; // how long FX plane lasts
-                        FVector ShipCenter = OtherActor->GetActorLocation();
-                        FVector ImpactLoc = SweepResult.ImpactPoint;
-                        FVector ImpactNormal = SweepResult.ImpactNormal;
-                        
-                        FVector ProjectileDir = GetVelocity().GetSafeNormal();
-                        FRotator ImpactNormalRot = ImpactNormal.Rotation();
-                        // average of opposite projectile vector and normal vector
-                        FQuat NormalQuat = ImpactNormal.ToOrientationQuat();
-                        FQuat ProjectileQuat = (-ProjectileDir).ToOrientationQuat();
-                        FQuat AvgQuat = FQuat::Slerp(NormalQuat, ProjectileQuat, 0.5f);
-                        FRotator ShieldFXSpawnRot = AvgQuat.Rotator();
 
                         //FVector ShieldFXSpawnLoc = ImpactLoc + ImpactNormal * OffsetDistance;
                         FVector ShieldFXSpawnLoc = ImpactLoc + AvgQuat.GetForwardVector() * OffsetDistance;                        FActorSpawnParameters SpawnParams;
                         SpawnParams.Owner = this;
                         SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-                        AActor* ShieldPlane = GetWorld()->SpawnActor<AActor>(Ship->ShieldHitBPClass, ShieldFXSpawnLoc, ShieldFXSpawnRot, SpawnParams);
+                        AActor* ShieldPlane = GetWorld()->SpawnActor<AActor>(Ship->ShieldHitBPClass, ShieldFXSpawnLoc, FXSpawnRot, SpawnParams);
                         // attach to ship so it moves with it
                         if (ShieldPlane)
                         {
@@ -127,7 +120,7 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
                                     }
                                 }, LifeTime, false); // lifespan in seconds
                         }
-                        ExplosionSpawnLoc = ShieldFXSpawnLoc;
+                        FXSpawnLoc = ShieldFXSpawnLoc;
                     }
                     // shield hit audio
                     if (Ship->ShieldHitAudio) {
@@ -141,7 +134,15 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
                     if (HullHitAudio) {
                         UGameplayStatics::PlaySoundAtLocation(this, HullHitAudio, ProjectileLoc);
                     }
-                    // play hull hit fx
+                    // spawn hull hit fx
+                    if (HullHitEffect) {
+                        UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+                            GetWorld(),
+                            HullHitEffect,
+                            ProjectileLoc,
+                            FXSpawnRot
+                        );
+                    }
                     break;
                 default:
                     break;
@@ -151,7 +152,7 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
             UNiagaraFunctionLibrary::SpawnSystemAtLocation(
                 GetWorld(),
                 ExplosionEffect,
-                ExplosionSpawnLoc,
+                FXSpawnLoc,
                 GetActorRotation()
             );
         }

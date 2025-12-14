@@ -88,7 +88,7 @@ protected:
 	USoundBase* HullHitAudio;
 
 	UPROPERTY(EditAnywhere, Category = "FX")
-	UNiagaraSystem* ShieldHitEffect;
+	UNiagaraSystem* HullHitEffect;
 
 	UPROPERTY(EditAnywhere, Category = "FX")
 	UNiagaraSystem* ExplosionEffect;
