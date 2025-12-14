@@ -153,17 +153,6 @@ public:
 	}
 
 
-	// flash highlight when hull damage is taken, tick will check if timer>0
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
-	UMaterialInterface* HullDamageHighlightBP;  // The material to flash
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FX")
-	float HullDamageHighlightTime = 0.0f;
-
-	void EnableHullDamageHighlight() {
-		HullDamageHighlightTime = 1.0f;
-	};
-
 
 protected:
 	// Called when the game starts or when spawned

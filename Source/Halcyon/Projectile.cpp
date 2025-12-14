@@ -141,9 +141,7 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
                     if (HullHitAudio) {
                         UGameplayStatics::PlaySoundAtLocation(this, HullHitAudio, ProjectileLoc);
                     }
-                    if (Ship->HullDamageHighlightBP) {
-                        Ship->EnableHullDamageHighlight();
-                    }
+                    // play hull hit fx
                     break;
                 default:
                     break;
