@@ -13,53 +13,59 @@ void ABaseTacticsAIController::Tick(float DeltaSeconds) {
     Super::Tick(DeltaSeconds);
     TimeSinceLastRealloc += DeltaSeconds; 
     TimeSinceLastTarget += DeltaSeconds;
-
-    //update records on whether target is in arc
-    if (CurrentTarget) {
-        FVector ToTarget = CurrentTarget->GetActorLocation() - ControlledShip->GetActorLocation();
-        RotToTarget = ToTarget.Rotation();
-        RangeToTarget = ToTarget.Length();
-        FRotator CurrentRot = ControlledShip->GetActorRotation();
-        float YawField = FMath::FindDeltaAngleDegrees(CurrentRot.Yaw + 90, RotToTarget.Yaw) + 30.f;
-        ShieldFacingIndex = (int)(YawField / 60.f);
-        for (int32 i = 0; i < WeaponCount; i++) {
-            CheckIsBearing(i);
+    if (ControlledShip) {
+        //update records on whether target is in arc
+        if (CurrentTarget) {
+            FVector ToTarget = CurrentTarget->GetActorLocation() - ControlledShip->GetActorLocation();
+            RotToTarget = ToTarget.Rotation();
+            RangeToTarget = ToTarget.Length();
+            FRotator CurrentRot = ControlledShip->GetActorRotation();
+            float YawField = FMath::FindDeltaAngleDegrees(CurrentRot.Yaw + 90, RotToTarget.Yaw) + 30.f;
+            ShieldFacingIndex = (int)(YawField / 60.f);
+            for (int32 i = 0; i < WeaponCount; i++) {
+                CheckIsBearing(i);
+            }
         }
+
+        if (TimeSinceLastRealloc >= EnergyCycle) {
+            AllocateEnergy();
+        }
+        if (TimeSinceLastTarget >= TargetCycle && EligibleTargets.Num() > 1) {
+            ReappraiseTargets();
+        }
+
+
+
+        FVector LookAtPoint = AcquireLookAtPoint();
+
+        RotateToward(LookAtPoint);
+
+        // thrust forwards
+        ControlledShip->MovementComponent->SetThrustInput(1);
+
+        //Choose whether to hold or use weapons
+        EngageTarget();
     }
-
-    if (TimeSinceLastRealloc >= EnergyCycle) {
-        AllocateEnergy();
-    }
-    if (TimeSinceLastTarget >= TargetCycle && EligibleTargets.Num() > 1) {
-        ReappraiseTargets();
-    }
-
-    
-
-    FVector LookAtPoint = AcquireLookAtPoint();
-
-    RotateToward(LookAtPoint);
-
-    // thrust forwards
-    ControlledShip->MovementComponent->SetThrustInput(1);
-
-    //Choose whether to hold or use weapons
-    EngageTarget();
-
 }
 
 void ABaseTacticsAIController::BeginPlay() {
     Super::BeginPlay();
-    ControlledShip = Cast<AShipPawn>(GetPawn());
     HeightOffset = FMath::RandRange(-1000.f, 1000.f);
     TimeSinceLastRealloc = EnergyCycle;
-
-    //Acquire all targets on first tick (once all initialized)
-    GetWorldTimerManager().SetTimerForNextTick(this, &ABaseTacticsAIController::InitializeAfterLoad);
+    
+    CurrentWeaponStatus = ECombatStatus::ArmedClose;
 }
 
 //Sets up things like the weapon list/targets; has to be delayed in order to handle out-of-order initialization
 void ABaseTacticsAIController::InitializeAfterLoad() {
+    APawn* ControlledPawn = GetPawn();
+    if (!ControlledPawn) {
+        //GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow,FString::Printf(TEXT("Delaying InitializeAfterLoad")));
+        GetWorldTimerManager().SetTimerForNextTick(this, &ABaseTacticsAIController::InitializeAfterLoad);
+        return;
+    }
+    //GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow, FString::Printf(TEXT("Made it here, for some reason")));
+    ControlledShip = Cast<AShipPawn>(ControlledPawn);
     //Initialize weapons list
     TArray<UChildActorComponent*> WeaponComps = ControlledShip->GetWeaponComponents();
     WeaponCount = WeaponComps.Num();
@@ -77,7 +83,8 @@ void ABaseTacticsAIController::InitializeAfterLoad() {
             ShipWeapons[AtIndex].Index = i;
             ShipWeapons[AtIndex].bInRange = false;
             ShipWeapons[AtIndex].bInArc = false;
-            if (SideOffset > AWS->MaxRange) SideOffset = AWS->MaxRange;
+            if (SideOffset > AWS->MaxRange / 2) SideOffset = FMath::Max(AWS->MaxRange/2, 1600.f);
+           // GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow, FString::Printf(TEXT("SideOffset: %d"),(int)SideOffset));
         }
         else {
             //DEBUG DEBUG
@@ -89,7 +96,7 @@ void ABaseTacticsAIController::InitializeAfterLoad() {
 
     //Update whether weapons are bearing
     if (CurrentTarget) {
-        UE_LOG(LogTemp, Warning, TEXT("FOUND TARGET."));
+        //UE_LOG(LogTemp, Warning, TEXT("FOUND TARGET."));
         FVector ToTarget = CurrentTarget->GetActorLocation() - ControlledShip->GetActorLocation();
         RotToTarget = ToTarget.Rotation();
         RangeToTarget = ToTarget.Length();
@@ -108,7 +115,9 @@ void ABaseTacticsAIController::InitializeAfterLoad() {
 
 void ABaseTacticsAIController::OnPossess(APawn* InPawn) {
     Super::OnPossess(InPawn);
-
+    ControlledShip = Cast<AShipPawn>(GetPawn());
+    //Acquire all targets on first tick (once all initialized)
+    InitializeAfterLoad();
 }
 
 void ABaseTacticsAIController::AcquireEligibleTargets() {
@@ -118,6 +127,7 @@ void ABaseTacticsAIController::AcquireEligibleTargets() {
     for (AActor* PotentialTarget : PotentialTargetShips) {
         if (AShipPawn* TgShip = Cast<AShipPawn>(PotentialTarget)) {
             if (TgShip->Team != ControlledShip->Team) {
+                //GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow, FString::Printf(TEXT("Found a target")));
                 //LOGIC: Appraise target based on range, size, importance, to create a sort of integer "score" to rank targets by
                 FTargetScore TargetEntry;
                 TargetEntry.Target = PotentialTarget;
@@ -156,6 +166,7 @@ void ABaseTacticsAIController::AcquireBestTarget() {
 void ABaseTacticsAIController::HandleTargetDestroyed(int32 CauseOfDeath, AShipPawn* DestroyedShip)
 {
     CurrentTarget = nullptr;
+    ControlledShip->SetTarget(nullptr);
     EligibleTargets.Swap(0, EligibleTargets.Num() - 1);
     EligibleTargets.Pop();
     ReappraiseTargets();
@@ -209,9 +220,10 @@ int32 ABaseTacticsAIController::AppraiseTarget(AActor* PossibleTarget) {
 
         //If the target is a mission protect objective, multiply its appraisal score
         if (TargetAsShip->GetIsObjective()) {
-            return Score * 3 / 2;
+            return Score * 3;
         }
     }
+    
     return Score;
 }
 
@@ -219,16 +231,23 @@ int32 ABaseTacticsAIController::AppraiseTarget(AActor* PossibleTarget) {
 //Go back through the list of targets and calculate an appraisal score for each
 void ABaseTacticsAIController::ReappraiseTargets() {
     if (EligibleTargets.IsEmpty()) CurrentTarget = nullptr;
-    for (FTargetScore& EligibleTarget : EligibleTargets) {
-        EligibleTarget.AppraisalScore = AppraiseTarget(EligibleTarget.Target);
-        if (EligibleTarget.AppraisalScore > EligibleTargets[0].AppraisalScore) {
-            FTargetScore Temp = EligibleTargets[0];
-            EligibleTargets[0].AppraisalScore = EligibleTarget.AppraisalScore;
-            EligibleTargets[0].Target = EligibleTarget.Target;
-            EligibleTarget.AppraisalScore = Temp.AppraisalScore;
-            EligibleTarget.Target = Temp.Target;
+    for (int32 i = 0; i < EligibleTargets.Num(); i++) {
+        FTargetScore& EligibleTarget = EligibleTargets[i];
+        if (EligibleTarget.Target) {
+            EligibleTarget.AppraisalScore = AppraiseTarget(EligibleTarget.Target);
+            if (EligibleTarget.AppraisalScore > EligibleTargets[0].AppraisalScore) {
+                FTargetScore Temp = EligibleTargets[0];
+                EligibleTargets[0].AppraisalScore = EligibleTarget.AppraisalScore;
+                EligibleTargets[0].Target = EligibleTarget.Target;
+                EligibleTarget.AppraisalScore = Temp.AppraisalScore;
+                EligibleTarget.Target = Temp.Target;
+            }
+        }
+        else {
+            EligibleTargets.RemoveAt(i);
         }
     }
+    
     AcquireBestTarget();
 }
 
@@ -243,26 +262,19 @@ FVector ABaseTacticsAIController::AcquireLookAtPoint() {
     
     if (Distance > SideOffset)  // if far, point towards the player
     {
-        if (CurrentWeaponStatus == ECombatStatus::Arming) {
-            LookAtPoint = MyLoc + (- 1.f * (PlayerLoc - MyLoc));
-        }
-        else {
+        //if (CurrentWeaponStatus == ECombatStatus::Arming) {
+        //    LookAtPoint = MyLoc + (- 1.f * (PlayerLoc - MyLoc));
+        //}
+        //else {
             LookAtPoint = PlayerLoc;
-        }
+        //}
         
     }
     else // if closer, approach diagonally by pointing at player offset to the side
     {
-        
         FVector FlankDirection = (MyLoc - PlayerLoc).GetSafeNormal();
-        if (CurrentWeaponStatus == ECombatStatus::Arming) { 
-            FlankDirection *= -1.f; 
-            LookAtPoint = PlayerLoc + FlankDirection * MaxRange + FVector::UpVector * HeightOffset;
-        } 
-        else {
-            FlankDirection = FVector::CrossProduct(FlankDirection, FVector::UpVector);
-            LookAtPoint = PlayerLoc + FlankDirection * SideOffset + FVector::UpVector * HeightOffset;
-        }
+        FlankDirection = FVector::CrossProduct(FlankDirection, FVector::UpVector).GetSafeNormal();
+        LookAtPoint = PlayerLoc + FlankDirection * SideOffset + FVector::UpVector * HeightOffset;
     }
 
     return LookAtPoint;
@@ -277,13 +289,14 @@ void ABaseTacticsAIController::EngageTarget() {
             FiredWeapons++;
             continue;
         }
-        else if (WPEntry.bInRange && WPEntry.bInArc && (WPEntry.Weapon->DamageScaling == 0 || WPEntry.Weapon->MaxRange / 3 >= RangeToTarget || (WPEntry.Weapon->MaxRange < 2000 && 1200 >= RangeToTarget))) {
+        else if (WPEntry.bInRange && WPEntry.bInArc && (WPEntry.Weapon->DamageScaling == 0 || WPEntry.Weapon->MaxRange / 2 >= RangeToTarget || (WPEntry.Weapon->MaxRange < 2000 && 1200 >= RangeToTarget))) {
             WPEntry.Weapon->FireWeapon(CurrentTarget);
-            FiredWeapons++;
+            if (WPEntry.Weapon->bIsArming)
+                FiredWeapons++;
         }
         
     }
-    if (FiredWeapons >= ((WeaponCount * 4) / 5)) {
+    if (FiredWeapons >= WeaponCount) {
         CurrentWeaponStatus = ECombatStatus::Arming;
     }
     else {
@@ -336,48 +349,56 @@ void ABaseTacticsAIController::AllocateEnergy() {
     //        }
     //    }
     //}
+    if (ControlledShip && ControlledShip->HasActorBegunPlay()) {
+        //GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow, FString::Printf(TEXT("Total Energy: %d"),ControlledShip->GetMaxEnergyAvailable()));
+        ControlledShip->FreeMovement(ControlledShip->GetMovementEnergy() / 2);
+        TArray<FWeaponCapability*> ComeBackLater;
+        //UE_LOG(LogTemp, Warning, TEXT("ALLOCATING ENERGY TO WEAPONS:"));
+        for (FWeaponCapability& WeaponCapability : ShipWeapons) {
+            if (AWeaponSystem* AWS = WeaponCapability.Weapon) {
+                //UE_LOG(LogTemp, Warning, TEXT("ALLOCATING ENERGY TO WEAPON %s?"), *AWS->WeaponAbbreviatedName.ToString());
+                //If weapon has not been alloced yet, check if in range
+                if (AWS->MinEnergy > AWS->AllocatedEnergy) {
+                    //If weapon is in range, then allocate minimum energy to it
+                    UE_LOG(LogTemp, Warning, TEXT("Weapon not already allocated."));
+                    if (WeaponCapability.bInRange) {
+                        UE_LOG(LogTemp, Warning, TEXT("Weapon in range."))
+                            int32 AttemptedEnergy = AWS->MinEnergy - AWS->AllocatedEnergy;
+                        int32 Success = ControlledShip->AllocateWeapon(WeaponCapability.Index, AttemptedEnergy);
+                        UE_LOG(LogTemp, Warning, TEXT("Allocated %d/%d energy to weapon %s."), Success, AttemptedEnergy, *AWS->WeaponAbbreviatedName.ToString());
+                        if (Success < AttemptedEnergy) ComeBackLater.Add(&WeaponCapability);
+                    }
 
-    TArray<FWeaponCapability*> ComeBackLater;
-    UE_LOG(LogTemp, Warning, TEXT("ALLOCATING ENERGY TO WEAPONS:"));
-    for (FWeaponCapability& WeaponCapability : ShipWeapons) {
-        if (AWeaponSystem* AWS = WeaponCapability.Weapon) {
-            UE_LOG(LogTemp, Warning, TEXT("ALLOCATING ENERGY TO WEAPON %s?"),*AWS->WeaponAbbreviatedName.ToString());
-            //If weapon has not been alloced yet, check if in range
-            if (AWS->MinEnergy > AWS->AllocatedEnergy) {
-                //If weapon is in range, then allocate minimum energy to it
-                UE_LOG(LogTemp, Warning, TEXT("Weapon not already allocated."));
-                if (WeaponCapability.bInRange) {
-                    UE_LOG(LogTemp,Warning,TEXT("Weapon in range."))
-                    int32 AttemptedEnergy = AWS->MinEnergy - AWS->AllocatedEnergy;
-                    int32 Success = ControlledShip->AllocateWeapon(WeaponCapability.Index, AttemptedEnergy);
-                    UE_LOG(LogTemp, Warning, TEXT("Allocated %d/%d energy to weapon %s."), Success, AttemptedEnergy, *AWS->WeaponAbbreviatedName.ToString());
-                    if (Success < AttemptedEnergy) ComeBackLater.Add(&WeaponCapability);
                 }
-                
-            }
-            else {
-                UE_LOG(LogTemp, Warning, TEXT("Weapon already allocated."));
-                if (!WeaponCapability.bInRange && !AWS->bIsArming) 
-                {
-                    UE_LOG(LogTemp, Warning, TEXT("Weapon not in range and not arming - FREE NOW"));
-                    ControlledShip->FreeWeapon(WeaponCapability.Index, AWS->AllocatedEnergy);
+                else {
+                    UE_LOG(LogTemp, Warning, TEXT("Weapon already allocated."));
+                    if (!WeaponCapability.bInRange && !AWS->bIsArming)
+                    {
+                        UE_LOG(LogTemp, Warning, TEXT("Weapon not in range and not arming - FREE NOW"));
+                        ControlledShip->FreeWeapon(WeaponCapability.Index, AWS->AllocatedEnergy);
+                    }
+                    //handle this later
+                    //if (WeaponCapability.bCouldOverload) {
+                    //    ComeBackLater.Add(AWS);
+                    //}
                 }
-                //handle this later
-                //if (WeaponCapability.bCouldOverload) {
-                //    ComeBackLater.Add(AWS);
-                //}
             }
         }
-    }
-    
-    for (FWeaponCapability* WC : ComeBackLater) {
-        int32 AttemptedEnergy = WC->Weapon->MinEnergy - WC->Weapon->AllocatedEnergy;
-        int32 Success = ControlledShip->AllocateWeapon(WC->Index, AttemptedEnergy);
-        if (Success < AttemptedEnergy) break;
-    }
 
-    ControlledShip->AllocateMovement(ControlledShip->GetMaxEnergyAvailable());
-    TimeSinceLastRealloc = 0.f;
+        for (FWeaponCapability* WC : ComeBackLater) {
+            int32 AttemptedEnergy = WC->Weapon->MinEnergy - WC->Weapon->AllocatedEnergy;
+            int32 Success = ControlledShip->AllocateWeapon(WC->Index, AttemptedEnergy);
+            if (Success < AttemptedEnergy) break;
+        }
+
+        ControlledShip->AllocateMovement(ControlledShip->GetMaxEnergyAvailable());
+        TimeSinceLastRealloc = 0.f;
+    }
+    else {
+        //GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow,FString::Printf(TEXT("Delaying AllocateEnergy")));
+        GetWorldTimerManager().SetTimerForNextTick(this, &ABaseTacticsAIController::AllocateEnergy);
+        return;
+    }
 }
 
 //Attempts to free EnergyGoal energy, starting with least important systems and working up to more important ones

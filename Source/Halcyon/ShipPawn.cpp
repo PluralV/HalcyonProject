@@ -9,6 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "ShipPlayerController.h"
 #include "ShipAIController.h"
+#include "BaseTacticsAIController.h"
 #include "HalcyonSimpleGameMode.h"
 #include "HalcyonMissionGameMode.h"
 #include "ShipSpawnPoint.h"
@@ -68,11 +69,11 @@ AShipPawn::AShipPawn()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	
-	// Automatically spawn and possess with AI controller
-	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	//// Automatically spawn and possess with AI controller
+	//AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
-	// Specify which AI controller class to use
-	AIControllerClass = AShipAIController::StaticClass();
+	//// Specify which AI controller class to use
+	//AIControllerClass = ABaseTacticsAIController::StaticClass();
 	
 	// Create movement component
 	MovementComponent = CreateDefaultSubobject<UShipPawnMovementComponent>(TEXT("MovementComponent"));
@@ -103,6 +104,29 @@ void AShipPawn::BeginPlay()
 	TotalEngineCurr = LeftEngCurr + RightEngCurr + CenterEngCurr;
 	TotalEnergyAvailable = TotalEnergyCurr;
 
+	TSoftObjectPtr<USoundBase> EngSoundRef;
+	EngSoundRef = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/HalcyonBlueprints/Ships/Weapons/Audio/engine_sound2.engine_sound2")));
+	EngineBlastSound = EngSoundRef.LoadSynchronous();
+
+	TSoftObjectPtr<USoundBase> ArrowUpRef;
+	ArrowUpRef = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/HalcyonBlueprints/Ships/Weapons/Audio/UISounds/MovementChargingArrowSound.MovementChargingArrowSound")));
+	ArrowUpSound = ArrowUpRef.LoadSynchronous();
+
+	TSoftObjectPtr<USoundBase> ArrowDownRef;
+	ArrowDownRef = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/HalcyonBlueprints/Ships/Weapons/Audio/UISounds/MovementFreeArrowSound.MovementFreeArrowSound")));
+	ArrowDownSound = ArrowDownRef.LoadSynchronous();
+
+	TSoftObjectPtr<USoundBase> TargetAcRef;
+	TargetAcRef = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/HalcyonBlueprints/Ships/Weapons/Audio/UISounds/TargetAcquired1.TargetAcquired1")));
+	TargetAcquiredSound = TargetAcRef.LoadSynchronous();
+
+	TSoftObjectPtr<USoundBase> TargetDownRef1;
+	TargetDownRef1 = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/HalcyonBlueprints/Ships/Weapons/Audio/UISounds/radio_kill_02.radio_kill_02")));
+	TargetDestroyedSounds.Add(TargetDownRef1.LoadSynchronous());
+
+	TSoftObjectPtr<USoundBase> TargetDownRef2;
+	TargetDownRef2 = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/HalcyonBlueprints/Ships/Weapons/Audio/UISounds/radio_kill_03.radio_kill_03")));
+	TargetDestroyedSounds.Add(TargetDownRef2.LoadSynchronous());
 
 	for (int8 i = 0; i < 6; i++) {
 		if (!bCurrentSystemOverride) ShieldFacingsCurr[i] = ShieldFacings[i];
@@ -207,11 +231,11 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Binding inputs"));
 		//throttling
 		EnhancedInputComponent->BindAction(ThrottleAction, ETriggerEvent::Started, this, &AShipPawn::Throttle);
-		//EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Ongoing, this, &AShipPawn::Move);
+		EnhancedInputComponent->BindAction(ThrottleAction, ETriggerEvent::Ongoing, this, &AShipPawn::MonitorEngineNoise);
 		EnhancedInputComponent->BindAction(ThrottleAction, ETriggerEvent::Completed, this, &AShipPawn::ZeroThrottle);
 		//braking/reversing
 		EnhancedInputComponent->BindAction(DecelerateAction, ETriggerEvent::Started, this, &AShipPawn::Decelerate);
-		//EnhancedInputComponent->BindAction(BrakeAction, ETriggerEvent::Ongoing, this, &AShipPawn::Brake);
+		EnhancedInputComponent->BindAction(DecelerateAction, ETriggerEvent::Ongoing, this, &AShipPawn::MonitorEngineNoise);
 		EnhancedInputComponent->BindAction(DecelerateAction, ETriggerEvent::Completed, this, &AShipPawn::ZeroDecel);
 		//steering
 		EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Triggered, this, &AShipPawn::Steer);
@@ -225,8 +249,10 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &AShipPawn::Fire);
 		//Movement alloc/free of energy with keys
 		EnhancedInputComponent->BindAction(AllocMovementAction, ETriggerEvent::Triggered, this, &AShipPawn::HandleArrowAlloc);
-
+		EnhancedInputComponent->BindAction(AllocMovementAction, ETriggerEvent::Completed, this, &AShipPawn::FadeOutMovAlloc);
 		EnhancedInputComponent->BindAction(FreeMovementAction, ETriggerEvent::Triggered, this, &AShipPawn::HandleArrowFree);
+		EnhancedInputComponent->BindAction(FreeMovementAction, ETriggerEvent::Completed, this, &AShipPawn::FadeOutMovAlloc);
+
 		EnhancedInputComponent->BindAction(CountermeasuresAction, ETriggerEvent::Started, this, &AShipPawn::DeployCountermeasures);
 
 	}
@@ -243,6 +269,74 @@ void AShipPawn::ZeroThrottle() {
 	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
 		MovementComponent->SetThrustInput(0.f);
+		//if currently playing the sound, end it
+		if (EngineAudioComponent && EngineAudioComponent->IsPlaying()) {
+			EngineAudioComponent->FadeOut(0.5f, 0.0f); // 0.3 sec fade to volume 0
+			// Stop after fade completes (optional)
+			FTimerHandle FadeTimer;
+			GetWorld()->GetTimerManager().SetTimer(FadeTimer, [this]()
+				{
+					KillEngineNoise();
+				}, 0.5f, false);
+		}
+	}
+}
+
+void AShipPawn::StartEngineNoise() {
+	//don't start it if movement energy is leq 0 or if it is already playing the effect
+	if (MovementEnergy <= 0 || (EngineAudioComponent && EngineAudioComponent->IsPlaying()))
+	{
+		return;
+	}
+
+	// Spawn the audio component attached to this actor
+	if (EngineBlastSound)
+	{
+		EngineAudioComponent = UGameplayStatics::SpawnSoundAttached(
+			EngineBlastSound,
+			GetRootComponent(),
+			NAME_None,              //socket name
+			FVector::ZeroVector,    //offset
+			EAttachLocation::KeepRelativeOffset,
+			true,                   //stop when owner destroyed?
+			2.f, 1.0f, 0.0f, //volume/pitch/start time delay
+			nullptr,                //Attenuation
+			nullptr,                //Concurrency
+			false                   //Don't auto destroy
+		);
+
+		if (EngineAudioComponent)
+		{
+			//Make sure the sound loops no auto destruction
+			EngineAudioComponent->bAutoDestroy = false;
+		}
+	}
+}
+
+void AShipPawn::MonitorEngineNoise() {
+	if (MovementEnergy <= 0) {
+		if (EngineAudioComponent && EngineAudioComponent->IsPlaying()) {
+			EngineAudioComponent->FadeOut(0.5f, 0.0f); // 0.3 sec fade to volume 0
+			// Stop after fade completes (optional)
+			FTimerHandle FadeTimer;
+			GetWorld()->GetTimerManager().SetTimer(FadeTimer, [this]()
+				{
+					KillEngineNoise();
+				}, 0.5f, false);
+		}
+	}
+	else {
+		StartEngineNoise();
+	}
+}
+
+void AShipPawn::KillEngineNoise() {
+	//if engine audio is currently active, stop the sound and destroy the component
+	if (EngineAudioComponent)
+	{
+		EngineAudioComponent->Stop();
+		EngineAudioComponent->DestroyComponent();
+		EngineAudioComponent = nullptr;
 	}
 }
 
@@ -251,6 +345,15 @@ void AShipPawn::ZeroDecel() {
 	if (AShipPlayerController* PC = Cast<AShipPlayerController>(GetController()))
 	{
 		MovementComponent->SetThrustInput(0.f);
+		if (EngineAudioComponent && EngineAudioComponent->IsPlaying()) {
+			EngineAudioComponent->FadeOut(0.5f, 0.0f); // 0.3 sec fade to volume 0
+			// Stop after fade completes (optional)
+			FTimerHandle FadeTimer;
+			GetWorld()->GetTimerManager().SetTimer(FadeTimer, [this]()
+				{
+					KillEngineNoise();
+				}, 0.5f, false);
+		}
 	}
 }
 
@@ -286,6 +389,7 @@ void AShipPawn::Throttle(const FInputActionValue& Value) {
 	{
 		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Throttling"));
 		MovementComponent->SetThrustInput(AppliedThrottle);
+		StartEngineNoise();
 	}
 }
 
@@ -298,6 +402,7 @@ void AShipPawn::Decelerate(const FInputActionValue& Value) {
 	{
 		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Throttling"));
 		MovementComponent->SetThrustInput(AppliedThrottle);
+		StartEngineNoise();
 	}
 }
 
@@ -370,6 +475,9 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 		}
 
 		CurrentTarget = ClosestEnemy;
+		if (TargetAcquiredSound) {
+			UGameplayStatics::PlaySound2D(GetWorld(),TargetAcquiredSound);
+		}
 
 		if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Binding the ship destroyed logic"));
@@ -801,10 +909,63 @@ void AShipPawn::EnergyLoss(int32 Amt) {
 //handlers for input
 void AShipPawn::HandleArrowAlloc() {
 	AllocateMovement(1);
+	StartMovAllocNoise(true);
 }
 
 void AShipPawn::HandleArrowFree() {
 	FreeMovement(1);
+	StartMovAllocNoise(false);
+}
+
+void AShipPawn::FadeOutMovAlloc() {
+	MovementAllocAudioComponent->FadeOut(0.5f, 0.0f); // 0.3 sec fade to volume 0
+	// Stop after fade completes (optional)
+	FTimerHandle FadeTimer;
+	GetWorld()->GetTimerManager().SetTimer(FadeTimer, [this]()
+		{
+			KillMovAllocNoise();
+		}, 0.5f, false);
+}
+
+//bIsChargingUp: determines whether to play charge-up or power-down sound
+void AShipPawn::StartMovAllocNoise(bool bIsChargingUp) {
+	//don't start it if movement energy is leq 0 or if it is already playing the effect
+	if ((MovementAllocAudioComponent && MovementAllocAudioComponent->IsPlaying()))
+	{
+		return;
+	}
+	USoundBase* SoundToPlay = bIsChargingUp ? ArrowUpSound : ArrowDownSound;
+
+	// Spawn the audio component attached to this actor
+	if (SoundToPlay)
+	{
+		MovementAllocAudioComponent = UGameplayStatics::UGameplayStatics::SpawnSound2D(
+			GetWorld(),
+			SoundToPlay,
+			1.0f,    //Volume
+			1.0f,    //Pitch
+			0.0f,    //Start time
+			nullptr, //Concurrency
+			false,   //dont persist across level transitions
+			true     //count as UI sound
+		);
+
+		if (MovementAllocAudioComponent)
+		{
+			//Make sure the sound loops no auto destruction
+			MovementAllocAudioComponent->bAutoDestroy = false;
+		}
+	}
+}
+
+void AShipPawn::KillMovAllocNoise() {
+	//if engine audio is currently active, stop the sound and destroy the component
+	if (MovementAllocAudioComponent)
+	{
+		MovementAllocAudioComponent->Stop();
+		MovementAllocAudioComponent->DestroyComponent();
+		MovementAllocAudioComponent = nullptr;
+	}
 }
 
 //Attempts to allocate Amt energy to movement from the engines. If there is not enough available energy to do so, it will allocate the maximum
@@ -870,14 +1031,17 @@ int32 AShipPawn::AllocateWeapon(int32 Index, int32 Amt) {
 	if (AWeaponSystem* TW = Cast<AWeaponSystem>(TargetWeapon)) {
 		if (TotalEnergyAvailable <= Amt) {
 			Amt = TotalEnergyAvailable;
+			//UE_LOG(LogTemp, Warning, TEXT("ALLOCATEWEAPON: Not enough energy available %d out of %d"),TotalEnergyAvailable,Amt);
 			if (!Amt) return 0;
 		}
 		TotalEnergyAvailable -= Amt;
 		int32 AmountAllocated = TW->AllocateEnergy(Amt);
 		TotalEnergyAvailable += Amt - AmountAllocated;
 		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
+		//UE_LOG(LogTemp, Warning, TEXT("Successfully allocated %d/%d."), Amt, TotalEnergyAvailable);
 		return AmountAllocated;
 	}
+	//UE_LOG(LogTemp, Warning, TEXT("Cast failed."));
 	return 0;
 }
 
@@ -919,9 +1083,12 @@ void AShipPawn::DestroyShip(int32 CauseOfDeath) {
 			//Player death event: Cause a loss state in the gamemode (all Halcyon gamemodes should have one)
 			HSGM->OnLoss.Broadcast();
 		}
-		else {
+		else if (Team != 0){
 			//Enemy death event
 			HSGM->DecrementEnemies();
+		}
+		else {
+			//Friendly death do nothing here
 		}
 	}
 	else if (AHalcyonMissionGameMode* HMGM = Cast<AHalcyonMissionGameMode>(CurrentGameMode)) {
@@ -933,6 +1100,11 @@ void AShipPawn::DestroyShip(int32 CauseOfDeath) {
 			//Enemy death event
 			if (Team == 1)
 				HMGM->DecrementEnemies();
+			else {
+				//depending on if it is an objective, could cause loss
+				if (bIsProtectObjective)
+					HMGM->OnMissionLoss.Broadcast();
+			}
 		}
 	}
 	//else if else if...
@@ -967,6 +1139,8 @@ void AShipPawn::HandleShipDestroyed(int32 CauseOfDeath, AShipPawn* DestroyedShip
 		if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
 			if (DestroyedShip == CurrentTarget) {
 				UnlockTarget();
+				int32 RandIndex = FMath::RandRange((int)0, (int)TargetDestroyedSounds.Num()-1);
+				UGameplayStatics::PlaySound2D(GetWorld(), TargetDestroyedSounds[RandIndex]);
 			}
 		}
 	}
@@ -1130,7 +1304,8 @@ void AShipPawn::DeployCountermeasures() {
 }
 
 void AShipPawn::BeginDestroy() {
-	
+	KillEngineNoise();
+	KillMovAllocNoise();
 	if (ShipMesh && ShipMesh->IsValidLowLevel())
 	{
 		//Get all children and unweld from the parent mesh to prevent welded component errors
