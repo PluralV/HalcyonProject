@@ -161,7 +161,7 @@ void AShipPawn::BeginPlay()
 		}
 
 	}
-
+	
 	// add the weapon systems placed in bp to the array
 	TArray<UChildActorComponent*> ChildActorComps;
 	GetComponents<UChildActorComponent>(ChildActorComps);
@@ -178,6 +178,8 @@ void AShipPawn::BeginPlay()
 			}
 		}
 	}
+    //GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("weaponsinshippawn: %d"), WeaponComponents.Num()));
+
 
 	if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
 		SPC->AddWeaponWidget();

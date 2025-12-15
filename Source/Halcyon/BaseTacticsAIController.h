@@ -147,7 +147,7 @@ protected:
 
 	//time in seconds before each target reappraisal, barring exceptional circumstances
 	UPROPERTY(EditAnywhere)
-	float TargetCycle = 12.f;
+	float TargetCycle = 6.f;
 
 	float TimeSinceLastTarget = 0.f;
 

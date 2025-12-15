@@ -166,13 +166,8 @@ void AShipPlayerController::InitializeHUD() {
 			CMSSW->OwningController = this;
 			CMSSW->SetIsFocusable(false);
 			CMSSW->AddToViewport();
-			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("cms also")));
 
 		}
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("cms")));
-	}
-	else {
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("no cms")));
 	}
 
 	if (WinWidgetClass) {

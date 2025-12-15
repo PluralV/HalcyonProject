@@ -59,7 +59,10 @@ void ABaseTacticsAIController::BeginPlay() {
 //Sets up things like the weapon list/targets; has to be delayed in order to handle out-of-order initialization
 void ABaseTacticsAIController::InitializeAfterLoad() {
     APawn* ControlledPawn = GetPawn();
-    if (!ControlledPawn) {
+    TArray<UChildActorComponent*> WeaponComps = ControlledShip->GetWeaponComponents();
+    WeaponCount = WeaponComps.Num();
+
+    if (!ControlledPawn || WeaponCount == 0) {
         //GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow,FString::Printf(TEXT("Delaying InitializeAfterLoad")));
         GetWorldTimerManager().SetTimerForNextTick(this, &ABaseTacticsAIController::InitializeAfterLoad);
         return;
@@ -67,8 +70,8 @@ void ABaseTacticsAIController::InitializeAfterLoad() {
     //GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow, FString::Printf(TEXT("Made it here, for some reason")));
     ControlledShip = Cast<AShipPawn>(ControlledPawn);
     //Initialize weapons list
-    TArray<UChildActorComponent*> WeaponComps = ControlledShip->GetWeaponComponents();
-    WeaponCount = WeaponComps.Num();
+    //GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("weaponcount in ai: %d"),WeaponCount));
+
     for (int32 i = 0; i < WeaponCount; i++) {
         if (AWeaponSystem* AWS = Cast<AWeaponSystem>(WeaponComps[i]->GetChildActor())) {
             //DEBUG DEBUG
@@ -121,6 +124,8 @@ void ABaseTacticsAIController::OnPossess(APawn* InPawn) {
 }
 
 void ABaseTacticsAIController::AcquireEligibleTargets() {
+    //GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow, FString::Printf(TEXT("Acquiring targets")));
+
     TArray<AActor*> PotentialTargetShips;
     UGameplayStatics::GetAllActorsOfClass(GetWorld(), AShipPawn::StaticClass(), PotentialTargetShips);
     int32 MaxScore = 0;
@@ -245,6 +250,7 @@ void ABaseTacticsAIController::ReappraiseTargets() {
         }
         else {
             EligibleTargets.RemoveAt(i);
+            i--;
         }
     }
     
@@ -283,7 +289,6 @@ FVector ABaseTacticsAIController::AcquireLookAtPoint() {
 //Determine what to do with weapons - hold fire, shoot, or potentially free/allocate further energy
 void ABaseTacticsAIController::EngageTarget() {
     int32 FiredWeapons = 0;
-    
     for (FWeaponCapability& WPEntry : ShipWeapons) {
         if (WPEntry.Weapon->bIsArming) {
             FiredWeapons++;
