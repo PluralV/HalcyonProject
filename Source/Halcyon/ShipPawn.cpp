@@ -186,7 +186,14 @@ void AShipPawn::Tick(float DeltaTime)
 			}
 		}
 	}
-	// display hull damage highlight if timer>0
+	if (CountermeasuresCooldownTimer > 0.f)
+	{
+		CountermeasuresCooldownTimer -= DeltaTime;
+		if (CountermeasuresCooldownTimer < 0.f)
+		{
+			CountermeasuresCooldownTimer = 0.f;
+		}
+	}
 
 	
 }
@@ -223,6 +230,7 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(CountermeasuresAction, ETriggerEvent::Started, this, &AShipPawn::DeployCountermeasures);
 
 	}
+
 }
 
 //PLAYER INPUT HANDLER FUNCTIONS
@@ -1092,6 +1100,30 @@ float AShipPawn::GetCurrentVelocity(bool bForDisplay) {
 }
 
 void AShipPawn::DeployCountermeasures() {
+	/*GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("countemratues"));*/
+	if (CountermeasuresCooldownTimer > 0) {
+		return;
+	}
+	CountermeasuresCooldownTimer = CountermeasuresCooldown;
+	FVector SpawnLocation = GetActorLocation();
+	FRotator SpawnRotation = GetActorRotation();
+	if (CountermeasuresFX) {
+		
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(),
+			CountermeasuresFX,
+			SpawnLocation,
+			SpawnRotation
+		);
+	}
+	if (CountermeasuresAudio) {
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			CountermeasuresAudio,
+			SpawnLocation 
+		);
+	}
+
 	for (AProjectile* Missile : IncomingMissiles) {
 		Missile->RemoveMissileTarget();
 	}
