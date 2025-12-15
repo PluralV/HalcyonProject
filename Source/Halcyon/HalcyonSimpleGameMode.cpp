@@ -18,7 +18,7 @@ void AHalcyonSimpleGameMode::StartPlay() {
     {
         if (AShipPawn* Ship = Cast<AShipPawn>(Actor))
         {
-            if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Ship->Controller)) {
+            if (Ship->Team == 0) {
                 continue;
             }
             else {

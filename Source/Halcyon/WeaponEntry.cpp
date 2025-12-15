@@ -9,6 +9,7 @@
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
 #include "WeaponSystem.h"
+#include "Kismet/GameplayStatics.h"
 
 void UWeaponEntry::NativeConstruct() {
 	Super::NativeConstruct();
@@ -19,6 +20,17 @@ void UWeaponEntry::NativeConstruct() {
 			if (LblStatus) LblStatus->SetText(FText::FromString("INACTIVE"));
 			if (EnergyLevelCurr) EnergyLevelCurr->SetText(FText::FromString(FString::Printf(TEXT("%d"), OwningWeapon->AllocatedEnergy)));
 			OwningWeapon->OnEnergyChangedExternal.AddDynamic(this, &UWeaponEntry::OnEnergyChanged);
+			TSoftObjectPtr<USoundBase> UpSoundRef;
+			UpSoundRef = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/HalcyonBlueprints/Ships/Weapons/Audio/UISounds/SystemPowerUp.SystemPowerUp")));
+			AllocSoundEffect = UpSoundRef.LoadSynchronous();
+
+			TSoftObjectPtr<USoundBase> DownSoundRef;
+			DownSoundRef = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/HalcyonBlueprints/Ships/Weapons/Audio/UISounds/SystemPowerDown.SystemPowerDown")));
+			FreeSoundEffect = DownSoundRef.LoadSynchronous();
+
+			TSoftObjectPtr<USoundBase> DeniedSoundRef;
+			DeniedSoundRef = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/HalcyonBlueprints/Ships/Weapons/Audio/UISounds/Camera_Shutter1.Camera_Shutter1")));
+			DenySoundEffect = DeniedSoundRef.LoadSynchronous();
 	}
 	if (OwningShip) {
 		if (AShipPawn* OSP = Cast<AShipPawn>(OwningShip)) OSP->OnWeaponDamaged.AddDynamic(this, &UWeaponEntry::RegisterDamage);
@@ -34,19 +46,63 @@ void UWeaponEntry::OnAllocButtonClicked() {
 				//ALLOCATE THIS AMOUNT OF ENERGY TO WEAPON W/SHIP PAWN
 				AmountAlloced = OSP->AllocateWeapon(MyIndex, OwningWeapon->MinEnergy - OwningWeapon->AllocatedEnergy);
 				if (!AmountAlloced) {
-					OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
+					int32 AmountFreed = OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
+					if (AmountFreed && FreeSoundEffect) {
+						UGameplayStatics::PlaySound2D(GetWorld(), FreeSoundEffect);
+					}
+					else {
+						if (DenySoundEffect) {
+							UGameplayStatics::PlaySound2D(GetWorld(), DenySoundEffect);
+						}
+					}
+				}
+				else {
+					if (AllocSoundEffect) {
+						UGameplayStatics::PlaySound2D(GetWorld(), AllocSoundEffect);
+					}
 				}
 			}
 			else if (OwningWeapon->AllocatedEnergy < OwningWeapon->MaxEnergy) {//If between minimum and maximum, step up by 1
 				AmountAlloced = OSP->AllocateWeapon(MyIndex, OwningWeapon->EnergyStep);
 				if (!AmountAlloced) {//If it failed, just free the energy
-					OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
+					int32 AmountFreed = OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
+					//Determine what sound to play
+					//If AmountFreed > 0, play the Freed sound
+					if (AmountFreed && FreeSoundEffect) {
+						UGameplayStatics::PlaySound2D(GetWorld(), FreeSoundEffect);
+					}//otherwise play the Denied sound
+					else {
+						if (DenySoundEffect) {
+							UGameplayStatics::PlaySound2D(GetWorld(), DenySoundEffect);
+						}
+					}
+				}
+				else {//if AmountAlloced then play the Alloc sound
+					if (AllocSoundEffect) {
+						UGameplayStatics::PlaySound2D(GetWorld(), AllocSoundEffect, 
+							1.0f, 
+							1.0 + 
+							(((float)(OwningWeapon->AllocatedEnergy - OwningWeapon->MinEnergy) 
+								/ (float)((OwningWeapon->EnergyStep) ? OwningWeapon->EnergyStep : 1))) * 0.3f);
+					}
 				}
 			}
 			else {//If at maximum, simply free all the energy
-				OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
+				int32 AmountFreed = OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
+				if (AmountFreed) {
+					if (FreeSoundEffect) {
+						UGameplayStatics::PlaySound2D(GetWorld(), FreeSoundEffect);
+					}
+				}
+				else if (DenySoundEffect) {
+					UGameplayStatics::PlaySound2D(GetWorld(), DenySoundEffect);
+				}
 			}
 			OnEnergyChanged();
+		}
+		else {
+			if (DenySoundEffect)
+				UGameplayStatics::PlaySound2D(GetWorld(), DenySoundEffect);
 		}
 	}
 }
@@ -57,7 +113,7 @@ void UWeaponEntry::OnInfoButtonClicked() {
 		if (OwningShip) {
 			if (AShipPawn* OSP = Cast<AShipPawn>(OwningShip)) {
 				if (AShipPlayerController* OPC = Cast<AShipPlayerController>(OSP->Controller)) {
-					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Clicked info button"));
+					//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Clicked info button"));
 					OPC->SetWeaponDetails(OwningWeapon,MyIndex);
 				}
 			}

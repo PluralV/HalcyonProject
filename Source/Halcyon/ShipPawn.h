@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "InputActionValue.h"
+#include "Components/AudioComponent.h"
 #include "ShipPawn.generated.h"
 
 class UInputMappingContext;
@@ -146,7 +147,15 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	virtual void BeginDestroy() override;
-	
+	//Engine noise functions - start, end, etc.
+	void StartEngineNoise();
+	void KillEngineNoise();
+	void MonitorEngineNoise();
+	//Alloc noise functions - start, end
+	void StartMovAllocNoise(bool bIsChargingUp);
+	void KillMovAllocNoise();
+	void FadeOutMovAlloc();
+
 	// Input Actions
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputMappingContext* ShipMappingContext;
@@ -423,6 +432,32 @@ public:
 	bool bIsProtectObjective = false;
 
 private:
+	//Sound to play during engine throttle
+	UPROPERTY(EditAnywhere, Category = "Audio")
+	USoundBase* EngineBlastSound;
+
+	//Sound to play during arrow power-up
+	UPROPERTY(EditAnywhere, Category = "Audio")
+	USoundBase* ArrowUpSound;
+
+	//Sound to play during arrow power-down
+	UPROPERTY(EditAnywhere, Category = "Audio")
+	USoundBase* ArrowDownSound;
+
+	//Sound to play when using the targeter
+	UPROPERTY(EditAnywhere, Category = "Audio")
+	USoundBase* TargetAcquiredSound;
+
+	//Sound to play when target destroyed
+	UPROPERTY(EditAnywhere, Category = "Audio")
+	TArray<USoundBase*> TargetDestroyedSounds;
+
+	UPROPERTY()
+	UAudioComponent* EngineAudioComponent;
+
+	UPROPERTY()
+	UAudioComponent* MovementAllocAudioComponent;
+
 	UFUNCTION()
 	void HandleShipDestroyed(int32 CauseOfDeath, AShipPawn* DestroyedShip);
 	//Destroys the ship and handles broadcasts about cause of destruction

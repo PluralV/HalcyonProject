@@ -90,6 +90,16 @@ protected:
 	void DarkenButtonBackgroundColor();
 	//Changes button background color to be a lighter version of what it is currently (inverts DarkenButtonBackgroundColor)
 	void LightenButtonBackgroundColor();
+
+	UPROPERTY()
+	USoundBase* AllocSoundEffect;
+
+	UPROPERTY()
+	USoundBase* FreeSoundEffect;
+
+	UPROPERTY()
+	USoundBase* DenySoundEffect;
+
 private:
 	//Represents whether weapon has passed cooldown period or not
 	bool bIsReady = false;

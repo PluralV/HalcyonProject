@@ -7,6 +7,8 @@
 #include "ShipPawn.h"
 #include "ShipSpawnPoint.generated.h"
 
+
+class AAIController;
 UCLASS()
 class HALCYON_API AShipSpawnPoint : public AActor
 {
@@ -22,6 +24,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawned Ships")
 	TArray<TSubclassOf<AShipPawn>> SpawnedShipClasses;
+
+	// NEW: AI Controller class to use for spawned ships
+	UPROPERTY(EditAnywhere, Category = "Spawned Ships")
+	TSubclassOf<AAIController> AIControllerClass;
 
 public:	
 	// Called every frame
@@ -53,4 +59,6 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Spawned Ships")
 	float BeginningTimeSinceLastSpawn = 0.0;
+
+	
 };

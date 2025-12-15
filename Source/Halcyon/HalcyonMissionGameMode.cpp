@@ -101,6 +101,18 @@ void AHalcyonMissionGameMode::HandleObjectiveCompletion(int32 ObjectiveIndex) {
     if (ObjectiveIndex != CurrentObjectiveIndex) return;
     FObjectiveInfo CurrentObjective = ObjectiveList[CurrentObjectiveIndex];
     OnCurrentObjectiveComplete.Broadcast();
+    //play end-objective audio
+    TSoftObjectPtr<USoundBase> SoundAssetRef;
+    SoundAssetRef = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/HalcyonBlueprints/Ships/Weapons/Audio/UISounds/Camera_Shutter1.Camera_Shutter1")));
+    USoundBase* LoadedSound = SoundAssetRef.LoadSynchronous();
+    //If there is some unique audio for the end of this objective, play that too!
+    if (ObjectiveList[ObjectiveIndex].OnCompletionAudio) {
+        UGameplayStatics::PlaySound2D(GetWorld(),ObjectiveList[ObjectiveIndex].OnCompletionAudio);
+    }
+    if (MusicComponent) {
+        ClearAudioComponent();
+    }
+    UGameplayStatics::PlaySound2D(GetWorld(), LoadedSound);
     if (CurrentObjective.ObjectiveType == 0) CurrentObjective.AssociatedObjective->SetActiveObjective(false);
     CurrentObjectiveIndex++;
     //GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("CurrentObjectiveIndex: %d ObjectiveCount: %d")));
@@ -116,6 +128,34 @@ void AHalcyonMissionGameMode::ActivateCurrentObjective() {
     if (CurrentObjective.AssociatedObjective) {
         CurrentObjective.AssociatedObjective->SetActiveObjective(true);
     }
+    if (ObjectiveList[CurrentObjectiveIndex].OnActivationAudio) {
+        UGameplayStatics::PlaySound2D(GetWorld(), ObjectiveList[CurrentObjectiveIndex].OnActivationAudio);
+    }
+
+    if (ObjectiveList[CurrentObjectiveIndex].DuringObjectiveMusic) {
+        if (MusicComponent && MusicComponent->IsPlaying()) {
+            ClearAudioComponent();
+        }
+        MusicComponent = UGameplayStatics::SpawnSoundAttached(
+            ObjectiveList[CurrentObjectiveIndex].DuringObjectiveMusic,
+            GetRootComponent(),
+            NAME_None,              //socket name
+            FVector::ZeroVector,    //offset
+            EAttachLocation::KeepRelativeOffset,
+            true,                   //stop when owner destroyed?
+            1.f, 1.0f, 0.0f, //volume/pitch/start time delay
+            nullptr,                //Attenuation
+            nullptr,                //Concurrency
+            false                   //Don't auto destroy
+        );
+
+        if (MusicComponent)
+        {
+            //Make sure the sound loops no auto destruction
+            MusicComponent->bAutoDestroy = false;
+        }
+    }
+
     //IF this is a kill-objective (should have associated enemies), then spawn the enemies and register them
     if (CurrentObjective.ObjectiveType == 1) {
         if (!CurrentObjective.AssociatedSpawners.IsEmpty()) {
@@ -137,4 +177,17 @@ void AHalcyonMissionGameMode::ActivateCurrentObjective() {
 
 FObjectiveInfo AHalcyonMissionGameMode::GetCurrentObjective() {
     return ObjectiveList[CurrentObjectiveIndex];
+}
+
+void AHalcyonMissionGameMode::ClearAudioComponent() {
+    if (MusicComponent) {
+        MusicComponent->Stop();
+        MusicComponent->DestroyComponent();
+        MusicComponent = nullptr;
+    }
+}
+
+void AHalcyonMissionGameMode::BeginDestroy() {
+    ClearAudioComponent();
+    Super::BeginDestroy();
 }

@@ -41,7 +41,7 @@ void AShipPlayerController::BeginPlay() {
 		}//else if else if....
 		else if (AHalcyonMissionGameMode* HCMM = Cast<AHalcyonMissionGameMode>(CurrentGameMode)) {
 			GameModeIndex = 2;//TODO CHANGE
-			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Binding win conditions for le Halcyon Mission")));
+			//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Binding win conditions for le Halcyon Mission")));
 			HCMM->OnMissionLoss.AddDynamic(this, &AShipPlayerController::HandleLoss);
 			HCMM->OnMissionWin.AddDynamic(this, &AShipPlayerController::HandleWin);
 		}
@@ -62,11 +62,17 @@ void AShipPlayerController::Tick(float DeltaTime) {
 }
 
 void AShipPlayerController::InitializeHUD() {
+	APawn* ControlledPawn = GetPawn();
+	if (!ControlledPawn || !ControlledPawn->HasActorBegunPlay()) {
+		UE_LOG(LogTemp, Warning, TEXT("InitializeHUD: No pawn available yet, retrying..."));
+		GetWorldTimerManager().SetTimerForNextTick(this, &AShipPlayerController::InitializeHUD);
+		return;
+	}
 	//1. ADD MOVEMENT WIDGET
 	if (ShipMovementWidget) {
 		HUDMovement = CreateWidget<UUserWidget>(this, ShipMovementWidget);
 		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDMovement)) {
-			StatWidget->OwningShip = GetPawn();
+			StatWidget->OwningShip = ControlledPawn;
 			StatWidget->SetIsFocusable(false);
 			StatWidget->AddToViewport();
 		}
@@ -76,7 +82,7 @@ void AShipPlayerController::InitializeHUD() {
 	if (ShipEnergyWidget) {
 		HUDEnergy = CreateWidget<UUserWidget>(this, ShipEnergyWidget);
 		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDEnergy)) {
-			StatWidget->OwningShip = GetPawn();
+			StatWidget->OwningShip = ControlledPawn;
 			StatWidget->SetIsFocusable(false);
 			StatWidget->AddToViewport();
 		}
@@ -86,7 +92,7 @@ void AShipPlayerController::InitializeHUD() {
 	if (ShipIntegrityWidget) {
 		HUDIntegrity = CreateWidget<UUserWidget>(this, ShipIntegrityWidget);
 		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDIntegrity)) {
-			StatWidget->OwningShip = GetPawn();
+			StatWidget->OwningShip = ControlledPawn;
 			StatWidget->SetIsFocusable(false);
 			StatWidget->AddToViewport();
 		}
@@ -96,7 +102,7 @@ void AShipPlayerController::InitializeHUD() {
 	if (ShipHullWidget) {
 		HUDHull = CreateWidget<UUserWidget>(this, ShipHullWidget);
 		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDHull)) {
-			StatWidget->OwningShip = GetPawn();
+			StatWidget->OwningShip = ControlledPawn;
 			StatWidget->SetIsFocusable(false);
 			StatWidget->AddToViewport();
 		}
@@ -130,7 +136,7 @@ void AShipPlayerController::InitializeHUD() {
 		HUDPauseStatus = CreateWidget<UUserWidget>(this, PauseStatusWidget);
 		if (UShipStatWidget* SSW = Cast<UShipStatWidget>(HUDPauseStatus)) {
 			//TODO: set its characteristics as possible
-			SSW->OwningShip = GetPawn();
+			SSW->OwningShip = ControlledPawn;
 			SSW->OwningController = this;
 			SSW->SetIsFocusable(false);
 			SSW->AddToViewport();
@@ -141,7 +147,7 @@ void AShipPlayerController::InitializeHUD() {
 	if (ObjectiveListWidget) {
 		HUDObjectiveList = CreateWidget<UUserWidget>(this, ObjectiveListWidget);
 		if (UShipStatWidget* SSW = Cast<UShipStatWidget>(HUDObjectiveList)) {
-			SSW->OwningShip = GetPawn();
+			SSW->OwningShip = ControlledPawn;
 			SSW->OwningController = this;
 			SSW->SetIsFocusable(false);
 			SSW->AddToViewport();

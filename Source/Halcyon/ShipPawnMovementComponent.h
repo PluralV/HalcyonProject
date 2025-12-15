@@ -16,6 +16,7 @@ class HALCYON_API UShipPawnMovementComponent : public UPawnMovementComponent
 
 public:
     UShipPawnMovementComponent();
+
     UFUNCTION(BlueprintCallable)
     void AddThrustInput(float ThrottleValue);
 
@@ -61,10 +62,10 @@ public:
     float AccelRate = 20.f;
 
 private:
-    float CurrentThrust=0.f;
+    FVector CurrentVelocity;
     FRotator AngularThrust;
     float AngularAccel = 5.f;
-    FVector CurrentVelocity;
+    float CurrentThrust=0.f;
     //TODO: CHANGE TO 0 ONCE IMPLEMENTING ENERGY ALLOCATION FOR REAL AND SET ONLY W/ENERGY ALLOCATION
     int32 MovementEnergy = 0;
 };

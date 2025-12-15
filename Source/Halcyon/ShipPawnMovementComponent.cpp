@@ -3,6 +3,7 @@
 
 #include "ShipPawnMovementComponent.h"
 
+
 UShipPawnMovementComponent::UShipPawnMovementComponent() {
     //IMPLEMENT
     //
@@ -91,6 +92,7 @@ void UShipPawnMovementComponent::AddThrustInput(float ThrottleValue) {
    /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
         FString::Printf(TEXT("AddThrustInput called ThrottleValue: %f"), ThrottleValue));*/
     CurrentThrust += ThrottleValue;
+
 }
 
 void UShipPawnMovementComponent::SetThrustInput(float ThrustValue) {
