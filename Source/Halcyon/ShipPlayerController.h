@@ -31,6 +31,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 	
+	bool bHudInitialized = false;
 	void AcquireTargetToHud(AActor* Target);
 	void AddWeaponWidget();
 

@@ -31,6 +31,11 @@ public:
 	bool IsHomingProjectile() {
 		return Movement->bIsHomingProjectile;
 	}
+	// also makes it veer in random direction
+	void RemoveMissileTarget();
+	bool bVeering = false;
+	FVector DesiredVelocity;
+	// only set if has a homing target
 	UPROPERTY()
 	AActor* Target;
 
@@ -41,19 +46,19 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UPROPERTY(VisibleAnywhere)
 	UStaticMeshComponent* Mesh;
-
+	
 	UPROPERTY(VisibleAnywhere)
 	USphereComponent* Collision;
 
-	
 
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
+	
 	UPROPERTY(VisibleAnywhere)
 	class UProjectileMovementComponent* Movement;
 
@@ -77,14 +82,12 @@ protected:
 	int32 MinEnergy;
 	int32 EnergyStep;
 	int32 MaxEnergy;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
-	USoundBase* ShieldHitAudio;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	USoundBase* HullHitAudio;
 
 	UPROPERTY(EditAnywhere, Category = "FX")
-	UNiagaraSystem* ShieldHitEffect;
-
+	UNiagaraSystem* HullHitEffect;
 	UPROPERTY(EditAnywhere, Category = "FX")
 	UNiagaraSystem* ExplosionEffect;
 	int32 EnergyLevel;

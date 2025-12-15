@@ -13,8 +13,7 @@
 #include "HalcyonSimpleGameMode.h"
 #include "HalcyonMissionGameMode.h"
 #include "ShipSpawnPoint.h"
-
-
+#include "Projectile.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -26,8 +25,6 @@ AShipPawn::AShipPawn()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
-
 	ShipMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShipMesh"));
 	RootComponent = ShipMesh;
   
@@ -50,9 +47,13 @@ AShipPawn::AShipPawn()
 	HullMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndProbe);
 	ShipMesh->SetGenerateOverlapEvents(true);
 
+	CameraPivot = CreateDefaultSubobject<USceneComponent>(TEXT("CameraPivot"));
+	CameraPivot->SetupAttachment(RootComponent);
+	CameraPivot->SetUsingAbsoluteRotation(true);
 	//Build spring-arm component
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);
+	SpringArm->SetupAttachment(CameraPivot);
 	SpringArm->TargetArmLength = 500.0f;
 	SpringArm->bUsePawnControlRotation = false;
 	SpringArm->bInheritPitch = false;
@@ -131,8 +132,9 @@ void AShipPawn::BeginPlay()
 		if (!bCurrentSystemOverride) ShieldFacingsCurr[i] = ShieldFacings[i];
 	}
 
+
 	//Setup movement component stats
-	if (MovementComponent) {
+	if(MovementComponent){
 		MovementComponent->SpeedLimit = SpeedLimit;
 		MovementComponent->PitchRate = PitchRate;
 		MovementComponent->YawRate = YawRate;
@@ -188,6 +190,7 @@ void AShipPawn::BeginPlay()
 void AShipPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	// weapon tracking
 	if (CurrentTarget) {
 		for (UChildActorComponent* WeaponComp : WeaponComponents)
 		{
@@ -207,6 +210,9 @@ void AShipPawn::Tick(float DeltaTime)
 			}
 		}
 	}
+	// display hull damage highlight if timer>0
+
+	
 }
 
 // Called to bind functionality to input
@@ -225,7 +231,7 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(DecelerateAction, ETriggerEvent::Ongoing, this, &AShipPawn::MonitorEngineNoise);
 		EnhancedInputComponent->BindAction(DecelerateAction, ETriggerEvent::Completed, this, &AShipPawn::ZeroDecel);
 		//steering
-		EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Started, this, &AShipPawn::Steer);
+		EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Triggered, this, &AShipPawn::Steer);
 		//EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Ongoing, this, &AShipPawn::Steer);
 		EnhancedInputComponent->BindAction(SteerAction, ETriggerEvent::Completed, this, &AShipPawn::Steer);
 		//Look action
@@ -240,6 +246,7 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(FreeMovementAction, ETriggerEvent::Triggered, this, &AShipPawn::HandleArrowFree);
 		EnhancedInputComponent->BindAction(FreeMovementAction, ETriggerEvent::Completed, this, &AShipPawn::FadeOutMovAlloc);
 
+		EnhancedInputComponent->BindAction(CountermeasuresAction, ETriggerEvent::Started, this, &AShipPawn::DeployCountermeasures);
 
 	}
 }
@@ -357,7 +364,7 @@ void AShipPawn::Look(const FInputActionValue& Value) {
 	if (SpringArm) {
 		FRotator CurrentRotator = SpringArm->GetRelativeRotation();
 		CurrentRotator.Yaw += LookValue.X * CameraRotationSpeed;
-		CurrentRotator.Pitch = FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -360,360);//FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -80.0f, 0.0f);
+		CurrentRotator.Pitch = FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -60,60);//FMath::Clamp(CurrentRotator.Pitch + (LookValue.Y * CameraRotationSpeed), -80.0f, 0.0f);
 		SpringArm->SetRelativeRotation(CurrentRotator);
 	}
 }
@@ -1094,8 +1101,21 @@ void AShipPawn::DestroyShip(int32 CauseOfDeath) {
 	}
 	//else if else if...
 	
-	switch (CauseOfDeath) {//Ideally in the end TODO: we add some kind of death animation prior to vaporizing them
-	case 0://Currently: just destroy
+	switch (CauseOfDeath) {
+	case 0:// destroy
+		// spawn explosion fx
+		if (ExplosionFX) {
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				GetWorld(),
+				ExplosionFX,
+				GetActorLocation(),
+				GetActorRotation()
+			);
+		}
+		if (ExplosionAudio) {
+			UGameplayStatics::PlaySoundAtLocation(this, ExplosionAudio, GetActorLocation());
+
+		}
 		this->Destroy();
 		return;
 	case 1:
@@ -1243,6 +1263,12 @@ float AShipPawn::GetCurrentVelocity(bool bForDisplay) {
 		return bForDisplay ? roundf(Velocity * 100) / 100.f : Velocity;
 	}
 	return -1.f;
+}
+
+void AShipPawn::DeployCountermeasures() {
+	for (AProjectile* Missile : IncomingMissiles) {
+		Missile->RemoveMissileTarget();
+	}
 }
 
 void AShipPawn::BeginDestroy() {

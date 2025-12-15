@@ -6,8 +6,11 @@
 #include "GameFramework/Pawn.h"
 #include "InputActionValue.h"
 #include "Components/AudioComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "ShipPawn.generated.h"
 
+class UNiagaraSystem;
+class AProjectile;
 class UInputMappingContext;
 class UInputAction;
 class UShipPawnMovementComponent;
@@ -70,7 +73,7 @@ class HALCYON_API AShipPawn : public APawn
 public:
 	// Sets default values for this pawn's properties
 	AShipPawn();
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UShipPawnMovementComponent* MovementComponent;
 
@@ -127,6 +130,14 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
 	FText ShipClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
+	TSubclassOf<AActor> ShieldHitBPClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
+	USoundBase* ShieldHitAudio;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
+	UNiagaraSystem* ExplosionFX;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
+	USoundBase* ExplosionAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
 	FText ShipDesc;
@@ -143,6 +154,8 @@ public:
 		Fire();
 	}
 
+
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -156,6 +169,7 @@ protected:
 	void KillMovAllocNoise();
 	void FadeOutMovAlloc();
 
+	
 	// Input Actions
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputMappingContext* ShipMappingContext;
@@ -184,11 +198,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* FreeMovementAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* CountermeasuresAction;
+
 	UPROPERTY(BlueprintReadWrite, Category = "Targeting")
 	AActor* CurrentTarget = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapons")
 	TArray<UChildActorComponent*> WeaponComponents;
+
 
 	//Handle player input
 	void Look(const FInputActionValue& Value);
@@ -207,6 +225,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
 	float CameraRotationSpeed = 1.f;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	USceneComponent* CameraPivot;
+
+
 	//Ship base stats
 	//Hull integrity
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base System Stats")
@@ -224,7 +246,7 @@ protected:
 	//Stores current strength of each shield
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Current System Stats")
 	TArray<int32> ShieldFacingsCurr = {0,0,0,0,0,0};
-	
+	TArray<UStaticMeshComponent*> ShieldSegments;
 	//Hull damage: Internal damage that does nothing
 	int32 CenterHull;
 	int32 CenterHullCurr;
@@ -295,6 +317,22 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+
+	// Array of missiles currently locked onto ship, use for countermeasures
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	TArray<AProjectile*> IncomingMissiles;
+
+	void AddIncomingMissile(AProjectile* Missile) {
+		if (!Missile) return;
+		IncomingMissiles.AddUnique(Missile);
+	}
+	void RemoveIncomingMissile(AProjectile* Missile) {
+		if (!Missile) return;
+		IncomingMissiles.Remove(Missile);
+	}
+	// Countermeasures
+	void DeployCountermeasures();
 
 	//Functions for allocating energy to specific functions
 	UFUNCTION(BlueprintCallable)
