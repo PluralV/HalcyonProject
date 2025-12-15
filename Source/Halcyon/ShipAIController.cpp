@@ -78,7 +78,7 @@ void AShipAIController::Tick(float DeltaSeconds)
     {
         LookAtPoint = PlayerLoc;
     }
-    else if (Distance > SideOffset * 8) // if closer, approach diagonally by pointing at player offset to the side
+    else if (Distance > SideOffset * .8) // if closer, approach diagonally by pointing at player offset to the side
     {
         FVector FlankDirection = (MyLoc - PlayerLoc).GetSafeNormal();
         FlankDirection = FVector::CrossProduct(FlankDirection, FVector::UpVector);
@@ -87,7 +87,7 @@ void AShipAIController::Tick(float DeltaSeconds)
     else { // otherwise attempt orbit
         FVector PlayerToAI = (MyLoc - PlayerLoc).GetSafeNormal();
         FVector FlankDirection = FVector::CrossProduct(PlayerToAI, FVector::UpVector);
-        LookAtPoint = PlayerLoc + (FlankDirection * SideOffset) + (PlayerToAI * SideOffset * .65) + FVector::UpVector * HeightOffset;
+        LookAtPoint = PlayerLoc + (FlankDirection * SideOffset) + (PlayerToAI * SideOffset * .2) + FVector::UpVector * HeightOffset;
         
     }
     RotateToward(LookAtPoint);
