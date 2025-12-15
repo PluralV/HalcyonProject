@@ -130,6 +130,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "HUD")
 	TSubclassOf<UUserWidget> ObjectiveListWidget;
 
+	UPROPERTY(EditAnywhere, Category = "HUD")
+	TSubclassOf<UUserWidget> CountermeasuresWidget;
+
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Win Widget")
 	TSubclassOf<UUserWidget> WinWidgetClass;
@@ -156,6 +160,8 @@ protected:
 	UUserWidget* HUDObjectiveList;
 	UPROPERTY()
 	UUserWidget* WinWidget;
+	UPROPERTY()
+	UUserWidget* HUDCountermeasures;
 
 	/*Separate functions will exist for allocating energy to systems that are static / default
 	(i.e. movement, shield reinforcement, <potential> repairs/electronic warfare) and those that

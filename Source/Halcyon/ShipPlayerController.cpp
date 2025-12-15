@@ -157,6 +157,18 @@ void AShipPlayerController::InitializeHUD() {
 			SSW->AddToViewport();
 		}
 	}
+	//9. coutnermeasures widget
+	if (CountermeasuresWidget) {
+		//Set opening pause
+		HUDCountermeasures = CreateWidget<UUserWidget>(this, CountermeasuresWidget);
+		if (UShipStatWidget* CMSSW = Cast<UShipStatWidget>(HUDCountermeasures)) {
+			CMSSW->OwningShip = ControlledPawn;
+			CMSSW->OwningController = this;
+			CMSSW->SetIsFocusable(false);
+			CMSSW->AddToViewport();
+
+		}
+	}
 
 	if (WinWidgetClass) {
 		WinWidget = CreateWidget<UUserWidget>(this, WinWidgetClass);
@@ -177,6 +189,7 @@ void AShipPlayerController::InitializeHUD() {
 		}
 		
 	}
+	
 }
 
 void AShipPlayerController::SetupInputComponent() {

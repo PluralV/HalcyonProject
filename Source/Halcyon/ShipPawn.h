@@ -138,6 +138,11 @@ public:
 	UNiagaraSystem* ExplosionFX;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
 	USoundBase* ExplosionAudio;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
+	UNiagaraSystem* CountermeasuresFX;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
+	USoundBase* CountermeasuresAudio;
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
 	FText ShipDesc;
@@ -152,6 +157,13 @@ public:
 	UFUNCTION()
 	void AIFireWeapon() {
 		Fire();
+	}
+
+	float CountermeasuresCooldownTimer = 0.f;
+
+	UFUNCTION(BlueprintCallable, Category = "Countermeasures")
+	float GetCountermeasuresCooldownPercentage() {
+		return CountermeasuresCooldownTimer / CountermeasuresCooldown;
 	}
 
 
@@ -268,7 +280,9 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
 	int32 PowerReactor;
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
+	float CountermeasuresCooldown = 10.f;
 
 	UPROPERTY(EditAnywhere, Category = "Current System Stats")
 	int32 LeftEngCurr = 0;
