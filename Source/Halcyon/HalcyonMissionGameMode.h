@@ -6,6 +6,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "ObjectivePoint.h"
 #include "ShipSpawnPoint.h"
+#include "Components/AudioComponent.h"
+
 #include "HalcyonMissionGameMode.generated.h"
 
 
@@ -28,15 +30,26 @@ struct FObjectiveInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<AShipSpawnPoint*> AssociatedSpawners;
 
+	//0: interact, 1: kill, 2: protect (?)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	int32 ObjectiveType; //0: interact, 1: kill, 2: protect (?)
+	int32 ObjectiveType; 
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	USoundBase* OnActivationAudio;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	USoundBase* OnCompletionAudio;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	USoundBase* DuringObjectiveMusic;
 
 	FObjectiveInfo() :
 		ObjectiveDesc(FText::GetEmpty()),
 		ObjectiveTitle(FText::GetEmpty()),
 		AssociatedObjective(nullptr),
 		AssociatedSpawners({}),
-		ObjectiveType(0)
+		ObjectiveType(0),
+		OnCompletionAudio(nullptr)
 	{
 	};
 };
@@ -55,6 +68,11 @@ class HALCYON_API AHalcyonMissionGameMode : public AGameModeBase
 	GENERATED_BODY()
 protected:
 	virtual void StartPlay() override;
+	virtual void BeginDestroy() override;
+	UPROPERTY()
+	UAudioComponent* MusicComponent;
+
+	void ClearAudioComponent();
 
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")

@@ -2,6 +2,7 @@
 
 
 #include "ShipSpawnPoint.h"
+#include "AIController.h"
 
 // Sets default values
 AShipSpawnPoint::AShipSpawnPoint()
@@ -59,8 +60,27 @@ TArray<AShipPawn*> AShipSpawnPoint::SpawnShips() {
 
 			if (AShipPawn* SSP = Cast<AShipPawn>(SpawnedShip))
 			{
-				
 				SpawnedShips.Add(SSP);
+
+				// NEW: Spawn and attach AI controller
+				if (AIControllerClass)
+				{
+					AAIController* AIController = GetWorld()->SpawnActor<AAIController>(
+						AIControllerClass,
+						SpawnLocation,
+						SpawnRotation
+					);
+
+					if (AIController)
+					{
+						AIController->Possess(SSP);
+					}
+				}
+				else
+				{
+					// No AIControllerClass set, try to use default from pawn
+					SSP->SpawnDefaultController();
+				}
 			}
 
 		}

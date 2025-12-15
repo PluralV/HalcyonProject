@@ -41,7 +41,7 @@ void AShipPlayerController::BeginPlay() {
 		}//else if else if....
 		else if (AHalcyonMissionGameMode* HCMM = Cast<AHalcyonMissionGameMode>(CurrentGameMode)) {
 			GameModeIndex = 2;//TODO CHANGE
-			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Binding win conditions for le Halcyon Mission")));
+			//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Binding win conditions for le Halcyon Mission")));
 			HCMM->OnMissionLoss.AddDynamic(this, &AShipPlayerController::HandleLoss);
 			HCMM->OnMissionWin.AddDynamic(this, &AShipPlayerController::HandleWin);
 		}
@@ -96,7 +96,7 @@ void AShipPlayerController::InitializeHUD() {
 	if (ShipIntegrityWidget) {
 		HUDIntegrity = CreateWidget<UUserWidget>(this, ShipIntegrityWidget);
 		if (UShipStatWidget* StatWidget = Cast<UShipStatWidget>(HUDIntegrity)) {
-			StatWidget->OwningShip = GetPawn();
+			StatWidget->OwningShip = ControlledPawn;
 			StatWidget->SetIsFocusable(false);
 			StatWidget->AddToViewport();
 		}

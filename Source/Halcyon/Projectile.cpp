@@ -61,23 +61,23 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
 
             if (Ship->Team == team)
             {
-               /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-                    FString::Printf(TEXT("SAME TEAM!!!!")));*/
+                /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+                     FString::Printf(TEXT("SAME TEAM!!!!")));*/
                 return;
             }
             // Apply damage or effects here
             FVector TargetVector = Ship->GetActorRightVector();
-            FVector ImpactVector = this->GetActorForwardVector()*-1;
+            FVector ImpactVector = this->GetActorForwardVector() * -1;
             FQuat ImpactQuat = FQuat::FindBetweenNormals(TargetVector, ImpactVector);
             FRotator ImpactRotator = ImpactQuat.Rotator();
             float ImpactAngle = ImpactRotator.Yaw + 30.f;
             if (ImpactAngle < 0) ImpactAngle += 360.f;
             /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-                FString::Printf(TEXT("Target Vector: %f %f %f; ImpactVector: %f %f %f; Hit Angle: %f"), 
+                FString::Printf(TEXT("Target Vector: %f %f %f; ImpactVector: %f %f %f; Hit Angle: %f"),
                     TargetVector.X, TargetVector.Y, TargetVector.Z,
                     ImpactVector.X, ImpactVector.Y, ImpactVector.Z,
                     ImpactAngle));*/
-            // Play audio depending on whether shield or hull is hit
+                    // Play audio depending on whether shield or hull is hit
             EHitLayer ShieldOrHull = Ship->AllocateDamage(ImpactAngle, GetDamage(DistanceTraveled));
             FVector ProjectileLoc = GetActorLocation();
             FVector FXSpawnLoc = ProjectileLoc;
@@ -160,11 +160,13 @@ void AProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
             this->Destroy();
         }
         //LOGIC: ADD OBSTACLES THAT BLOCK PROJECTILES
-        /*else {
-            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,FString::Printf(TEXT("ACKK!!!!!")));
+        else if (Cast<AWeaponSystem>(OtherActor) || Cast<AProjectile>(OtherActor)) {
+            return;
+        }
+        else {
             this->Destroy();
             return;
-        }*/
+        }
     }
 }
 
