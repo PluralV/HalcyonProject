@@ -62,13 +62,16 @@ void AShipPlayerController::Tick(float DeltaTime) {
 }
 
 void AShipPlayerController::InitializeHUD() {
+	if (bHudInitialized) {
+		return;
+	}
 	APawn* ControlledPawn = GetPawn();
 	if (!ControlledPawn || !ControlledPawn->IsActorInitialized()) {
 		UE_LOG(LogTemp, Warning, TEXT("InitializeHUD: No pawn available yet, retrying..."));
 		GetWorldTimerManager().SetTimerForNextTick(this, &AShipPlayerController::InitializeHUD);
 		return;
 	}
-
+	bHudInitialized = true;
 	//1. ADD MOVEMENT WIDGET
 	if (ShipMovementWidget) {
 		HUDMovement = CreateWidget<UUserWidget>(this, ShipMovementWidget);

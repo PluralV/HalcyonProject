@@ -940,6 +940,10 @@ void AShipPawn::DestroyShip(int32 CauseOfDeath) {
 				GetActorRotation()
 			);
 		}
+		if (ExplosionAudio) {
+			UGameplayStatics::PlaySoundAtLocation(this, ExplosionAudio, GetActorLocation());
+
+		}
 		this->Destroy();
 		return;
 	case 1:

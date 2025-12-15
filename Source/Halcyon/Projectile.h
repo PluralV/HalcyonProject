@@ -54,7 +54,6 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	USphereComponent* Collision;
 
-	
 
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -89,7 +88,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "FX")
 	UNiagaraSystem* HullHitEffect;
-
 	UPROPERTY(EditAnywhere, Category = "FX")
 	UNiagaraSystem* ExplosionEffect;
 	int32 EnergyLevel;

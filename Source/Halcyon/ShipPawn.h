@@ -135,7 +135,8 @@ public:
 	USoundBase* ShieldHitAudio;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
 	UNiagaraSystem* ExplosionFX;
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
+	USoundBase* ExplosionAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Name")
 	FText ShipDesc;

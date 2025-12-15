@@ -7,7 +7,7 @@
 #include <Kismet/GameplayStatics.h>
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
-
+#include "NiagaraComponent.h"
 
 // Sets default values
 AProjectile::AProjectile()
@@ -190,6 +190,11 @@ void AProjectile::BeginPlay()
         else bIsOverloaded = false;
         team = OwningWeapon->team;
     }
+    /*if (AProjectile::IsHomingProjectile() && MissileSmokeSystem) {
+        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("smoke enabled")));
+        SmokeComp->SetAsset(MissileSmokeSystem);
+        SmokeComp->Activate();
+    }*/
 }
 void AProjectile::SetupHoming(AActor* InTarget)
 {
