@@ -38,8 +38,22 @@ void UShipPawnMovementComponent::TickComponent(float DeltaTime,
         AngularVel *= Dampening;*/
         /*PrimComp->SetPhysicsAngularVelocityInRadians(AngularVel, false);
         */
+        
+        AngularThrust.Pitch = FMath::FInterpTo(
+            AngularThrust.Pitch,
+            TargetAngularThrust.Pitch,
+            DeltaTime,
+            1
+        );
+        AngularThrust.Yaw = FMath::FInterpTo(
+            AngularThrust.Yaw,
+            TargetAngularThrust.Yaw,
+            DeltaTime,
+            1
+        );
+        /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+            FString::Printf(TEXT("in tick  - Pitch: %f, Yaw: %f Roll: %f"), AngularThrust.Pitch, AngularThrust.Yaw, AngularThrust.Roll));*/
 
-        //????
         FQuat PitchQuat = FQuat(Forward, FMath::DegreesToRadians(AngularThrust.Pitch * PitchRate * DeltaTime * -1.f));
         FQuat YawQuat = FQuat(WorldUp, FMath::DegreesToRadians(AngularThrust.Yaw * YawRate * DeltaTime));
         FQuat TargetQuat = YawQuat * PitchQuat * PrimComp->GetComponentQuat();
@@ -104,12 +118,12 @@ void UShipPawnMovementComponent::SetThrustInput(float ThrustValue) {
 void UShipPawnMovementComponent::AddRotationalInput(FVector RotationInput) {
     /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
         FString::Printf(TEXT("add rotational input called - x: %f, y: %f z: %f"), RotationInput.X, RotationInput.Y, RotationInput.Z));*/
-    AngularThrust += FRotator(RotationInput.Y, RotationInput.X, RotationInput.Z);
+    TargetAngularThrust += FRotator(RotationInput.Y, RotationInput.X, RotationInput.Z);
 }
 
 void UShipPawnMovementComponent::SetRotationalInput(FRotator Rotator) {
-    AngularThrust = Rotator;
-   /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
+    TargetAngularThrust = Rotator;
+    /*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
         FString::Printf(TEXT("set rotational input called - Pitch: %f, Yaw: %f Roll: %f"), AngularThrust.Pitch, AngularThrust.Yaw, AngularThrust.Roll));*/
 }
 

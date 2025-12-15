@@ -64,6 +64,7 @@ public:
 private:
     FVector CurrentVelocity;
     FRotator AngularThrust;
+    FRotator TargetAngularThrust;
     float AngularAccel = 5.f;
     float CurrentThrust=0.f;
     //TODO: CHANGE TO 0 ONCE IMPLEMENTING ENERGY ALLOCATION FOR REAL AND SET ONLY W/ENERGY ALLOCATION
