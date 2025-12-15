@@ -59,7 +59,7 @@ void ABaseTacticsAIController::BeginPlay() {
 //Sets up things like the weapon list/targets; has to be delayed in order to handle out-of-order initialization
 void ABaseTacticsAIController::InitializeAfterLoad() {
     APawn* ControlledPawn = GetPawn();
-    if (!ControlledPawn) {
+    if (!ControlledPawn || !ControlledPawn->HasActorBegunPlay()) {
         //GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow,FString::Printf(TEXT("Delaying InitializeAfterLoad")));
         GetWorldTimerManager().SetTimerForNextTick(this, &ABaseTacticsAIController::InitializeAfterLoad);
         return;
@@ -349,14 +349,14 @@ void ABaseTacticsAIController::AllocateEnergy() {
     //        }
     //    }
     //}
-    if (ControlledShip && ControlledShip->HasActorBegunPlay()) {
+    if (ControlledShip) {
         //GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow, FString::Printf(TEXT("Total Energy: %d"),ControlledShip->GetMaxEnergyAvailable()));
         ControlledShip->FreeMovement(ControlledShip->GetMovementEnergy() / 2);
         TArray<FWeaponCapability*> ComeBackLater;
-        //UE_LOG(LogTemp, Warning, TEXT("ALLOCATING ENERGY TO WEAPONS:"));
+        UE_LOG(LogTemp, Warning, TEXT("ALLOCATING ENERGY TO WEAPONS:"));
         for (FWeaponCapability& WeaponCapability : ShipWeapons) {
             if (AWeaponSystem* AWS = WeaponCapability.Weapon) {
-                //UE_LOG(LogTemp, Warning, TEXT("ALLOCATING ENERGY TO WEAPON %s?"), *AWS->WeaponAbbreviatedName.ToString());
+                UE_LOG(LogTemp, Warning, TEXT("ALLOCATING ENERGY TO WEAPON %s?"), *AWS->WeaponAbbreviatedName.ToString());
                 //If weapon has not been alloced yet, check if in range
                 if (AWS->MinEnergy > AWS->AllocatedEnergy) {
                     //If weapon is in range, then allocate minimum energy to it
