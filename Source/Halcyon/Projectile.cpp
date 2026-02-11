@@ -184,7 +184,6 @@ void AProjectile::BeginPlay()
         EnergyStep = OwningWeapon->EnergyStep;
         OverloadScaling = OwningWeapon->OverloadScaling;
         if (EnergyLevel > MinEnergy) {
-            
             bIsOverloaded = true;
             MaxRange = OwningWeapon->MaxRangeOverload;
             EnergyLevel = EnergyLevel > MaxEnergy ? MaxEnergy : EnergyLevel;
@@ -291,9 +290,8 @@ int32 AProjectile::GetDamage(float Range) {
         AdjustedBaseDamage = (BaseDamage - RangeBand * (BaseDamage / DamageScaling));
     }
     if (bIsOverloaded) {
-        if (EnergyStep == 0) return AdjustedBaseDamage;
-        AdjustedBaseDamage += (int)(OverloadScaling * (float)AdjustedBaseDamage * (float)((EnergyLevel - MinEnergy) / EnergyStep));
+        if (EnergyStep == 0.f) return AdjustedBaseDamage;
+        AdjustedBaseDamage += (int)(OverloadScaling * (float)AdjustedBaseDamage * ((EnergyLevel - MinEnergy) / EnergyStep));
     }
     return AdjustedBaseDamage;
-    
 }

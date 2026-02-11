@@ -38,12 +38,12 @@ void UWeaponDetailedInfoWidget::OnNewOwningWeapon() {
 		}
 		if (LblEnergyCost && LblDamageScale) {
 			if (OwningWeapon->MinEnergy != OwningWeapon->MaxEnergy) {
-				LblEnergyCost->SetText(FText::FromString(FString::Printf(TEXT("%d energy to activate, %d energy max"), OwningWeapon->MinEnergy, OwningWeapon->MaxEnergy)));
-				LblDamageScale->SetText(FText::FromString(FString::Printf(TEXT("+%d%% damage per %d additional energy"), (int)(OwningWeapon->OverloadScaling * 100.f),OwningWeapon->EnergyStep)));
+				LblEnergyCost->SetText(FText::FromString(FString::Printf(TEXT("%.1fs energy to activate, %.1fs energy max"), roundf(OwningWeapon->MinEnergy * 10) / 10.f, roundf(OwningWeapon->MaxEnergy * 10) / 10.f)));
+				LblDamageScale->SetText(FText::FromString(FString::Printf(TEXT("+%d%% damage per %.1fs additional energy"), (int)(OwningWeapon->OverloadScaling * 100.f), roundf(OwningWeapon->EnergyStep * 10) / 10.f)));
 				LblDamageScale->SetVisibility(ESlateVisibility::Visible);
 			}
 			else {
-				LblEnergyCost->SetText(FText::FromString(FString::Printf(TEXT("%d energy to activate"), OwningWeapon->MinEnergy)));
+				LblEnergyCost->SetText(FText::FromString(FString::Printf(TEXT("%.1fs energy to activate"), roundf(OwningWeapon->MinEnergy * 10) / 10.f)));
 				LblDamageScale->SetVisibility(ESlateVisibility::Collapsed);
 			}
 		}

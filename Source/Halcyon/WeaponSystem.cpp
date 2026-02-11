@@ -57,12 +57,12 @@ void AWeaponSystem::Tick(float DeltaTime)
 }
 
 //Attempts to allocate "amt" energy to this weapon. Returns the actual amount of energy allocated.
-int32 AWeaponSystem::AllocateEnergy(int32 amt) {
-    if (bIsFiring) return 0;
-    int32 GapToMax = MaxEnergy - AllocatedEnergy;
-    if (amt <= GapToMax) {
-        AllocatedEnergy += amt;
-        return amt;
+float AWeaponSystem::AllocateEnergy(float Amt) {
+    if (bIsFiring) return 0.f;
+    float GapToMax = MaxEnergy - AllocatedEnergy;
+    if (Amt <= GapToMax) {
+        AllocatedEnergy += Amt;
+        return Amt;
     }
     else {
         AllocatedEnergy = MaxEnergy;
@@ -70,16 +70,16 @@ int32 AWeaponSystem::AllocateEnergy(int32 amt) {
     }
 }
 
-int32 AWeaponSystem::FreeEnergy(int32 amt) {
-    if (bIsFiring) return 0;
-    if (AllocatedEnergy - amt >= 0) {
-        AllocatedEnergy -= amt;
-        return amt;
+float AWeaponSystem::FreeEnergy(float Amt) {
+    if (bIsFiring) return 0.f;
+    if (AllocatedEnergy - Amt >= 0.f) {
+        AllocatedEnergy -= Amt;
+        return Amt;
     }
     else {
-        int32 temp = AllocatedEnergy;
-        AllocatedEnergy = 0;
-        return temp;
+        float Temp = AllocatedEnergy;
+        AllocatedEnergy = 0.f;
+        return Temp;
     }
 }
 

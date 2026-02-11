@@ -78,8 +78,6 @@ protected:
 	virtual void NativeConstruct() override;
 
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
-	UFUNCTION(BlueprintImplementableEvent, Category = "Target")
-	void OnEnergyUpdated(int32 NewCurrentEnergy);
 
 	UFUNCTION(BlueprintCallable, Category="Events")
 	void RegisterDamage(int32 MyIndex);
@@ -101,6 +99,9 @@ protected:
 	USoundBase* DenySoundEffect;
 
 private:
+	//Formats floats into max-tenth digit decimals for displaying energy level
+	FText FormatFloatTenths(float InFloat);
+
 	//Represents whether weapon has passed cooldown period or not
 	bool bIsReady = false;
 	//Represents whether weapon has been damaged or not

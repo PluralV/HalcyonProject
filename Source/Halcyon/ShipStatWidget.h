@@ -8,6 +8,8 @@
 #include "ShipPlayerController.h"
 #include "ShipStatWidget.generated.h"
 
+class UProgressBar;
+class UTextBlock;
 /*
  SHIP SYSTEM STAT WIDGET
  - Used for showing ship stats and ship static system energy allocation. Not used for modular systems (which has to be more dynamic)
@@ -26,10 +28,10 @@ public:
 	//Based on bStaticSystem, either allocs/frees to concrete subsystem by index
 	//Can be used more than once here
 	UFUNCTION(BlueprintCallable, Category="Pawn Action")
-	void OnAllocButtonClicked(int32 amt, int32 TargetSystem);
+	void OnAllocButtonClicked(float amt, int32 TargetSystem);
 
 	UFUNCTION(BlueprintCallable, Category = "Pawn Action")
-	void OnFreeButtonClicked(int32 amt, int32 TargetSystem);
+	void OnFreeButtonClicked(float amt, int32 TargetSystem);
 
 	UFUNCTION(BlueprintCallable, Category = "Setter")
 	void SetOwningShip(AActor* NewOwningShip);
@@ -41,4 +43,21 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Target")
 	void OnOwningShipChanged(APawn* NewOwningShip);
+
+	//Alters progress bar based on parameters (Amt/MaxAmt) % and returns the percentage
+	float ModifyProgressBar(UProgressBar* ProgressBar, float Amt, float MaxAmt);
+
+	//Recolors progress bar to Color
+	void RecolorProgressBar(UProgressBar* ProgressBar, FLinearColor Color);
+
+	//Writes in a text box (one version takes int, one float, one text)
+	void ModifyTextBox(UTextBlock* TextBlock, int32 Number);
+	//Writes in a text box (one version takes int, one float, one text)
+	void ModifyTextBox(UTextBlock* TextBlock, float NumberFloat);
+	//Writes in a text box (one version takes int, one float, one text)
+	void ModifyTextBox(UTextBlock* TextBlock, FText Text);
+	//Recolors text box font to Color
+	void RecolorTextBox(UTextBlock* TextBlock, FLinearColor Color);
+	//Formats floats into max-tenth digit decimals for displaying energy level
+	FText FormatFloatTenths(float InFloat);
 };

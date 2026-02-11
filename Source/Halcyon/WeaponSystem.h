@@ -53,11 +53,11 @@ public:
 
     //returns the actual amount of energy allocated/freed for owning ship calculation purposes
     UFUNCTION(BlueprintCallable)
-    int32 AllocateEnergy(int32 amt); 
+    float AllocateEnergy(float amt); 
 
     //returns the actual amount of energy allocated/freed for owning ship calculation purposes
     UFUNCTION(BlueprintCallable)
-    int32 FreeEnergy(int32 amt);
+    float FreeEnergy(float amt);
 
     UFUNCTION(BlueprintCallable)
     bool CauseDamage();
@@ -130,14 +130,14 @@ public:
     float MaxRangeOverload = 2500; 
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Energy")
-    int32 MinEnergy;
+    float MinEnergy;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Energy")
-    int32 MaxEnergy;
+    float MaxEnergy;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Energy")
-    int32 EnergyStep;
+    float EnergyStep;
 
     UPROPERTY(BlueprintReadOnly, Category = "Weapon Energy")
-    int32 AllocatedEnergy;
+    float AllocatedEnergy;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Energy")
     int32 BaseDamage = 8;

@@ -79,9 +79,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile Stats")
 	int32 DamageScaling = 0;//What fraction of the original damage (rounded) should be lost at each range band
 	
-	int32 MinEnergy;
-	int32 EnergyStep;
-	int32 MaxEnergy;
+	float MinEnergy;
+	float EnergyStep;
+	float MaxEnergy;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	USoundBase* HullHitAudio;

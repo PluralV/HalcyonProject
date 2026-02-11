@@ -18,7 +18,7 @@ void UWeaponEntry::NativeConstruct() {
 			if (LblWeaponName) LblWeaponName->SetText(FText::FromString(FString::Printf(TEXT("%s %d"), *(OwningWeapon->WeaponAbbreviatedName.ToString()), (MyIndex + 1))));
 			if (LblWeaponArc) LblWeaponArc->SetText(OwningWeapon->WeaponArc);
 			if (LblStatus) LblStatus->SetText(FText::FromString("INACTIVE"));
-			if (EnergyLevelCurr) EnergyLevelCurr->SetText(FText::FromString(FString::Printf(TEXT("%d"), OwningWeapon->AllocatedEnergy)));
+			if (EnergyLevelCurr) EnergyLevelCurr->SetText(FormatFloatTenths(OwningWeapon->AllocatedEnergy));
 			OwningWeapon->OnEnergyChangedExternal.AddDynamic(this, &UWeaponEntry::OnEnergyChanged);
 			TSoftObjectPtr<USoundBase> UpSoundRef;
 			UpSoundRef = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/HalcyonBlueprints/Ships/Weapons/Audio/UISounds/SystemPowerUp.SystemPowerUp")));
@@ -41,12 +41,12 @@ void UWeaponEntry::OnAllocButtonClicked() {
 	//Cycle energy - attempt to immediately allocate to minimum level
 	if (AShipPawn* OSP = Cast<AShipPawn>(OwningShip)) {
 		if (OwningWeapon && !bIsDamaged && !OwningWeapon->bIsFiring) {
-			int32 AmountAlloced = 0;
+			float AmountAlloced = 0.f;
 			if (OwningWeapon->AllocatedEnergy < OwningWeapon->MinEnergy) {//if less than minimum, allocate entirely up to min
 				//ALLOCATE THIS AMOUNT OF ENERGY TO WEAPON W/SHIP PAWN
 				AmountAlloced = OSP->AllocateWeapon(MyIndex, OwningWeapon->MinEnergy - OwningWeapon->AllocatedEnergy);
-				if (!AmountAlloced) {
-					int32 AmountFreed = OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
+				if (AmountAlloced == 0.f) {
+					float AmountFreed = OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
 					if (AmountFreed && FreeSoundEffect) {
 						UGameplayStatics::PlaySound2D(GetWorld(), FreeSoundEffect);
 					}
@@ -64,11 +64,11 @@ void UWeaponEntry::OnAllocButtonClicked() {
 			}
 			else if (OwningWeapon->AllocatedEnergy < OwningWeapon->MaxEnergy) {//If between minimum and maximum, step up by 1
 				AmountAlloced = OSP->AllocateWeapon(MyIndex, OwningWeapon->EnergyStep);
-				if (!AmountAlloced) {//If it failed, just free the energy
-					int32 AmountFreed = OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
+				if (AmountAlloced == 0.f) {//If it failed, just free the energy
+					float AmountFreed = OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
 					//Determine what sound to play
 					//If AmountFreed > 0, play the Freed sound
-					if (AmountFreed && FreeSoundEffect) {
+					if (AmountFreed > 0.f && FreeSoundEffect) {
 						UGameplayStatics::PlaySound2D(GetWorld(), FreeSoundEffect);
 					}//otherwise play the Denied sound
 					else {
@@ -88,8 +88,8 @@ void UWeaponEntry::OnAllocButtonClicked() {
 				}
 			}
 			else {//If at maximum, simply free all the energy
-				int32 AmountFreed = OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
-				if (AmountFreed) {
+				float AmountFreed = OSP->FreeWeapon(MyIndex, OwningWeapon->AllocatedEnergy);
+				if (AmountFreed > 0.f) {
 					if (FreeSoundEffect) {
 						UGameplayStatics::PlaySound2D(GetWorld(), FreeSoundEffect);
 					}
@@ -133,9 +133,11 @@ void UWeaponEntry::OnCtrlGroupButtonClicked() {
 
 void UWeaponEntry::OnEnergyChanged() {
 	if (OwningWeapon && !bIsDamaged) {
-		int32 Energy = OwningWeapon->AllocatedEnergy;
-		int32 Min = OwningWeapon->MinEnergy;
-		int32 Max = OwningWeapon->MaxEnergy;
+		float Energy = OwningWeapon->AllocatedEnergy;
+		float Min = OwningWeapon->MinEnergy;
+		float Max = OwningWeapon->MaxEnergy;
+
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Energy, min, max %f %f %f"), Energy, Min, Max));
 
 		//Determine color of UI elements that change w/energy level
 		FLinearColor StatusColor = FLinearColor(0.084, 0.896, 0.8);
@@ -149,14 +151,14 @@ void UWeaponEntry::OnEnergyChanged() {
 
 
 		if (EnergyLevelProgressBar) {
-			EnergyLevelProgressBar->SetPercent((float)Energy / (float)Max);
+			EnergyLevelProgressBar->SetPercent(Energy / Max);
 			//Set color of the progress bar to match either GREEN (overloaded) or HALCYON BLUE (standard charge)
 			EnergyLevelProgressBar->SetFillColorAndOpacity(StatusColor);
 		}
 		
 		//Update the text counter
 		if (EnergyLevelCurr) {
-			EnergyLevelCurr->SetText(FText::FromString(FString::Printf(TEXT("%d"), Energy)));
+			EnergyLevelCurr->SetText(FormatFloatTenths(Energy));
 		}
 
 		//Update the charge status widget
@@ -205,7 +207,7 @@ void UWeaponEntry::NativeTick(const FGeometry& MyGeometry, float InDeltaTime) {
 					Cooldown->SetPercent((OwningWeapon->TimeSinceLastShot + InDeltaTime) / OwningWeapon->FireRate);
 					Cooldown->SetFillColorAndOpacity(FLinearColor(1.f, 1.f, 1.f, 0.9));
 					LblCooldownStatus->SetText(FText::FromString("ARMING"));
-				}	
+				}
 				else {
 					Cooldown->SetPercent(1.0);
 					Cooldown->SetFillColorAndOpacity(FLinearColor(0.f,1.f,0.f,0.9));
@@ -298,4 +300,12 @@ void UWeaponEntry::RegisterDamage(int32 Index) {
 			EnergyLevelCurr->SetText(FText::FromString("N/A"));
 		}
 	}
+}
+
+FText UWeaponEntry::FormatFloatTenths(float InFloat) {
+	FNumberFormattingOptions Options;
+	Options.MinimumFractionalDigits = 0;
+	Options.MaximumFractionalDigits = 1;
+
+	return FText::AsNumber(InFloat, &Options);
 }
