@@ -116,9 +116,14 @@ FText UShipStatWidget::FormatFloatTenths(float InFloat) {
 
 //Alters progress bar based on parameters (Amt/MaxAmt) %
 float UShipStatWidget::ModifyProgressBar(UProgressBar* ProgressBar, float Amt, float MaxAmt) {
-	float Percent = Amt / MaxAmt;
+	float Percent;
+	if (Amt == 0) Percent = 0.f;
+	else Percent = Amt / MaxAmt;
+
 	if (Percent > 1.f) Percent = 1.f;
+	
 	ProgressBar->SetPercent(Percent);
+	
 	return Percent;
 }
 
@@ -143,4 +148,16 @@ void UShipStatWidget::ModifyTextBox(UTextBlock* TextBlock, FText Text) {
 //Recolors font to Color
 void UShipStatWidget::RecolorTextBox(UTextBlock* TextBlock, FLinearColor Color) {
 	TextBlock->SetColorAndOpacity(Color);
+}
+
+FLinearColor UShipStatWidget::GetStatusColorForBar(float Percent) {
+	FLinearColor StatusColor = FLinearColor(0.084, 0.896, 0.8);;
+	if (Percent <= 0.25) {
+		StatusColor = FLinearColor(FLinearColor::Red);
+	}
+	else if (Percent <= 0.75) {
+		StatusColor = FLinearColor(FLinearColor::Yellow);
+	}
+	return StatusColor;
+
 }

@@ -19,31 +19,35 @@ class HALCYON_API UShipMovementStatWidget : public UShipStatWidget
 	GENERATED_BODY()
 public:
 	//Bar showing total energy allocated to movement
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UProgressBar* MovementEnergyBar;
 
 	//Bar showing how fast ship is moving relative to top speed at current energy level
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UProgressBar* SpedometerBar;
 
 	//Text block displaying movement energy
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* TBMovementEnergy;
 
+	//Text block displaying maximum movement energy
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UTextBlock* TBMovementEnergyMax;
+
 	//Text block displaying movement speed
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* TBCurrSpeed;
 
 	//Text block displaying max speed at current energy level
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* TBMaxSpeed;
 
 	//Button that allocates 1 energy step to the engines
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UButton* AllocButton;
 
 	//Button that frees 1 energy step from the engines
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UButton* DeallocButton;
 
 	FTimerHandle SpedometerTimer;

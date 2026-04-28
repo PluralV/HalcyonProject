@@ -73,6 +73,8 @@ void UShipMovementStatWidget::OnMaxEngineUpdate(float Amt) {
 		//then adjust max speed display
 		TopSpeed = CurrentMovementEnergy * ShipSpeedConstant;
 		ModifyTextBox(TBMaxSpeed, TopSpeed);
+		//adjust max movement energy display
+		ModifyTextBox(TBMovementEnergyMax, Amt);
 	}
 }
 void UShipMovementStatWidget::CheckSpeed() {

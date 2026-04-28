@@ -17,60 +17,60 @@ class HALCYON_API UShipPowerStatWidget : public UShipStatWidget
 	GENERATED_BODY()
 public:
 	//Bar showing total available energy as fraction of maximum energy
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UProgressBar* TotalEnergyBar;
 
 	//Bar showing amount of energy that will be sent back into the system after next cycle
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UProgressBar* TotalEnergyToBeReleasedBar;
 
 	//Bar showing time before next cycle
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UProgressBar* PowerCycleCooldownBar;
 
 	//Bar showing health of left engine
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UProgressBar* LEngBar;
 
 	//Bar showing health of center engine
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UProgressBar* CEngBar;
 
 	//Bar showing health of right engine
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UProgressBar* REngBar;
 
 	//Bar showing health of reactor
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UProgressBar* ReactorBar;
 
 	//Shows amount of energy to be released on next cycle as digit
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* TBEnergyToRelease;
 
 	//Displays maximum energy of ship
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* TBMaxEnergy;
 
 	//Displays total energy available for ship right now
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* TBAvailableEnergy;
 
 	//Displays total energy produced by left engine
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* TBLeftMax;
 	//Displays total energy produced by center engine
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* TBCenterMax;
 	//Displays total energy produced by right engine
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* TBRightMax;
 	//Displays total energy produced by reactor
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* TBReactorMax;
 	//Displays amount of energy to be lost on next power cycle
 	//TODO: CAN PROBABLY MERGE THIS WITH ENERGY RELEASED ONCE POWER CYCLE IMPLEMENTED
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* EnergyLossAmt;
 
 protected:

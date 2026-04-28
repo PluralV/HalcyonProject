@@ -60,4 +60,6 @@ protected:
 	void RecolorTextBox(UTextBlock* TextBlock, FLinearColor Color);
 	//Formats floats into max-tenth digit decimals for displaying energy level
 	FText FormatFloatTenths(float InFloat);
+
+	FLinearColor GetStatusColorForBar(float Percent);
 };

@@ -495,6 +495,16 @@ public:
 	void SetCurrentControlGroup(int32 ControlGroup);
 
 	UFUNCTION(BlueprintCallable)
+	int32 GetCurrentControlGroup() {
+		return CurrentControlGroup;
+	}
+
+	UFUNCTION(BlueprintCallable)
+	AActor* GetCurrentTarget(int32 CtrlGroup) {
+		return CurrentTargets[CtrlGroup];
+	}
+
+	UFUNCTION(BlueprintCallable)
 	TArray<UChildActorComponent*> GetWeaponComponents();
 
 	UFUNCTION()
@@ -516,7 +526,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Mission Objective")
 	bool bIsProtectObjective = false;
 
+	UPROPERTY(EditAnywhere, Category = "Mission Objective")
+	bool bIsDestroyObjective = false;
+
 private:
+	bool bIsTargeterActive = false;
+
 	//Sound to play during engine throttle
 	UPROPERTY(EditAnywhere, Category = "Audio")
 	USoundBase* EngineBlastSound;
