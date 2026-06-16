@@ -21,11 +21,13 @@ AWeaponSystem::AWeaponSystem()
     Barrel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Barrel"));
     Barrel->SetupAttachment(BarrelPivot);
 
-    TurretBase->SetSimulatePhysics(false);
-    TurretBase->SetMassOverrideInKg(NAME_None, 0.f, true);
+    TurretBase->BodyInstance.bSimulatePhysics = false;
+    TurretBase->BodyInstance.bOverrideMass = true;
+    TurretBase->BodyInstance.SetMassOverride(0.f);
 
-    Barrel->SetSimulatePhysics(false);
-    Barrel->SetMassOverrideInKg(NAME_None, 0.f, true);
+    Barrel->BodyInstance.bSimulatePhysics = false;
+    Barrel->BodyInstance.bOverrideMass = true;
+    Barrel->BodyInstance.SetMassOverride(0.f);
 
     Muzzle = CreateDefaultSubobject<USceneComponent>(TEXT("Muzzle"));
     Muzzle->SetupAttachment(Barrel);
@@ -57,12 +59,12 @@ void AWeaponSystem::Tick(float DeltaTime)
 }
 
 //Attempts to allocate "amt" energy to this weapon. Returns the actual amount of energy allocated.
-float AWeaponSystem::AllocateEnergy(float Amt) {
-    if (bIsFiring) return 0.f;
-    float GapToMax = MaxEnergy - AllocatedEnergy;
-    if (Amt <= GapToMax) {
-        AllocatedEnergy += Amt;
-        return Amt;
+int32 AWeaponSystem::AllocateEnergy(int32 amt) {
+    if (bIsFiring) return 0;
+    int32 GapToMax = MaxEnergy - AllocatedEnergy;
+    if (amt <= GapToMax) {
+        AllocatedEnergy += amt;
+        return amt;
     }
     else {
         AllocatedEnergy = MaxEnergy;
@@ -70,16 +72,16 @@ float AWeaponSystem::AllocateEnergy(float Amt) {
     }
 }
 
-float AWeaponSystem::FreeEnergy(float Amt) {
-    if (bIsFiring) return 0.f;
-    if (AllocatedEnergy - Amt >= 0.f) {
-        AllocatedEnergy -= Amt;
-        return Amt;
+int32 AWeaponSystem::FreeEnergy(int32 amt) {
+    if (bIsFiring) return 0;
+    if (AllocatedEnergy - amt >= 0) {
+        AllocatedEnergy -= amt;
+        return amt;
     }
     else {
-        float Temp = AllocatedEnergy;
-        AllocatedEnergy = 0.f;
-        return Temp;
+        int32 temp = AllocatedEnergy;
+        AllocatedEnergy = 0;
+        return temp;
     }
 }
 
@@ -95,9 +97,17 @@ bool AWeaponSystem::CauseDamage() {
 
 void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
 {
+    if (!IsValid(CurrentTarget)) {
+        bTargetInArc = false;
+        return;
+	}
     if (!bIsDamaged && AllocatedEnergy >= MinEnergy) {
-        FVector ShipLoc = CurrentTarget->GetActorLocation();
-        FVector TargetVel = CurrentTarget->GetVelocity();
+        FVector ShipLoc = FVector::ZeroVector;
+		FVector TargetVel = FVector::ZeroVector;
+        if (IsValid(CurrentTarget)) {
+            ShipLoc = CurrentTarget->GetActorLocation();
+            TargetVel = CurrentTarget->GetVelocity();
+        }
         FVector TurretLoc = TurretBase->GetComponentLocation();
         FVector ToShip = ShipLoc - TurretLoc;
         float Distance = ToShip.Size();
@@ -108,7 +118,8 @@ void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
         AProjectile* DefaultProj = ProjectileClass->GetDefaultObject<AProjectile>();
         if (!(DefaultProj->IsHomingProjectile())) {
             // Calculate lead using max speed
-            float TimeToTarget = Distance / DefaultProj->GetProjectileSpeed();
+			float DefaultProjSpeed = DefaultProj->GetProjectileSpeed();
+            float TimeToTarget = DefaultProjSpeed > 0 ? (Distance / DefaultProjSpeed) : 1;
             TargetLoc = ShipLoc + TargetVel * TimeToTarget;
         }
         FVector TargetDir = (TargetLoc - TurretLoc).GetSafeNormal();
@@ -264,6 +275,7 @@ void AWeaponSystem::TrackTarget(float DeltaTime, AActor* CurrentTarget)
 
 //returns true if the actor is within minimum rotation of the weapon, false if not
 bool AWeaponSystem::IsInArc(AActor* Target) {
+	if (!IsValid(Target)) return false;
     if (bIsDamaged) return false;
     else if (AllocatedEnergy >= MinEnergy) return bTargetInArc;
     else if (MaxTurretArc + MaxFiringAngle >= 180.f) return true;
@@ -294,6 +306,7 @@ bool AWeaponSystem::IsInArc(AActor* Target) {
 
 bool AWeaponSystem::IsInRange(AActor* Target, bool bOverloadRange)
 {
+	if (!IsValid(Target)) return false;
     int32 MaxRangeCheck = ((AllocatedEnergy > MinEnergy) || bOverloadRange) ? MaxRangeOverload : MaxRange;
     //GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Using range %d (bOverloadRange: %d)"),MaxRangeCheck,bOverloadRange));
     return FVector::Dist(Muzzle->GetComponentLocation(), Target->GetActorLocation()) <= MaxRangeCheck;
@@ -301,7 +314,9 @@ bool AWeaponSystem::IsInRange(AActor* Target, bool bOverloadRange)
 
 void AWeaponSystem::FireWeapon(AActor* Target) {
     float MaxRangeCheck = (AllocatedEnergy > MinEnergy) ? MaxRangeOverload : MaxRange;
+    if (!IsValid(Target)) return;
     if (!bIsDamaged && bTargetInArc && TimeSinceLastShot >= FireRate && GetDistanceTo(Target) <= MaxRangeCheck) {
+        //GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("passed all firing condition checks"));
         //GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("bIsDamaged %d bTargetInArc %d TimeSinceLastShot %f"), bIsDamaged, bTargetInArc, TimeSinceLastShot));
         //get barrel right again
         FVector PitchPlaneNormal = Barrel->GetRightVector();
@@ -331,7 +346,9 @@ void AWeaponSystem::FireWeapon(AActor* Target) {
                         Muzzle->GetComponentLocation()
                     );
                 }
-                Projectile->SetupHoming(Target);
+                if (IsValid(Target)) {
+                    Projectile->SetupHoming(Target);
+                }
                 Projectile->FireInDirection(ProjectedBarrelDir);
                 TimeSinceLastShot = 0.f;
                 bIsArming = true;
@@ -341,7 +358,6 @@ void AWeaponSystem::FireWeapon(AActor* Target) {
         }
     }
     /*else {
-        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
-            FString::Printf(TEXT("Weapon %s is not in arc."), *this->GetName()));
+        GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, FString::Printf(TEXT("Weapon %s is not in arc."), *this->GetName()));
     }*/
 }

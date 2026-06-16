@@ -30,7 +30,7 @@ public:
     void SetThrustInput(float ThrottleValue);
 
     UFUNCTION()
-    void SetMovementEnergy(float EnergyValue);
+    void SetMovementEnergy(int32 EnergyValue);
 
     UFUNCTION(BlueprintCallable)
     float GetSpeed();
@@ -68,5 +68,5 @@ private:
     float AngularAccel = 5.f;
     float CurrentThrust=0.f;
     //TODO: CHANGE TO 0 ONCE IMPLEMENTING ENERGY ALLOCATION FOR REAL AND SET ONLY W/ENERGY ALLOCATION
-    float MovementEnergy = 0;
+    int32 MovementEnergy = 0;
 };

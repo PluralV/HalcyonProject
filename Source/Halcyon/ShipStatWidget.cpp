@@ -2,14 +2,13 @@
 
 
 #include "ShipStatWidget.h"
-#include "Components/TextBlock.h"
-#include "Components/ProgressBar.h"
+
 
 void UShipStatWidget::NativeConstruct() {
 	Super::NativeConstruct();
 }
 
-void UShipStatWidget::OnAllocButtonClicked(float Amt, int32 TargetSystem) {
+void UShipStatWidget::OnAllocButtonClicked(int32 amt, int32 TargetSystem) {
 	if (OwningShip) {
 		//GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Owning ship passed"));
 		//Check if it's a ship pawn
@@ -19,7 +18,7 @@ void UShipStatWidget::OnAllocButtonClicked(float Amt, int32 TargetSystem) {
 			int32 index = -1;
 			switch (TargetSystem) {
 			case 0:
-				ShipPawn->AllocateMovement(Amt);
+				ShipPawn->AllocateMovement(amt);
 				return;
 			case 1:
 				index = 0;
@@ -43,12 +42,12 @@ void UShipStatWidget::OnAllocButtonClicked(float Amt, int32 TargetSystem) {
 			default:break;
 			}
 			//Reinforce shield on some facing
-			ShipPawn->AllocateReinforceShield(index, Amt);
+			ShipPawn->AllocateReinforceShield(amt, index);
 		}
 	}
 }
 
-void UShipStatWidget::OnFreeButtonClicked(float Amt, int32 TargetSystem) {
+void UShipStatWidget::OnFreeButtonClicked(int32 amt, int32 TargetSystem) {
 	//GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Free button clicked!:"));
 	if (OwningShip) {
 		//GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Owning ship passed"));
@@ -57,7 +56,7 @@ void UShipStatWidget::OnFreeButtonClicked(float Amt, int32 TargetSystem) {
 			int32 index = -1;
 			switch (TargetSystem) {
 			case 0:
-				ShipPawn->FreeMovement(Amt);
+				ShipPawn->FreeMovement(amt);
 				return;
 			case 1:
 				index = 0;
@@ -81,7 +80,7 @@ void UShipStatWidget::OnFreeButtonClicked(float Amt, int32 TargetSystem) {
 			default:break;
 			}
 			//Remove shield reinforcement
-			ShipPawn->FreeReinforceShield(index, Amt);
+			ShipPawn->FreeReinforceShield(amt, index);
 		}
 	}
 }
@@ -104,60 +103,4 @@ FReply UShipStatWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyE
 	}
 	// Handle other keys normally
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
-}
-
-FText UShipStatWidget::FormatFloatTenths(float InFloat) {
-	FNumberFormattingOptions Options;
-	Options.MinimumFractionalDigits = 0;
-	Options.MaximumFractionalDigits = 2;
-
-	return FText::AsNumber(InFloat, &Options);
-}
-
-//Alters progress bar based on parameters (Amt/MaxAmt) %
-float UShipStatWidget::ModifyProgressBar(UProgressBar* ProgressBar, float Amt, float MaxAmt) {
-	float Percent;
-	if (Amt == 0) Percent = 0.f;
-	else Percent = Amt / MaxAmt;
-
-	if (Percent > 1.f) Percent = 1.f;
-	
-	ProgressBar->SetPercent(Percent);
-	
-	return Percent;
-}
-
-//Recolors progress bar to Color
-void UShipStatWidget::RecolorProgressBar(UProgressBar* ProgressBar, FLinearColor Color) {
-	ProgressBar->SetFillColorAndOpacity(Color);
-}
-
-//Writes in a text box (one version takes int, one float, one text)
-void UShipStatWidget::ModifyTextBox(UTextBlock* TextBlock, int32 Number) {
-	TextBlock->SetText(FText::FromString(FString::FromInt(Number)));
-}
-//Writes in a text box (one version takes int, one float, one text)
-void UShipStatWidget::ModifyTextBox(UTextBlock* TextBlock, float NumberFloat) {
-	TextBlock->SetText(FormatFloatTenths(NumberFloat));
-}
-//Writes in a text box (one version takes int, one float, one text)
-void UShipStatWidget::ModifyTextBox(UTextBlock* TextBlock, FText Text) {
-	TextBlock->SetText(Text);
-}
-
-//Recolors font to Color
-void UShipStatWidget::RecolorTextBox(UTextBlock* TextBlock, FLinearColor Color) {
-	TextBlock->SetColorAndOpacity(Color);
-}
-
-FLinearColor UShipStatWidget::GetStatusColorForBar(float Percent) {
-	FLinearColor StatusColor = FLinearColor(0.084, 0.896, 0.8);;
-	if (Percent <= 0.25) {
-		StatusColor = FLinearColor(FLinearColor::Red);
-	}
-	else if (Percent <= 0.75) {
-		StatusColor = FLinearColor(FLinearColor::Yellow);
-	}
-	return StatusColor;
-
 }

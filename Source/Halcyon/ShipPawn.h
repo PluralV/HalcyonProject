@@ -27,25 +27,25 @@ enum class EHitLayer {
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEnemyDestroyed);
 /*Used when energy is allocated to one of the main static systems: shield or movement. which denotes the static system (0 - movement,
 * 1-6: shield of that Index) Amt is the total final energy allocated.*/
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStaticEnergyChanged, int32, which, float, Amt);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStaticEnergyChanged, int32, which, int32, Amt);
 /*Used when the strength of a shield is changed due to damage or reinforcement. Index is the index of the shield, Amt is the total 
 *remaining shield strength.*/
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnShieldStrengthChanged, int32, Index, float, Amt);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnShieldStrengthChanged, int32, Index, int32, Amt);
 /*Used when energy is being held on cooldown to be released, usually due to a powered system being damaged. Amt is the amount to be added 
 *after the time elapses.*/
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnergyToBeReleased, float, Amt);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnergyToBeReleased, int32, Amt);
 /*Used when energy is being held on cooldown to be removed from availability, usually due to engines/reactor being damaged. Amt is the amount of
 *energy to be removed after the time elapses.*/
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnergyToBeRestricted, float, Amt);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnergyToBeRestricted, int32, Amt);
 /*Used when available energy changes for any reason (used to update HUD). Amt is the new total available energy.*/
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAvailableEnergyChanged, float, Amt);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAvailableEnergyChanged, int32, Amt);
 /*Used when energy for movement changes for any reason (used to update HUD). Amt is the new total movement energy.*/
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementEnergyChanged, float, Amt);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementEnergyChanged, int32, Amt);
 /*Used when maximum energy changes (TotalEnergyCurr) - i.e. the maximum possible energy changes due to damage to power systems 
 * or (TBD) repair - Amt is the new total energy.*/
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTotalEnergyChanged, float, Amt);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTotalEnergyChanged, int32, Amt);
 /*Used when maximum engine power changes (TotalEngineCurr) - i.e. due to damage to power systems or (TBD) repair - Amt is the new total energy.*/
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTotalEngineChanged, float, Amt);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTotalEngineChanged, int32, Amt);
 /*Used when hull integrity changes. Amt is the new total hull integrity.*/
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHullIntegrityChanged, int32, Amt);
 /*Used when left engine changes. Amt is the new total hull integrity.*/
@@ -151,24 +151,20 @@ public:
 
 	UFUNCTION()
 	void SetTarget(AActor* Target) {
-		CurrentTargets[0] = Target;
+		CurrentTarget = Target;
 	}
 
 	UFUNCTION()
 	void AIFireWeapon() {
 		Fire();
 	}
-	
+
+	float CountermeasuresCooldownTimer = 0.f;
+
 	UFUNCTION(BlueprintCallable, Category = "Countermeasures")
 	float GetCountermeasuresCooldownPercentage() {
 		return CountermeasuresCooldownTimer / CountermeasuresCooldown;
 	}
-	//tracks current time since last countermeasure use
-	float CountermeasuresCooldownTimer = 0.f;
-	//Time in seconds before energy that is going to be lost/released is in fact taken away/released
-	float PowerCycleLength = 16.f;
-	
-	
 
 
 
@@ -214,15 +210,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* FreeMovementAction;
 
-	//Changes current control group
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputAction* ControlShiftAction;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* CountermeasuresAction;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Targeting")
-	TArray<AActor*> CurrentTargets = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 
 	UPROPERTY(BlueprintReadWrite, Category = "Targeting")
 	AActor* CurrentTarget = nullptr;
@@ -243,7 +232,6 @@ protected:
 	void Fire();
 	void HandleArrowAlloc();
 	void HandleArrowFree();
-	void HandleControlShift(const FInputActionValue& Value);
 
 	// Camera rotation speed
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
@@ -293,10 +281,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
 	int32 PowerReactor;
 
-	//Determines the incremental size of each amount of movement
-	UPROPERTY(EditAnywhere, Category = "Base System Stats")
-	float MovementStep = 1.f;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base System Stats")
 	float CountermeasuresCooldown = 10.f;
 
@@ -309,24 +293,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Current System Stats")
 	int32 PowerReactorCurr = 0;
 	//TotalEnergy: maximum possible energy based on above stats
-	float TotalEnergy;
+	int32 TotalEnergy;
 	//TotalEnergyCurr: current maximum possible energy based on above stats/damage
-	float TotalEnergyCurr;
+	int32 TotalEnergyCurr;
 	//Total engine power
-	float TotalEngine;
+	int32 TotalEngine;
 	//Total possible power to be allocated to movement (can be reduced)
-	float TotalEngineCurr;
+	int32 TotalEngineCurr;
 	//TotalEnergyAvailable: current energy not allocated
-	float TotalEnergyAvailable;
-
-	//energy that can be stored for later use in firing plasma weapons
-	//Maximum plasma bank energy
-	float PlasmaBankMax;
-	//Current plasma bank energy
-	float PlasmaBankCurr;
-
-	//Size of each alloc action to plasma bank
-	float PlasmaBankStep;
+	int32 TotalEnergyAvailable;
 
 	//ARRAYS FOR STORING SYSTEMS
 	
@@ -375,28 +350,28 @@ public:
 
 	//Functions for allocating energy to specific functions
 	UFUNCTION(BlueprintCallable)
-	void AllocateReinforceShield(int32 Index, float Amt);
+	void AllocateReinforceShield(int32 Amt, int32 Index);
 
 	UFUNCTION(BlueprintCallable)
-	void AllocateMovement(float Amt);
+	void AllocateMovement(int32 Amt);
 
 	UFUNCTION(BlueprintCallable)
-	float AllocateWeapon(int32 Index, float Amt);
+	int32 AllocateWeapon(int32 Index, int32 Amt);
 
 	UFUNCTION(BlueprintCallable)
-	void FreeReinforceShield(int32 Index, float Amt);
+	void FreeReinforceShield(int32 Amt, int32 Index);
 
 	UFUNCTION(BlueprintCallable)
-	void ReleaseEnergy(float Amt);//When energy is released from a system back into the available pool due to freeing
+	void ReleaseEnergy(int32 Amt);//When energy is released from a system back into the available pool due to freeing
 
 	UFUNCTION(BlueprintCallable)
-	void EnergyLoss(float Amt);//When energy is taken away from the available pool due to damage to power systems
+	void EnergyLoss(int32 Amt);//When energy is taken away from the available pool due to damage to power systems
 
 	UFUNCTION(BlueprintCallable)
-	void FreeMovement(float Amt);
+	void FreeMovement(int32 Amt);
 
 	UFUNCTION(BlueprintCallable)
-	float FreeWeapon(int32 Index, float Amt, bool bIsRestricting=false);
+	int32 FreeWeapon(int32 Index, int32 Amt, bool bIsRestricting=false);
 
 	UFUNCTION(BlueprintCallable)
 	EHitLayer AllocateDamage(float FromAngle, int32 DamageAmt);
@@ -404,15 +379,15 @@ public:
 	//GETTERS
 	//Movement energy
 	UFUNCTION(BlueprintCallable)
-	float GetMovementEnergy();
+	int32 GetMovementEnergy();
 
 	UFUNCTION(BlueprintCallable)
-	float GetMaxEngine() {
+	int32 GetMaxEngine() {
 		return TotalEngine;
 	}
 
 	UFUNCTION(BlueprintCallable)
-	float GetMaxEngineCurr() {
+	int32 GetMaxEngineCurr() {
 		return TotalEngineCurr;
 	}
 
@@ -422,13 +397,13 @@ public:
 	}
 
 	UFUNCTION(BlueprintCallable)
-	float GetMaxEnergyCurr();
+	int32 GetMaxEnergyCurr();
 
 	UFUNCTION(BlueprintCallable)
-	float GetMaxEnergy();
+	int32 GetMaxEnergy();
 
 	UFUNCTION(BlueprintCallable)
-	float GetMaxEnergyAvailable();
+	int32 GetMaxEnergyAvailable();
 
 	UFUNCTION(BlueprintCallable)
 	float GetSpeedConstant();
@@ -487,24 +462,6 @@ public:
 	int32 GetMaxHullIntegrity();
 
 	UFUNCTION(BlueprintCallable)
-	float GetMovementStep() {
-		return MovementStep;
-	}
-
-	UFUNCTION(BlueprintCallable)
-	void SetCurrentControlGroup(int32 ControlGroup);
-
-	UFUNCTION(BlueprintCallable)
-	int32 GetCurrentControlGroup() {
-		return CurrentControlGroup;
-	}
-
-	UFUNCTION(BlueprintCallable)
-	AActor* GetCurrentTarget(int32 CtrlGroup) {
-		return CurrentTargets[CtrlGroup];
-	}
-
-	UFUNCTION(BlueprintCallable)
 	TArray<UChildActorComponent*> GetWeaponComponents();
 
 	UFUNCTION()
@@ -526,12 +483,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Mission Objective")
 	bool bIsProtectObjective = false;
 
-	UPROPERTY(EditAnywhere, Category = "Mission Objective")
-	bool bIsDestroyObjective = false;
-
 private:
-	bool bIsTargeterActive = false;
-
 	//Sound to play during engine throttle
 	UPROPERTY(EditAnywhere, Category = "Audio")
 	USoundBase* EngineBlastSound;
@@ -563,7 +515,7 @@ private:
 	//Destroys the ship and handles broadcasts about cause of destruction
 	void DestroyShip(int32 CauseOfDeath);
 	//Releases current target and sets to none. 
-	void UnlockTarget(int32 ControlGroup);
+	void UnlockTarget();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* SpringArm;
@@ -580,8 +532,7 @@ private:
 	//Used for ticking
 	FVector CurrentVelocity;
 	FRotator AngularVelocity;
-	//Adding control groups to weapons
-	int32 CurrentControlGroup = 0;
+
 	//Power allocated to base non-external systems
-	float MovementEnergy = 0.f;
+	int32 MovementEnergy = 0;
 };

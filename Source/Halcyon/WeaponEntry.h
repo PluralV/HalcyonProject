@@ -39,37 +39,37 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Pawn Action")
 	void OnEnergyChanged();
 
-	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UProgressBar* EnergyLevelProgressBar;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UProgressBar* Cooldown;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* LblWeaponArc;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* LblWeaponName;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* LblStatus;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* LblCooldownStatus;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* LblControlGroup;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UTextBlock* EnergyLevelCurr;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UButton* AllocButton;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UButton* InfoButton;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Child Widgets", meta = (BindWidget))
 	UButton* CtrlGroupButton;
 
 	int32 MyIndex = -1;//Keeps index of weapon in the array stored by ship owner
@@ -78,6 +78,8 @@ protected:
 	virtual void NativeConstruct() override;
 
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	UFUNCTION(BlueprintImplementableEvent, Category = "Target")
+	void OnEnergyUpdated(int32 NewCurrentEnergy);
 
 	UFUNCTION(BlueprintCallable, Category="Events")
 	void RegisterDamage(int32 MyIndex);
@@ -99,9 +101,6 @@ protected:
 	USoundBase* DenySoundEffect;
 
 private:
-	//Formats floats into max-tenth digit decimals for displaying energy level
-	FText FormatFloatTenths(float InFloat);
-
 	//Represents whether weapon has passed cooldown period or not
 	bool bIsReady = false;
 	//Represents whether weapon has been damaged or not

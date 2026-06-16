@@ -19,7 +19,6 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Engine/World.h"
 #include "WeaponSystem.h"
-#include "PlasmaProjectile.h"
 
 // Sets default values
 AShipPawn::AShipPawn()
@@ -31,7 +30,7 @@ AShipPawn::AShipPawn()
   
   
 	// Set up mesh
-	ShipMesh->SetSimulatePhysics(true);
+	ShipMesh->BodyInstance.bSimulatePhysics = true;
 	ShipMesh->SetCollisionProfileName(TEXT("Vehicle"));
 	ShipMesh->SetEnableGravity(false);
 
@@ -44,7 +43,7 @@ AShipPawn::AShipPawn()
 	//Body mesh
 	HullMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
 	HullMesh->SetupAttachment(ShipMesh);
-	HullMesh->SetSimulatePhysics(false);
+	HullMesh->BodyInstance.bSimulatePhysics = false;
 	HullMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndProbe);
 	ShipMesh->SetGenerateOverlapEvents(true);
 
@@ -79,7 +78,6 @@ AShipPawn::AShipPawn()
 	// Create movement component
 	MovementComponent = CreateDefaultSubobject<UShipPawnMovementComponent>(TEXT("MovementComponent"));
 	MovementComponent->SetUpdatedComponent(ShipMesh);
-
 }
 
 // Called when the game starts or when spawned
@@ -98,12 +96,12 @@ void AShipPawn::BeginPlay()
 	AftHullCurr = AftHull;
 	CenterHullCurr = CenterHull;
 
-	TotalEngine = (float)(LeftEng + RightEng + CenterEng);
-	TotalEngineCurr = (float)(LeftEngCurr + RightEngCurr + CenterEngCurr);
+	TotalEnergy = LeftEng + RightEng + CenterEng + PowerReactor;
+	TotalEnergyCurr = LeftEngCurr + RightEngCurr + CenterEngCurr + PowerReactorCurr;
 
-	TotalEnergy = TotalEngine + (float)PowerReactor;
-	TotalEnergyCurr = TotalEngineCurr + (float)PowerReactorCurr;
 
+	TotalEngine = LeftEng + RightEng + CenterEng;
+	TotalEngineCurr = LeftEngCurr + RightEngCurr + CenterEngCurr;
 	TotalEnergyAvailable = TotalEnergyCurr;
 
 	TSoftObjectPtr<USoundBase> EngSoundRef;
@@ -177,10 +175,6 @@ void AShipPawn::BeginPlay()
 			if (AWeaponSystem* WS = Cast<AWeaponSystem>(Comp->GetChildActor())) {
 				WS->team = Team;
 				WS->ControlGroup = 0;
-				if (WS->ProjectileClass == APlasmaProjectile::StaticClass()) {
-					PlasmaBankMax += WS->MinEnergy;
-					PlasmaBankCurr += WS->MinEnergy;
-				}
 			}
 		}
 	}
@@ -199,50 +193,25 @@ void AShipPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	// weapon tracking
-	for (int32 i = 0; i <= 9; i++) {
-		if (CurrentTargets[i]) {
-			for (UChildActorComponent* WeaponComp : WeaponComponents)
-			{
-				if (WeaponComp) {
-					AActor* Child = WeaponComp->GetChildActor();
-					if (AWeaponSystem* Weapon = Cast<AWeaponSystem>(Child))
-					{
-						if (Weapon->ControlGroup == i) Weapon->TrackTarget(DeltaTime, CurrentTargets[i]);
-					}
-					else {
-						//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
-
-					}
+	if (CurrentTarget) {
+		for (UChildActorComponent* WeaponComp : WeaponComponents)
+		{
+			if (WeaponComp) {
+				AActor* Child = WeaponComp->GetChildActor();
+				if (AWeaponSystem* Weapon = Cast<AWeaponSystem>(Child))
+				{
+					Weapon->TrackTarget(DeltaTime, CurrentTarget);
 				}
 				else {
-					//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("no wewpaoncomp"));
+					//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
+
 				}
 			}
-		}
-		else {
-			CurrentTargets[i] = nullptr;
+			else {
+				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("no wewpaoncomp"));
+			}
 		}
 	}
-	//OLD: only one target
-	//if (CurrentTarget) {
-	//	for (UChildActorComponent* WeaponComp : WeaponComponents)
-	//	{
-	//		if (WeaponComp) {
-	//			AActor* Child = WeaponComp->GetChildActor();
-	//			if (AWeaponSystem* Weapon = Cast<AWeaponSystem>(Child))
-	//			{
-	//				Weapon->TrackTarget(DeltaTime, CurrentTarget);
-	//			}
-	//			else {
-	//				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
-
-	//			}
-	//		}
-	//		else {
-	//			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("no wewpaoncomp"));
-	//		}
-	//	}
-	//}
 	if (CountermeasuresCooldownTimer > 0.f)
 	{
 		CountermeasuresCooldownTimer -= DeltaTime;
@@ -253,37 +222,6 @@ void AShipPawn::Tick(float DeltaTime)
 	}
 
 	
-}
-
-//Called to change the active control group which you are interested in firing. Determines the target.
-void AShipPawn::SetCurrentControlGroup(int32 ControlGroup) {
-	//Bounds check control groups - should be limited to keys on the keyboard
-	if (ControlGroup < 0 || ControlGroup > 9) return;
-	//If CurrentTargets has an entry for the current control group, de-target it; 
-	if (CurrentTargets[CurrentControlGroup]) {
-		if (AShipPawn* EnemyForThatGroup = Cast<AShipPawn>(CurrentTargets[CurrentControlGroup])) {
-			//Remove it from post processing and the dynamic handleshipdestroyed listener
-			EnemyForThatGroup->SetIsTargeted(false);
-			EnemyForThatGroup->OnShipDestroyed.RemoveDynamic(this, &AShipPawn::HandleShipDestroyed);
-		}
-	}
-	CurrentControlGroup = ControlGroup;
-	if (CurrentTargets[CurrentControlGroup]) {
-		//If there is a current target under this group, set it to the target for post-processing and add a dynamic listener for
-		//its destruction
-		if (AShipPawn* NewEnemy = Cast<AShipPawn>(CurrentTargets[CurrentControlGroup])) {
-			NewEnemy->SetIsTargeted(true);
-			NewEnemy->OnShipDestroyed.AddDynamic(this, &AShipPawn::HandleShipDestroyed);
-			if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
-				SPC->AcquireTargetToHud(NewEnemy);
-				
-			}
-			return;
-		}
-	}
-	if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
-		SPC->AcquireTargetToHud(nullptr);
-	}
 }
 
 // Called to bind functionality to input
@@ -317,9 +255,6 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(FreeMovementAction, ETriggerEvent::Triggered, this, &AShipPawn::HandleArrowFree);
 		EnhancedInputComponent->BindAction(FreeMovementAction, ETriggerEvent::Completed, this, &AShipPawn::FadeOutMovAlloc);
 
-		//Bind control group action
-		EnhancedInputComponent->BindAction(ControlShiftAction, ETriggerEvent::Triggered, this, &AShipPawn::HandleControlShift);
-
 		EnhancedInputComponent->BindAction(CountermeasuresAction, ETriggerEvent::Started, this, &AShipPawn::DeployCountermeasures);
 
 	}
@@ -327,15 +262,6 @@ void AShipPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 }
 
 //PLAYER INPUT HANDLER FUNCTIONS
-
-//Shifts control group by converting input from float to int, then passing to set current control group
-void AShipPawn::HandleControlShift(const FInputActionValue& Value) {
-	int32 ControlGroupInt = (int32)(Value.Get<float>());
-	//If the requested group is the same as current control group, either ignore if 0 or set current to 0 (release specific group)
-	if (ControlGroupInt != CurrentControlGroup)	SetCurrentControlGroup(ControlGroupInt);
-	else if (ControlGroupInt) SetCurrentControlGroup(0);
-}
-
 /*
 TODO: For movement component, create a new function to set thrust/rotation rather than simply adding/subtracting
 */
@@ -360,7 +286,7 @@ void AShipPawn::ZeroThrottle() {
 
 void AShipPawn::StartEngineNoise() {
 	//don't start it if movement energy is leq 0 or if it is already playing the effect
-	if (MovementEnergy <= 0.f || (EngineAudioComponent && EngineAudioComponent->IsPlaying()))
+	if (MovementEnergy <= 0 || (EngineAudioComponent && EngineAudioComponent->IsPlaying()))
 	{
 		return;
 	}
@@ -531,7 +457,7 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 		{
 			float Dist = FVector2D::Distance(ScreenLoc, ScreenCenter);
 			//ADDED LOGIC: Set ClosestEnemy only if the current target is not already pointing at this enemy and it is less than halfway between center and edge
-			if (Dist < ClosestDist && CurrentTargets[CurrentControlGroup] != Enemy)
+			if (Dist < ClosestDist && CurrentTarget != Enemy)
 			{
 				ClosestDist = Dist;
 				ClosestEnemy = Enemy;
@@ -541,21 +467,21 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 	if (ClosestEnemy)
 	{
 		
-		if (CurrentTargets[CurrentControlGroup]) {
+		if (CurrentTarget) {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Removing old current-target"));
-			if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTargets[CurrentControlGroup])) {
+			if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
 				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Unbinding from old target"));
 				EnemyShip->SetIsTargeted(false);
 				EnemyShip->OnShipDestroyed.RemoveDynamic(this, &AShipPawn::HandleShipDestroyed);
 			}
 		}
 
-		CurrentTargets[CurrentControlGroup] = ClosestEnemy;
+		CurrentTarget = ClosestEnemy;
 		if (TargetAcquiredSound) {
 			UGameplayStatics::PlaySound2D(GetWorld(),TargetAcquiredSound);
 		}
 
-		if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTargets[CurrentControlGroup])) {
+		if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Binding the ship destroyed logic"));
 			EnemyShip->SetIsTargeted(true);
 			EnemyShip->OnShipDestroyed.AddDynamic(this, &AShipPawn::HandleShipDestroyed);
@@ -569,17 +495,17 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 	}
 	else
 	{
-		if (CurrentTargets[CurrentControlGroup]) {
+		if (CurrentTarget) {
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Removing old current-target"));
-			if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTargets[CurrentControlGroup])) {
+			if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
 				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Unbinding from old target"));
 				EnemyShip->SetIsTargeted(false);
 				EnemyShip->OnShipDestroyed.RemoveDynamic(this, &AShipPawn::HandleShipDestroyed);
 			}
 		}
-		CurrentTargets[CurrentControlGroup] = nullptr;
+		CurrentTarget = nullptr;
 		if (AShipPlayerController* SPC = Cast<AShipPlayerController>(Controller)) {
-			SPC->AcquireTargetToHud(CurrentTargets[CurrentControlGroup]);
+			SPC->AcquireTargetToHud(CurrentTarget);
 		}
 		/*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
 			FString::Printf(TEXT("No target found")));*/
@@ -587,41 +513,43 @@ void AShipPawn::Target(const FInputActionValue& Value) {
 }
 
 void AShipPawn::Fire() {
+	// GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("fire action called"));
 	if (AShipPlayerController* ASPC = Cast<AShipPlayerController>(Controller)) {
+		// GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("paused???/"));
 		if (ASPC->GetPauseStatus()) return;
 	}
-	if (CurrentTargets[CurrentControlGroup]) {
-		if (AShipPawn* ShipTarget = Cast<AShipPawn>(CurrentTargets[CurrentControlGroup])) {
-			if (ShipTarget->Team == Team) return;
+	if (CurrentTarget) {
+		// // GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("current target found"));
+		if (AShipPawn* ShipTarget = Cast<AShipPawn>(CurrentTarget)) {
+			// GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("target is a ship"));
+			if (ShipTarget->Team == Team) { return; }
 		}
-		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Still tracking target"));
+		// GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Still tracking target"));
 		for (UChildActorComponent* WeaponComp : WeaponComponents)
 		{
 			if (WeaponComp) {
 				AActor* Child = WeaponComp->GetChildActor();
 				if (AWeaponSystem* Weapon = Cast<AWeaponSystem>(Child))
 				{
-					if (Weapon->ControlGroup == CurrentControlGroup || CurrentControlGroup == 0)
-					//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Firing!!!!!"));
-					Weapon->FireWeapon(CurrentTargets[Weapon->ControlGroup]);
+					// GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Firing!!!!!"));
+					Weapon->FireWeapon(CurrentTarget);
 				}
 				else {
-					//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
+					// GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("child actor not a weapon"));
 
 				}
 			}
 			else {
-				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("no wewpaoncomp"));
+				// GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("no wewpaoncomp"));
 			}
 		}
 	}
 }
 
-void AShipPawn::UnlockTarget(int32 ControlGroup) {
-	if (ControlGroup >= 0 && ControlGroup <= 9)
+void AShipPawn::UnlockTarget() {
 	/*GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
 		FString::Printf(TEXT("Unlocking target")));*/
-		CurrentTargets[ControlGroup] = nullptr;
+	CurrentTarget = nullptr;
 }
 
 //Allocate damage hitting ship from some angle
@@ -818,7 +746,7 @@ EHitLayer AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 
 	//If damage done to engines, reduce movement energy if necessary.
 	if (EngineDamage) {
-		TotalEngineCurr -= (float)EngineDamage;
+		TotalEngineCurr -= EngineDamage;
 		OnTotalEngineChanged.Broadcast(TotalEngineCurr);
 		if (TotalEngineCurr < MovementEnergy) {
 			FreeMovement(MovementEnergy - TotalEngineCurr);
@@ -839,32 +767,32 @@ EHitLayer AShipPawn::AllocateDamage(float FromAngle, int32 DamageAmt) {
 }
 
 //Power Allocation Functions
-void AShipPawn::AllocateReinforceShield(int32 Index, float Amt) {
+void AShipPawn::AllocateReinforceShield(int32 Amt, int32 Index) {
 	if (TotalEnergyAvailable >= Amt) {
 		//Reduce total available energy by Amt, then increase shield reinforcement in Index by Amt
 		TotalEnergyAvailable -= Amt;
-		ShieldReinforcements[Index] += (int)Amt;
+		ShieldReinforcements[Index] += Amt;
 	}
 	else {
 		//Otherwise just use all remaining energy on reinforcing the shield
-		float Temp = TotalEnergyAvailable;
-		TotalEnergyAvailable = 0.f;
-		ShieldReinforcements[Index] += (int)Temp;
+		int32 temp = TotalEnergyAvailable;
+		TotalEnergyAvailable = 0;
+		ShieldReinforcements[Index] += temp;
 	}
 	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 	OnShieldStrengthChanged.Broadcast(Index, ShieldReinforcements[Index] + ShieldFacingsCurr[Index]);
 }
 
-void AShipPawn::FreeReinforceShield(int32 Index, float Amt) {
+void AShipPawn::FreeReinforceShield(int32 Amt, int32 Index) {
 	if (ShieldReinforcements[Index] > 0) {
 		if (TotalEnergyAvailable + Amt <= TotalEnergyCurr) {
 			//Reduce movement energy by Amt, then increase available energy by Amt
-			ShieldReinforcements[Index] -= (int)Amt;
+			ShieldReinforcements[Index] -= Amt;
 			TotalEnergyAvailable += Amt;
 		}
 		else {
 			//Otherwise just remove all energy from movement and push to available
-			float Temp = (float)ShieldReinforcements[Index];
+			int32 temp = ShieldReinforcements[Index];
 			ShieldReinforcements[Index] = 0;
 			TotalEnergyAvailable = TotalEnergyCurr;
 		}
@@ -875,10 +803,10 @@ void AShipPawn::FreeReinforceShield(int32 Index, float Amt) {
 
 //ReleaseEnergy: releases Amt energy and triggers cosmetic events. Used for the case where
 //a system is damaged or otherwise disabled and releases its stored energy.
-void AShipPawn::ReleaseEnergy(float Amt) {
+void AShipPawn::ReleaseEnergy(int32 Amt) {
 	TotalEnergyAvailable += Amt;
-	float Temp = TotalEnergyAvailable - TotalEnergyCurr;
-	if (Temp > 0.f) {
+	int32 Temp = TotalEnergyAvailable - TotalEnergyCurr;
+	if (Temp > 0) {
 		Amt -= Temp;
 		TotalEnergyAvailable = TotalEnergyCurr;
 	}
@@ -886,7 +814,7 @@ void AShipPawn::ReleaseEnergy(float Amt) {
 	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);//Set the energy bar to the new available total
 }
 
-void AShipPawn::EnergyLoss(float Amt) {
+void AShipPawn::EnergyLoss(int32 Amt) {
 	/*GEngine->AddOnScreenDebugMessage(-1, 12.0f, FColor::Yellow, FString::Printf(
 		TEXT("AMOUNT: %d; TOTAL CURR: %d; TOTAL AVAILABLE: %d"
 		),Amt, TotalEnergyCurr,TotalEnergyAvailable));*/
@@ -894,18 +822,18 @@ void AShipPawn::EnergyLoss(float Amt) {
 	TotalEnergyAvailable -= Amt;
 	OnTotalEnergyChanged.Broadcast(TotalEnergyCurr);
 	
-	if (TotalEnergyAvailable < 0.f) {
-		float RemainingDamage = -1 * TotalEnergyAvailable;
-		TotalEnergyAvailable = 0.f;
+	if (TotalEnergyAvailable < 0) {
+		int32 RemainingDamage = -1 * TotalEnergyAvailable;
+		TotalEnergyAvailable = 0;
 		/*GEngine->AddOnScreenDebugMessage(-1, 12.0f, FColor::Yellow, FString::Printf(
 			TEXT("ATTEMPTING SHIELD REINFORCEMENT STRIP (AMOUNT: %d; TOTAL CURR: %d; TOTAL AVAILABLE: %d)"
 			), RemainingDamage, TotalEnergyCurr, TotalEnergyAvailable));*/
 		//FIRST: Strip power from shield reinforcements
 		for (int i = 5; i >= 0; i--) {//Take off from all shields
 			if (int32 ReinEnergy = ShieldReinforcements[i]) {
-				ReinEnergy -= (int)RemainingDamage;
+				ReinEnergy -= RemainingDamage;
 				if (ReinEnergy < 0) {
-					RemainingDamage = (float) (- 1 * ReinEnergy);
+					RemainingDamage = -1 * ReinEnergy;
 					ReinEnergy = 0;
 				}
 				ShieldReinforcements[i] = ReinEnergy;
@@ -920,16 +848,16 @@ void AShipPawn::EnergyLoss(float Amt) {
 
 		if (RemainingDamage && MovementEnergy) {
 			MovementEnergy -= RemainingDamage;
-			if (MovementEnergy < 0.f) {
+			if (MovementEnergy < 0) {
 				RemainingDamage = -1 * MovementEnergy;
-				MovementEnergy = 0.f;
+				MovementEnergy = 0;
 			}
 			if (UShipPawnMovementComponent* MC = Cast<UShipPawnMovementComponent>(MovementComponent)) {
 				MC->SetMovementEnergy(MovementEnergy);
 				OnMovementEnergyChanged.Broadcast(MovementEnergy);
 			}
 			if (MovementEnergy) {
-				RemainingDamage = 0.f;
+				RemainingDamage = 0;
 			}
 		}
 
@@ -944,7 +872,7 @@ void AShipPawn::EnergyLoss(float Amt) {
 				//
 				if (AWeaponSystem* WS = Cast<AWeaponSystem>(WeaponComponents[i]->GetChildActor())) {
 					//if the weapon has energy in it, wipe it out
-					if (WS->AllocatedEnergy > 0.f) {
+					if (WS->AllocatedEnergy) {
 						/*GEngine->AddOnScreenDebugMessage(-1, 12.0f, FColor::Red, FString::Printf(
 							TEXT("Allocating Remaining Damage %d to Weapon %d (Allocated Energy %d)"
 							), RemainingDamage, i, WS->AllocatedEnergy));*/
@@ -953,12 +881,12 @@ void AShipPawn::EnergyLoss(float Amt) {
 							TEXT("Remaining Damage Differential: %d"
 							), RemainingDamage));*/
 						WS->bIsFiring = false;
-						if (RemainingDamage > 0.f) {
+						if (RemainingDamage > 0) {
 							FreeWeapon(i, WS->AllocatedEnergy,true);
 							WS->bIsFiring = true;
 							continue;
 						}
-						else if (RemainingDamage == 0.f) {
+						else if (RemainingDamage == 0) {
 							FreeWeapon(i, WS->AllocatedEnergy,true);
 							WS->bIsFiring = true;
 							break;
@@ -975,7 +903,7 @@ void AShipPawn::EnergyLoss(float Amt) {
 		}
 	}
 
-	if (TotalEnergyCurr <= 0.f) {//if depowered, kill the ship
+	if (TotalEnergyCurr <= 0) {//if depowered, kill the ship
 		DestroyShip(1);
 	}
 
@@ -986,16 +914,20 @@ void AShipPawn::EnergyLoss(float Amt) {
 
 //handlers for input
 void AShipPawn::HandleArrowAlloc() {
-	AllocateMovement(MovementStep);
+	AllocateMovement(1);
 	StartMovAllocNoise(true);
 }
 
 void AShipPawn::HandleArrowFree() {
-	FreeMovement(MovementStep);
+	FreeMovement(1);
 	StartMovAllocNoise(false);
 }
 
 void AShipPawn::FadeOutMovAlloc() {
+	if (!MovementAllocAudioComponent)
+	{
+		return;
+	}
 	MovementAllocAudioComponent->FadeOut(0.5f, 0.0f); // 0.3 sec fade to volume 0
 	// Stop after fade completes (optional)
 	FTimerHandle FadeTimer;
@@ -1048,43 +980,39 @@ void AShipPawn::KillMovAllocNoise() {
 
 //Attempts to allocate Amt energy to movement from the engines. If there is not enough available energy to do so, it will allocate the maximum
 //possible.
-void AShipPawn::AllocateMovement(float Amt) {
-	float TotalMoves = Amt / MovementStep;
-	if (TotalMoves != (float)((int)TotalMoves)) {
-		Amt = (float)((int)TotalMoves) * MovementStep;
-	}
-	float Temp = Amt; 
+void AShipPawn::AllocateMovement(int32 Amt) {
+	
+	int32 temp = Amt; 
 	//The amount requested might be more than is available
-	if (TotalEnergyAvailable < Temp) {
+	if (TotalEnergyAvailable < temp) {
 		//Check if removing all of TotalEnergyAvailable and adding to movement would overallocate engines
 		if (MovementEnergy + TotalEnergyAvailable <= TotalEngineCurr) {
 			//If it doesn't, temp is just the available energy
-			Temp = TotalEnergyAvailable;
+			temp = TotalEnergyAvailable;
 		}
 		else {
 			//otherwise, temp is the difference
-			Temp = TotalEngineCurr - MovementEnergy;
+			temp = TotalEngineCurr - MovementEnergy;
 		}
 	}
 	//If TotalEnergyAvailable is greater/equal to temp, we only have to check if MovementEnergy+temp >/< TotalEngineCurr
-	else if (MovementEnergy + Temp > TotalEngineCurr) {
+	else if (MovementEnergy + temp > TotalEngineCurr) {
 		//if it would be, set Temp to the difference
-		Temp = TotalEngineCurr - MovementEnergy;
+		temp = TotalEngineCurr - MovementEnergy;
 	}
-	if (Temp < MovementStep) return;
 	//Pass final movement energy down to the movement component to determine max speed
 	//Only modify energy if we have a working movement component
 	if (UShipPawnMovementComponent* MC = Cast<UShipPawnMovementComponent>(MovementComponent)) {
 		//Reduce total available energy by temp, then increase movement energy by temp
-		TotalEnergyAvailable -= Temp;
-		MovementEnergy += Temp;
+		TotalEnergyAvailable -= temp;
+		MovementEnergy += temp;
 		MC->SetMovementEnergy(MovementEnergy);
 		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 		OnMovementEnergyChanged.Broadcast(MovementEnergy);
 	}
 }
 
-void AShipPawn::FreeMovement(float Amt) {
+void AShipPawn::FreeMovement(int32 Amt) {
 	if (MovementEnergy >= Amt) {
 		//Reduce movement energy by Amt, then increase available energy by Amt
 		TotalEnergyAvailable += Amt;
@@ -1092,9 +1020,9 @@ void AShipPawn::FreeMovement(float Amt) {
 	}
 	else {
 		//Otherwise just remove all energy from movement and push to available
-		float Temp = MovementEnergy;
-		MovementEnergy = 0.f;
-		TotalEnergyAvailable += Temp;
+		int32 temp = MovementEnergy;
+		MovementEnergy = 0;
+		TotalEnergyAvailable += temp;
 		
 	}
 	OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
@@ -1108,44 +1036,42 @@ void AShipPawn::FreeMovement(float Amt) {
 /*
 Allocate/free from the weapon at Index Index by amount Amt
 */
-float AShipPawn::AllocateWeapon(int32 Index, float Amt) {
+int32 AShipPawn::AllocateWeapon(int32 Index, int32 Amt) {
 	AActor* TargetWeapon = WeaponComponents[Index]->GetChildActor();
 	if (AWeaponSystem* TW = Cast<AWeaponSystem>(TargetWeapon)) {
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Trying to allocate %f"), Amt));
 		if (TotalEnergyAvailable <= Amt) {
 			Amt = TotalEnergyAvailable;
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, 
-				FString::Printf(TEXT("ALLOCATEWEAPON: Not enough energy available %f out of %f"), TotalEnergyAvailable, Amt));
-			if (!Amt) return 0.f;
+			//UE_LOG(LogTemp, Warning, TEXT("ALLOCATEWEAPON: Not enough energy available %d out of %d"),TotalEnergyAvailable,Amt);
+			if (!Amt) return 0;
 		}
 		TotalEnergyAvailable -= Amt;
-		float AmountAllocated = TW->AllocateEnergy(Amt);
+		int32 AmountAllocated = TW->AllocateEnergy(Amt);
 		TotalEnergyAvailable += Amt - AmountAllocated;
 		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("Allocated %f"), AmountAllocated));
+		//UE_LOG(LogTemp, Warning, TEXT("Successfully allocated %d/%d."), Amt, TotalEnergyAvailable);
 		return AmountAllocated;
 	}
 	//UE_LOG(LogTemp, Warning, TEXT("Cast failed."));
-	return 0.f;
+	return 0;
 }
 
 //Returns the amount of energy freed
-float AShipPawn::FreeWeapon(int32 Index, float Amt, bool bIsRestricting) {
+int32 AShipPawn::FreeWeapon(int32 Index, int32 Amt, bool bIsRestricting) {
 	AActor* TargetWeapon = WeaponComponents[Index]->GetChildActor();
 	if (AWeaponSystem* TW = Cast<AWeaponSystem>(TargetWeapon)) {
-		float AmountFreed = TW->FreeEnergy(Amt);
+		int32 AmountFreed = TW->FreeEnergy(Amt);
 		//Broadcasts so the HUD picks up on the free action
 		TW->OnEnergyChangedExternal.Broadcast();
 		//If the free would cause Available energy to be greater than current max energy, set AmountFreed to the difference
 		if (TotalEnergyAvailable + AmountFreed > TotalEnergyCurr) {
 			AmountFreed = TotalEnergyCurr - TotalEnergyAvailable;
-			if (!AmountFreed) return 0.f;
+			if (!AmountFreed) return 0;
 		}
 		if (!bIsRestricting) TotalEnergyAvailable += AmountFreed;
 		OnAvailableEnergyChanged.Broadcast(TotalEnergyAvailable);
 		return AmountFreed;
 	}
-	return 0.f;
+	return 0;
 }
 
 void AShipPawn::DestroyShip(int32 CauseOfDeath) {
@@ -1219,38 +1145,33 @@ void AShipPawn::DestroyShip(int32 CauseOfDeath) {
 }
 
 void AShipPawn::HandleShipDestroyed(int32 CauseOfDeath, AShipPawn* DestroyedShip) {
-		//Iterate through all targets; if this is a targeted ship, 
-		for (int32 i = 0; i <= 9; i++) {
-			if (CurrentTargets[i]) {
-				if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTargets[i])) {
-					if (DestroyedShip == EnemyShip) {
-						UnlockTarget(i);
-						if (!CurrentControlGroup || CurrentControlGroup == i) {
-							int32 RandIndex = FMath::RandRange((int)0, (int)TargetDestroyedSounds.Num() - 1);
-							UGameplayStatics::PlaySound2D(GetWorld(), TargetDestroyedSounds[RandIndex]);
-						}
-						return;
-					}
-				}
+	if (CurrentTarget) {
+		if (AShipPawn* EnemyShip = Cast<AShipPawn>(CurrentTarget)) {
+			if (DestroyedShip == CurrentTarget) {
+				UnlockTarget();
+				int32 RandIndex = FMath::RandRange((int)0, (int)TargetDestroyedSounds.Num()-1);
+				UGameplayStatics::PlaySound2D(GetWorld(), TargetDestroyedSounds[RandIndex]);
 			}
 		}
+	}
+	
 }
 
 //GETTERS FOR STATS
 
-float AShipPawn::GetMovementEnergy() {
+int32 AShipPawn::GetMovementEnergy() {
 	return MovementEnergy;
 }
 
-float AShipPawn::GetMaxEnergy() {
+int32 AShipPawn::GetMaxEnergy() {
 	return TotalEnergy;
 }
 
-float AShipPawn::GetMaxEnergyAvailable() {
+int32 AShipPawn::GetMaxEnergyAvailable() {
 	return TotalEnergyAvailable;
 }
 
-float AShipPawn::GetMaxEnergyCurr() {
+int32 AShipPawn::GetMaxEnergyCurr() {
 	return TotalEnergyCurr;
 }
 

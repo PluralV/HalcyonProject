@@ -24,7 +24,7 @@ int32 APlasmaProjectile::GetDamage(float Range) {
 	}
 	if (bIsOverloaded) {
 		if (EnergyStep == 0) return AdjustedBaseDamage;
-		AdjustedBaseDamage += (int)(OverloadScaling * (float)AdjustedBaseDamage * ((EnergyLevel - MinEnergy) / EnergyStep));
+		AdjustedBaseDamage += (int)(OverloadScaling * (float)AdjustedBaseDamage * (float)((EnergyLevel - MinEnergy) / EnergyStep));
 	}
 	return AdjustedBaseDamage;
 }

@@ -112,7 +112,9 @@ void AHalcyonMissionGameMode::HandleObjectiveCompletion(int32 ObjectiveIndex) {
     if (MusicComponent) {
         ClearAudioComponent();
     }
-    UGameplayStatics::PlaySound2D(GetWorld(), LoadedSound);
+    if (LoadedSound) {
+        UGameplayStatics::PlaySound2D(GetWorld(), LoadedSound);
+    }
     if (CurrentObjective.ObjectiveType == 0) CurrentObjective.AssociatedObjective->SetActiveObjective(false);
     CurrentObjectiveIndex++;
     //GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("CurrentObjectiveIndex: %d ObjectiveCount: %d")));

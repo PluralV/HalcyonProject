@@ -88,8 +88,8 @@ void UShipPawnMovementComponent::TickComponent(float DeltaTime,
         float NewSpeed = FVector::DotProduct(CurrentVelocity, Right);
        /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
             FString::Printf(TEXT("Before check: NewSpeed: %f SpeedConstant: %f MovementEnergy: %d"), NewSpeed, SpeedConstant, MovementEnergy));*/
-        if (abs(NewSpeed) > SpeedConstant * MovementEnergy) {
-            NewSpeed = NewSpeed > 0 ? SpeedConstant * MovementEnergy : -1.0 * SpeedConstant * MovementEnergy;
+        if (abs(NewSpeed) > SpeedConstant * (float)MovementEnergy) {
+            NewSpeed = NewSpeed > 0 ? SpeedConstant * (float)MovementEnergy : -1.0 * SpeedConstant * (float)MovementEnergy;
            /* GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow,
                 FString::Printf(TEXT("After check: NewSpeed: %f SpeedConstant: %f MovementEnergy: %d"), NewSpeed, SpeedConstant, MovementEnergy));*/
         }
@@ -127,7 +127,7 @@ void UShipPawnMovementComponent::SetRotationalInput(FRotator Rotator) {
         FString::Printf(TEXT("set rotational input called - Pitch: %f, Yaw: %f Roll: %f"), AngularThrust.Pitch, AngularThrust.Yaw, AngularThrust.Roll));*/
 }
 
-void UShipPawnMovementComponent::SetMovementEnergy(float EnergyValue) {
+void UShipPawnMovementComponent::SetMovementEnergy(int32 EnergyValue) {
     MovementEnergy = EnergyValue;
 }
 
